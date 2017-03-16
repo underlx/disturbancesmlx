@@ -1,0 +1,731 @@
+.counter-wrapper {
+  float: right;
+  position: relative;
+  left: -50%;
+  margin-top: 20px;
+}
+.flip-counter {
+  position: relative;
+  left: 50%;
+  list-style-type: none;
+}
+.flip-counter li {
+  float: right;
+}
+.no-csstransforms3d span.back {
+  display: none;
+}
+.flip-counter.default .digit {
+  position: relative;
+  z-index: 0;
+  width: 60px;
+  height: 90px;
+  margin-left: 10px;
+  background-color: black;
+  text-align: center;
+  line-height: 0;
+  -webkit-text-stroke: 2px;
+  -webkit-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -moz-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+.flip-counter.default .digit:last-child {
+  margin-left: 0;
+}
+.flip-counter.default .digit span {
+  position: absolute;
+  left: 0;
+  height: 45px;
+  width: 60px;
+  overflow: hidden;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  font-size: 90px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  text-indent: 2px;
+  background-color: black;
+  color: white;
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+.flip-counter.default .digit span.front {
+  top: 0;
+  padding-top: 45px;
+}
+.flip-counter.default .digit span.back {
+  bottom: 0;
+}
+.flip-counter.default .digit .line {
+  position: absolute;
+  z-index: 10;
+  height: 45px;
+  width: 60px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.7);
+  -webkit-box-shadow: 0px 5px 7px -4px rgba(0, 0, 0, 0.7);
+  -moz-box-shadow: 0px 5px 7px -4px rgba(0, 0, 0, 0.7);
+  box-shadow: 0px 5px 7px -4px rgba(0, 0, 0, 0.7);
+}
+.flip-counter.default .digit .hinge-wrap {
+  z-index: 5;
+  position: relative;
+  overflow: visible;
+  -webkit-perspective: 300px;
+  -moz-perspective: 300px;
+  -ms-perspective: 300px;
+  perspective: 300px;
+}
+.flip-counter.default .digit .hinge {
+  position: absolute;
+  height: 45px;
+  width: 60px;
+  -webkit-transform-style: preserve-3d;
+  -moz-transform-style: preserve-3d;
+  -ms-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  -webkit-transition: -webkit-transform 0.3s ease-in;
+  -moz-transition: -moz-transform 0.3s ease-in;
+  transition: transform 0.3s ease-in;
+  -webkit-transform-origin: 50% 100%;
+  -moz-transform-origin: 50% 100%;
+  -ms-transform-origin: 50% 100%;
+  -o-transform-origin: 50% 100%;
+  transform-origin: 50% 100%;
+}
+.flip-counter.default .digit .hinge span {
+  height: 0;
+  z-index: 5;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flip-counter.default .digit .hinge span.front {
+  padding-top: 45px;
+}
+.flip-counter.default .digit .hinge span.back {
+  height: 45px;
+  -webkit-transform: rotateX(180deg);
+  -moz-transform: rotateX(180deg);
+  -ms-transform: rotateX(180deg);
+  -o-transform: rotateX(180deg);
+  transform: rotateX(180deg);
+}
+.flip-counter.default .digit.animate .hinge {
+  -webkit-transform: rotateX(-180deg);
+  -moz-transform: rotateX(-180deg);
+  -ms-transform: rotateX(-180deg);
+  -o-transform: rotateX(-180deg);
+  transform: rotateX(-180deg);
+}
+.flip-counter.default .digit-delimiter {
+  padding-top: 38px;
+  margin-right: -5px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 52px;
+  color: black;
+  text-indent: 3.33333333px;
+  text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+}
+.flip-counter.light .digit {
+  position: relative;
+  z-index: 0;
+  width: 60px;
+  height: 90px;
+  margin-left: 10px;
+  background-color: #e8f1ff;
+  text-align: center;
+  line-height: 0;
+  -webkit-text-stroke: 2px;
+  -webkit-box-shadow: 1px 1px 5px 0px rgba(232, 241, 255, 0.5);
+  -moz-box-shadow: 1px 1px 5px 0px rgba(232, 241, 255, 0.5);
+  box-shadow: 1px 1px 5px 0px rgba(232, 241, 255, 0.5);
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+.flip-counter.light .digit:last-child {
+  margin-left: 0;
+}
+.flip-counter.light .digit span {
+  position: absolute;
+  left: 0;
+  height: 45px;
+  width: 60px;
+  overflow: hidden;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  font-size: 90px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  text-indent: 2px;
+  background-color: #e8f1ff;
+  color: white;
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+.flip-counter.light .digit span.front {
+  top: 0;
+  padding-top: 45px;
+}
+.flip-counter.light .digit span.back {
+  bottom: 0;
+}
+.flip-counter.light .digit .line {
+  position: absolute;
+  z-index: 10;
+  height: 45px;
+  width: 60px;
+  border-bottom: 1px solid rgba(232, 241, 255, 0.7);
+  -webkit-box-shadow: 0px 5px 7px -4px rgba(232, 241, 255, 0.7);
+  -moz-box-shadow: 0px 5px 7px -4px rgba(232, 241, 255, 0.7);
+  box-shadow: 0px 5px 7px -4px rgba(232, 241, 255, 0.7);
+}
+.flip-counter.light .digit .hinge-wrap {
+  z-index: 5;
+  position: relative;
+  overflow: visible;
+  -webkit-perspective: 300px;
+  -moz-perspective: 300px;
+  -ms-perspective: 300px;
+  perspective: 300px;
+}
+.flip-counter.light .digit .hinge {
+  position: absolute;
+  height: 45px;
+  width: 60px;
+  -webkit-transform-style: preserve-3d;
+  -moz-transform-style: preserve-3d;
+  -ms-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  -webkit-transition: -webkit-transform 0.3s ease-in;
+  -moz-transition: -moz-transform 0.3s ease-in;
+  transition: transform 0.3s ease-in;
+  -webkit-transform-origin: 50% 100%;
+  -moz-transform-origin: 50% 100%;
+  -ms-transform-origin: 50% 100%;
+  -o-transform-origin: 50% 100%;
+  transform-origin: 50% 100%;
+}
+.flip-counter.light .digit .hinge span {
+  height: 0;
+  z-index: 5;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flip-counter.light .digit .hinge span.front {
+  padding-top: 45px;
+}
+.flip-counter.light .digit .hinge span.back {
+  height: 45px;
+  -webkit-transform: rotateX(180deg);
+  -moz-transform: rotateX(180deg);
+  -ms-transform: rotateX(180deg);
+  -o-transform: rotateX(180deg);
+  transform: rotateX(180deg);
+}
+.flip-counter.light .digit.animate .hinge {
+  -webkit-transform: rotateX(-180deg);
+  -moz-transform: rotateX(-180deg);
+  -ms-transform: rotateX(-180deg);
+  -o-transform: rotateX(-180deg);
+  transform: rotateX(-180deg);
+}
+.flip-counter.light .digit-delimiter {
+  padding-top: 38px;
+  margin-right: -5px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 52px;
+  color: #e8f1ff;
+  text-indent: 3.33333333px;
+  text-shadow: 1px 1px 5px rgba(232, 241, 255, 0.5);
+}
+.flip-counter.small .digit {
+  position: relative;
+  z-index: 0;
+  width: 30px;
+  height: 40px;
+  margin-left: 5px;
+  background-color: black;
+  text-align: center;
+  line-height: 0;
+  -webkit-text-stroke: 2px;
+  -webkit-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -moz-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+.flip-counter.small .digit:last-child {
+  margin-left: 0;
+}
+.flip-counter.small .digit span {
+  position: absolute;
+  left: 0;
+  height: 20px;
+  width: 30px;
+  overflow: hidden;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  font-size: 34px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  text-indent: 2px;
+  background-color: black;
+  color: white;
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+.flip-counter.small .digit span.front {
+  top: 0;
+  padding-top: 20px;
+}
+.flip-counter.small .digit span.back {
+  bottom: 0;
+}
+.flip-counter.small .digit .line {
+  position: absolute;
+  z-index: 10;
+  height: 20px;
+  width: 30px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.7);
+  -webkit-box-shadow: 0px 5px 7px -4px rgba(0, 0, 0, 0.7);
+  -moz-box-shadow: 0px 5px 7px -4px rgba(0, 0, 0, 0.7);
+  box-shadow: 0px 5px 7px -4px rgba(0, 0, 0, 0.7);
+}
+.flip-counter.small .digit .hinge-wrap {
+  z-index: 5;
+  position: relative;
+  overflow: visible;
+  -webkit-perspective: 300px;
+  -moz-perspective: 300px;
+  -ms-perspective: 300px;
+  perspective: 300px;
+}
+.flip-counter.small .digit .hinge {
+  position: absolute;
+  height: 20px;
+  width: 30px;
+  -webkit-transform-style: preserve-3d;
+  -moz-transform-style: preserve-3d;
+  -ms-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  -webkit-transition: -webkit-transform 0.3s ease-in;
+  -moz-transition: -moz-transform 0.3s ease-in;
+  transition: transform 0.3s ease-in;
+  -webkit-transform-origin: 50% 100%;
+  -moz-transform-origin: 50% 100%;
+  -ms-transform-origin: 50% 100%;
+  -o-transform-origin: 50% 100%;
+  transform-origin: 50% 100%;
+}
+.flip-counter.small .digit .hinge span {
+  height: 0;
+  z-index: 5;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flip-counter.small .digit .hinge span.front {
+  padding-top: 20px;
+}
+.flip-counter.small .digit .hinge span.back {
+  height: 20px;
+  -webkit-transform: rotateX(180deg);
+  -moz-transform: rotateX(180deg);
+  -ms-transform: rotateX(180deg);
+  -o-transform: rotateX(180deg);
+  transform: rotateX(180deg);
+}
+.flip-counter.small .digit.animate .hinge {
+  -webkit-transform: rotateX(-180deg);
+  -moz-transform: rotateX(-180deg);
+  -ms-transform: rotateX(-180deg);
+  -o-transform: rotateX(-180deg);
+  transform: rotateX(-180deg);
+}
+.flip-counter.small .digit-delimiter {
+  padding-top: 15px;
+  margin-right: -2.5px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 25px;
+  color: black;
+  text-indent: 1.66666667px;
+  text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+}
+.flip-counter.huge .digit {
+  position: relative;
+  z-index: 0;
+  width: 140px;
+  height: 200px;
+  margin-left: 20px;
+  background-color: black;
+  text-align: center;
+  line-height: 0;
+  -webkit-text-stroke: 2px;
+  -webkit-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -moz-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+.flip-counter.huge .digit:last-child {
+  margin-left: 0;
+}
+.flip-counter.huge .digit span {
+  position: absolute;
+  left: 0;
+  height: 100px;
+  width: 140px;
+  overflow: hidden;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  font-size: 190px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  text-indent: 2px;
+  background-color: black;
+  color: white;
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+.flip-counter.huge .digit span.front {
+  top: 0;
+  padding-top: 100px;
+}
+.flip-counter.huge .digit span.back {
+  bottom: 0;
+}
+.flip-counter.huge .digit .line {
+  position: absolute;
+  z-index: 10;
+  height: 100px;
+  width: 140px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.7);
+  -webkit-box-shadow: 0px 6px 7px -4px rgba(0, 0, 0, 0.7);
+  -moz-box-shadow: 0px 6px 7px -4px rgba(0, 0, 0, 0.7);
+  box-shadow: 0px 6px 7px -4px rgba(0, 0, 0, 0.7);
+}
+.flip-counter.huge .digit .hinge-wrap {
+  z-index: 5;
+  position: relative;
+  overflow: visible;
+  -webkit-perspective: 800px;
+  -moz-perspective: 800px;
+  -ms-perspective: 800px;
+  perspective: 800px;
+}
+.flip-counter.huge .digit .hinge {
+  position: absolute;
+  height: 100px;
+  width: 140px;
+  -webkit-transform-style: preserve-3d;
+  -moz-transform-style: preserve-3d;
+  -ms-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  -webkit-transition: -webkit-transform 0.3s ease-in;
+  -moz-transition: -moz-transform 0.3s ease-in;
+  transition: transform 0.3s ease-in;
+  -webkit-transform-origin: 50% 100%;
+  -moz-transform-origin: 50% 100%;
+  -ms-transform-origin: 50% 100%;
+  -o-transform-origin: 50% 100%;
+  transform-origin: 50% 100%;
+}
+.flip-counter.huge .digit .hinge span {
+  height: 0;
+  z-index: 5;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flip-counter.huge .digit .hinge span.front {
+  padding-top: 100px;
+}
+.flip-counter.huge .digit .hinge span.back {
+  height: 100px;
+  -webkit-transform: rotateX(180deg);
+  -moz-transform: rotateX(180deg);
+  -ms-transform: rotateX(180deg);
+  -o-transform: rotateX(180deg);
+  transform: rotateX(180deg);
+}
+.flip-counter.huge .digit.animate .hinge {
+  -webkit-transform: rotateX(-180deg);
+  -moz-transform: rotateX(-180deg);
+  -ms-transform: rotateX(-180deg);
+  -o-transform: rotateX(-180deg);
+  transform: rotateX(-180deg);
+}
+.flip-counter.huge .digit-delimiter {
+  padding-top: 130px;
+  margin-right: -10px;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  font-size: 70px;
+  color: black;
+  text-indent: 6.66666667px;
+  text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.5);
+}
+
+.flip-counter.scalable .digit {
+  position: relative;
+  z-index: 0;
+  width: 6vw;
+  height: 9vw;
+  margin-left: 1vw;
+  background-color: lightgray;
+  text-align: center;
+  line-height: 0;
+  -webkit-text-stroke: 2px;
+  -webkit-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -moz-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+.flip-counter.scalable .digit:last-child {
+  margin-left: 0;
+}
+.flip-counter.scalable .digit span {
+  position: absolute;
+  left: 0;
+  height: 4.5vw;
+  width: 6vw;
+  overflow: hidden;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  font-size: 9vw;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  text-indent: 2px;
+  background-color: lightgray;
+  color: black;
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+.flip-counter.scalable .digit span.front {
+  top: 0;
+  padding-top: 4.5vw;
+}
+.flip-counter.scalable .digit span.back {
+  bottom: 0;
+}
+.flip-counter.scalable .digit .line {
+  position: absolute;
+  z-index: 10;
+  height: 4.5vw;
+  width: 6vw;
+  border-bottom: 1px solid rgba(232, 241, 255, 0.7);
+  -webkit-box-shadow: 0px 5px 7px -4px rgba(232, 241, 255, 0.7);
+  -moz-box-shadow: 0px 5px 7px -4px rgba(232, 241, 255, 0.7);
+  box-shadow: 0px 5px 7px -4px rgba(232, 241, 255, 0.7);
+}
+.flip-counter.scalable .digit .hinge-wrap {
+  z-index: 5;
+  position: relative;
+  overflow: visible;
+  -webkit-perspective: 800px;
+  -moz-perspective: 800px;
+  -ms-perspective: 800px;
+  perspective: 800px;
+}
+.flip-counter.scalable .digit .hinge {
+  position: absolute;
+  height: 4.5vw;
+  width: 6vw;
+  -webkit-transform-style: preserve-3d;
+  -moz-transform-style: preserve-3d;
+  -ms-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  -webkit-transition: -webkit-transform 0.3s ease-in;
+  -moz-transition: -moz-transform 0.3s ease-in;
+  transition: transform 0.3s ease-in;
+  -webkit-transform-origin: 50% 100%;
+  -moz-transform-origin: 50% 100%;
+  -ms-transform-origin: 50% 100%;
+  -o-transform-origin: 50% 100%;
+  transform-origin: 50% 100%;
+}
+.flip-counter.scalable .digit .hinge span {
+  height: 0;
+  z-index: 5;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flip-counter.scalable .digit .hinge span.front {
+  padding-top: 4.5vw;
+}
+.flip-counter.scalable .digit .hinge span.back {
+  height: 4.5vw;
+  -webkit-transform: rotateX(180deg);
+  -moz-transform: rotateX(180deg);
+  -ms-transform: rotateX(180deg);
+  -o-transform: rotateX(180deg);
+  transform: rotateX(180deg);
+}
+.flip-counter.scalable .digit.animate .hinge {
+  -webkit-transform: rotateX(-180deg);
+  -moz-transform: rotateX(-180deg);
+  -ms-transform: rotateX(-180deg);
+  -o-transform: rotateX(-180deg);
+  transform: rotateX(-180deg);
+}
+.flip-counter.scalable .digit-delimiter {
+  display: none;
+}
+.counter-wrapper.scalable {
+  float: right;
+  position: relative;
+  left: -50%;
+  margin-top: 2vw;
+}
+
+.flip-counter.scalable.small .digit {
+  position: relative;
+  z-index: 0;
+  width: 4.4vw;
+  height: 6.6vw;
+  margin-left: 1vw;
+  background-color: lightgray;
+  text-align: center;
+  line-height: 0;
+  -webkit-text-stroke: 2px;
+  -webkit-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -moz-box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  box-shadow: 1px 1px 5px 0px rgba(0, 0, 0, 0.5);
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+.flip-counter.scalable.small .digit:last-child {
+  margin-left: 0;
+}
+.flip-counter.scalable.small .digit span {
+  position: absolute;
+  left: 0;
+  height: 3.3vw;
+  width: 4.4vw;
+  overflow: hidden;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+  font-size: 6.6vw;
+  font-family: 'Ubuntu', sans-serif;
+  font-weight: 700;
+  text-indent: 2px;
+  background-color: lightgray;
+  color: black;
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+.flip-counter.scalable.small .digit span.front {
+  top: 0;
+  padding-top: 3.3vw;
+}
+.flip-counter.scalable.small .digit span.back {
+  bottom: 0;
+}
+.flip-counter.scalable.small .digit .line {
+  position: absolute;
+  z-index: 10;
+  height: 3.3vw;
+  width: 4.4vw;
+  border-bottom: 1px solid rgba(232, 241, 255, 0.7);
+  -webkit-box-shadow: 0px 5px 7px -4px rgba(232, 241, 255, 0.7);
+  -moz-box-shadow: 0px 5px 7px -4px rgba(232, 241, 255, 0.7);
+  box-shadow: 0px 5px 7px -4px rgba(232, 241, 255, 0.7);
+}
+.flip-counter.scalable.small .digit .hinge-wrap {
+  z-index: 5;
+  position: relative;
+  overflow: visible;
+  -webkit-perspective: 800px;
+  -moz-perspective: 800px;
+  -ms-perspective: 800px;
+  perspective: 800px;
+}
+.flip-counter.scalable.small .digit .hinge {
+  position: absolute;
+  height: 3.3vw;
+  width: 4.4vw;
+  -webkit-transform-style: preserve-3d;
+  -moz-transform-style: preserve-3d;
+  -ms-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  -webkit-transition: -webkit-transform 0.3s ease-in;
+  -moz-transition: -moz-transform 0.3s ease-in;
+  transition: transform 0.3s ease-in;
+  -webkit-transform-origin: 50% 100%;
+  -moz-transform-origin: 50% 100%;
+  -ms-transform-origin: 50% 100%;
+  -o-transform-origin: 50% 100%;
+  transform-origin: 50% 100%;
+}
+.flip-counter.scalable.small .digit .hinge span {
+  height: 0;
+  z-index: 5;
+  -webkit-backface-visibility: hidden;
+  -moz-backface-visibility: hidden;
+  -ms-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flip-counter.scalable.small .digit .hinge span.front {
+  padding-top: 3.3vw;
+}
+.flip-counter.scalable.small .digit .hinge span.back {
+  height: 3.3vw;
+  -webkit-transform: rotateX(180deg);
+  -moz-transform: rotateX(180deg);
+  -ms-transform: rotateX(180deg);
+  -o-transform: rotateX(180deg);
+  transform: rotateX(180deg);
+}
+.flip-counter.scalable.small .digit.animate .hinge {
+  -webkit-transform: rotateX(-180deg);
+  -moz-transform: rotateX(-180deg);
+  -ms-transform: rotateX(-180deg);
+  -o-transform: rotateX(-180deg);
+  transform: rotateX(-180deg);
+}
+.flip-counter.scalable.small .digit-delimiter {
+  display: none;
+}
+.counter-wrapper.scalable.small {
+  float: right;
+  position: relative;
+  left: -50%;
+  margin-top: 1.5vw;
+}
