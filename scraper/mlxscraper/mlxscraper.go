@@ -98,10 +98,10 @@ func (sc *Scraper) update() {
 				status := line.Next()
 				if len(status.Find(".semperturbacao").Nodes) == 0 {
 					status := interfaces.Status{
-						Time:          time.Now().UTC(),
-						Line:          newLines[lineID],
-						IsDisturbance: true,
-						Status:        status.Find("li").Text(),
+						Time:       time.Now().UTC(),
+						Line:       newLines[lineID],
+						IsDowntime: true,
+						Status:     status.Find("li").Text(),
 						Source: interfaces.Source{
 							ID:          "Scraper",
 							Name:        "Metro de Lisboa estado_Linhas.php",
@@ -111,10 +111,10 @@ func (sc *Scraper) update() {
 					sc.statusReporter(status)
 				} else {
 					status := interfaces.Status{
-						Time:          time.Now().UTC(),
-						Line:          newLines[lineID],
-						IsDisturbance: false,
-						Status:        status.Find("li").Text(),
+						Time:       time.Now().UTC(),
+						Line:       newLines[lineID],
+						IsDowntime: false,
+						Status:     status.Find("li").Text(),
 						Source: interfaces.Source{
 							ID:          "Scraper",
 							Name:        "Metro de Lisboa estado_Linhas.php",
