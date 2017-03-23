@@ -77,7 +77,7 @@ func main() {
 			Name:        "Metro de Lisboa estado_Linhas.php",
 			IsAutomatic: true,
 		},
-		Period: 10 * time.Second,
+		Period: 1 * time.Minute,
 	}
 	s.Begin(l, func(status *interfaces.Status) {
 		tx, err := rootSqalxNode.Beginx()
