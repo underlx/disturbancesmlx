@@ -5,65 +5,151 @@ import (
 	"os"
 	"time"
 
+	"github.com/heetch/sqalx"
+	"github.com/jmoiron/sqlx"
+	uuid "github.com/satori/go.uuid"
+
+	sq "github.com/gbl08ma/squirrel"
+
+	"tny.im/clouttery-server/keybox"
 	"tny.im/disturbancesmlx/interfaces"
 	"tny.im/disturbancesmlx/scraper"
 	"tny.im/disturbancesmlx/scraper/mlxscraper"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-var db *gorm.DB
+const (
+	DEBUG = true
+)
 
-func getOngoingDisturbance(line interfaces.Line) (disturbance interfaces.Disturbance, found bool) {
-	var count int
-	db.Where(&interfaces.Disturbance{
-		Line:  line,
-		Ended: false,
-	}).First(&disturbance).Count(&count)
-	return disturbance, count != 0
-}
+var (
+	rdb           *sqlx.DB
+	sdb           sq.StatementBuilderType
+	rootSqalxNode sqalx.Node
+	secrets       *keybox.Keybox
+	mainLog       = log.New(os.Stdout, "", log.Ldate|log.Ltime)
+)
 
 func main() {
 	var err error
-	db, err = gorm.Open("postgres", "postgresql://www-data:xxx@localhost:5432?sslmode=disable&dbname=disturbances")
-	if err != nil {
-		panic("failed to connect to database")
+	mainLog.Println("Server starting, opening keybox...")
+	if DEBUG {
+		secrets, err = keybox.Open("secrets-debug.json")
+	} else {
+		secrets, err = keybox.Open("secrets.json")
 	}
-	defer db.Close()
-	db.LogMode(true)
-	db.AutoMigrate(&interfaces.Network{}, &interfaces.Line{}, &interfaces.Status{}, &interfaces.Source{}, &interfaces.Disturbance{})
+	if err != nil {
+		mainLog.Fatal(err)
+	}
+	mainLog.Println("Keybox opened")
+
+	mainLog.Println("Opening database...")
+	databaseURI, present := secrets.Get("databaseURI")
+	if !present {
+		mainLog.Fatal("Database connection string not present in keybox")
+	}
+	rdb, err = sqlx.Open("postgres", databaseURI)
+	if err != nil {
+		mainLog.Fatal(err)
+	}
+	defer rdb.Close()
+
+	err = rdb.Ping()
+	if err != nil {
+		mainLog.Fatal(err)
+	}
+	sdb = sq.StatementBuilder.PlaceholderFormat(sq.Dollar).RunWith(rdb)
+
+	rootSqalxNode, err = sqalx.New(rdb)
+	if err != nil {
+		mainLog.Fatal(err)
+	}
+
+	mainLog.Println("Database opened")
 
 	l := log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime)
 	var s scraper.Scraper
-	s = &mlxscraper.Scraper{}
-	s.Begin(l, 10*time.Second, func(status interfaces.Status) {
+	s = &mlxscraper.Scraper{
+		URL:         "http://app.metrolisboa.pt/status/estado_Linhas.php",
+		NetworkID:   "pt-ml",
+		NetworkName: "Metro de Lisboa",
+		Source: &interfaces.Source{
+			ID:          "mlxscraper-pt-ml",
+			Name:        "Metro de Lisboa estado_Linhas.php",
+			IsAutomatic: true,
+		},
+		Period: 10 * time.Second,
+	}
+	s.Begin(l, func(status *interfaces.Status) {
+		tx, err := rootSqalxNode.Beginx()
+		if err != nil {
+			mainLog.Println(err)
+			return
+		}
+		defer tx.Rollback()
+
 		log.Println("New status for line", status.Line.Name, "on network", status.Line.Network.Name)
 		log.Println("  ", status.Status)
 		if status.IsDowntime {
 			log.Println("   Is disturbance!")
 		}
 
-		disturbance, found := getOngoingDisturbance(status.Line)
+		err = status.Update(tx)
+		if err != nil {
+			mainLog.Println(err)
+			return
+		}
+
+		disturbances, err := interfaces.GetOngoingDisturbancesForLine(tx, status.Line)
+		if err != nil {
+			mainLog.Println(err)
+			return
+		}
+		found := len(disturbances) > 0
+		var disturbance *interfaces.Disturbance
 		if found {
-			log.Println("Found ongoing disturbance")
+			mainLog.Println("Found ongoing disturbance")
+			disturbance = disturbances[len(disturbances)-1]
+		} else {
+			disturbance = &interfaces.Disturbance{
+				ID:   uuid.NewV4().String(),
+				Line: status.Line,
+			}
 		}
 		if status.IsDowntime && !found {
 			disturbance.StartTime = status.Time
-			disturbance.Line = status.Line
 			disturbance.Description = status.Status
-		} else if !status.IsDowntime && found {
-			disturbance.EndTime = status.Time
-			disturbance.Ended = true
+			disturbance.Statuses = append(disturbance.Statuses, status)
+			err = disturbance.Update(tx)
+			if err != nil {
+				mainLog.Println(err)
+				return
+			}
+		} else if found {
+			if !status.IsDowntime {
+				// "close" this disturbance
+				disturbance.EndTime = status.Time
+				disturbance.Ended = true
+			}
+			disturbance.Statuses = append(disturbance.Statuses, status)
+			err = disturbance.Update(tx)
+			if err != nil {
+				mainLog.Println(err)
+				return
+			}
 		}
-		disturbance.Statuses = append(disturbance.Statuses, status)
-		if found {
-			db.Update(&disturbance)
-		} else if status.IsDowntime {
-			db.Create(&disturbance)
-		}
-	})
+		tx.Commit()
+	},
+		func(s scraper.Scraper) {
+			for _, network := range s.Networks() {
+				network.Update(rootSqalxNode)
+			}
+			for _, line := range s.Lines() {
+				line.Update(rootSqalxNode)
+			}
+		})
+	defer s.End()
 
-	time.Sleep(1 * time.Minute)
-	s.End()
+	for {
+		time.Sleep(1 * time.Minute)
+	}
 }
