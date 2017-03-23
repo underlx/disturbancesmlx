@@ -119,8 +119,8 @@
 <body>
   <div class="header">
     <div class="pure-g">
-      <div class="pure-u-1" style="text-align: center; background-color: #ddd;">
-        <strong>Estado das linhas</strong> <small>- última alteração há {{ .LastChangeAgo }} minutos</small>
+      <div class="pure-u-1" style="text-align: center; background-color: #eee;">
+        <strong>Estado das linhas</strong> <small style="color: #777;">última alteração há {{ if .LastChangeAgoHour }}{{.LastChangeAgoHour}} horas e {{end}}{{ .LastChangeAgoMin }} minutos</small>
       </div>
       {{ $numlines := len .Lines }}
       {{ range $line := .Lines }}
@@ -234,7 +234,7 @@
             {{end}}
           </tbody>
         </table>
-
+        <p style="color: #777;"><small>As perturbações são contabilizadas em cada hora que afectem.</small></p>
         <h1>Últimas <em>perturbações</em> por linha</h1>
         {{ range $line := .Lines }}
         <h3 style="color: #{{ $line.Color }};">{{ $line.Name }}</h3>

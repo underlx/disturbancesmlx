@@ -61,12 +61,16 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 			HourCounts      []int
 			LastDisturbance *interfaces.Disturbance
 		}
-		DayNames      []string
-		LastChangeAgo int
-		LastUpdateAgo int
+		DayNames          []string
+		LastChangeAgoMin  int
+		LastChangeAgoHour int
+		LastUpdateAgoMin  int
+		LastUpdateAgoHour int
 	}{
-		LastChangeAgo: int(time.Now().Sub(lastChange).Minutes()),
-		LastUpdateAgo: int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()),
+		LastChangeAgoMin:  int(time.Now().Sub(lastChange).Minutes()) % 60,
+		LastChangeAgoHour: int(time.Now().Sub(lastChange).Hours()),
+		LastUpdateAgoMin:  int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60,
+		LastUpdateAgoHour: int(time.Now().Sub(mlxscr.LastUpdate()).Hours()),
 	}
 
 	t := time.Now().In(loc).AddDate(0, 0, -6)
