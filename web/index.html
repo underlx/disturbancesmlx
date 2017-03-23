@@ -234,7 +234,17 @@
             {{end}}
           </tbody>
         </table>
-        <p>Serão disponibilizados mais dados, para intervalos de tempo maiores, à medida que estes sejam recolhidos.</p>
+
+        <h1>Últimas <em>perturbações</em> por linha</h1>
+        {{ range $line := .Lines }}
+        <h3 style="color: #{{ $line.Color }};">{{ $line.Name }}</h3>
+        <blockquote>{{ $line.LastDisturbance.Description }}
+          <br><span style="color: #777;">{{ formatDisturbanceTime $line.LastDisturbance.StartTime }} - 
+            {{ if $line.LastDisturbance.Ended }}{{ formatDisturbanceTime $line.LastDisturbance.EndTime }}{{else}}<em>Por resolver</em>{{end}}
+          </span>
+        </blockquote>
+        {{end}}
+        <p style="margin-top: 50px;">Serão disponibilizados mais dados, para intervalos de tempo maiores, à medida que estes sejam recolhidos.</p>
       </div>
     </div>
   </div>

@@ -55,10 +55,11 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		Days  int
 		Lines []struct {
 			*interfaces.Line
-			Down       bool
-			Minutes    int
-			DayCounts  []int
-			HourCounts []int
+			Down            bool
+			Minutes         int
+			DayCounts       []int
+			HourCounts      []int
+			LastDisturbance *interfaces.Disturbance
 		}
 		DayNames      []string
 		LastChangeAgo int
@@ -113,10 +114,11 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 
 	p.Lines = make([]struct {
 		*interfaces.Line
-		Down       bool
-		Minutes    int
-		DayCounts  []int
-		HourCounts []int
+		Down            bool
+		Minutes         int
+		DayCounts       []int
+		HourCounts      []int
+		LastDisturbance *interfaces.Disturbance
 	}, len(lines))
 
 	for i := range lines {
@@ -125,6 +127,13 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		p.Lines[i].Down = err == nil
 		if err == nil {
 			p.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
+		}
+
+		p.Lines[i].LastDisturbance, err = lines[i].LastDisturbance(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
 		p.Lines[i].DayCounts, err = lines[i].CountDisturbancesByDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc))
@@ -169,6 +178,10 @@ func WebReloadTemplate() {
 		},
 		"plus64": func(a, b int64) int64 {
 			return a + b
+		},
+		"formatDisturbanceTime": func(t time.Time) string {
+			loc, _ := time.LoadLocation("Europe/Lisbon")
+			return t.In(loc).Format("02 Jan 2006 15:04")
 		},
 	}
 
