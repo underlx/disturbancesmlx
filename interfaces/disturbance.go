@@ -38,7 +38,8 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("id", "time_start", "time_end", "mline", "description").
+	rows, err := sbuilder.Columns("line_disturbance.id", "line_disturbance.time_start",
+		"line_disturbance.time_end", "line_disturbance.mline", "line_disturbance.description").
 		From("line_disturbance").
 		RunWith(tx).Query()
 	if err != nil {
@@ -101,8 +102,8 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 		}
 		rows.Close()
 
-		for i := range statusIDs {
-			status, err := GetStatus(tx, statusIDs[i])
+		for j := range statusIDs {
+			status, err := GetStatus(tx, statusIDs[j])
 			if err != nil {
 				return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)
 			}

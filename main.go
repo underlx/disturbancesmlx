@@ -18,7 +18,8 @@ import (
 )
 
 const (
-	DEBUG = true
+	DEBUG       = true
+	MLnetworkID = "pt-ml"
 )
 
 var (
@@ -28,6 +29,31 @@ var (
 	secrets       *keybox.Keybox
 	mainLog       = log.New(os.Stdout, "", log.Ldate|log.Ltime)
 )
+
+// Return the time since the last Metro de Lisboa disturbance in hours and days
+func MLNoDisturbanceUptime(node sqalx.Node) (hours int, days int, err error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	n, err := interfaces.GetNetwork(rootSqalxNode, "pt-ml")
+	if err != nil {
+		return 0, 0, err
+	}
+	d, err := n.LastDisturbance(rootSqalxNode)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	if !d.Ended {
+		return 0, 0, nil
+	}
+
+	difference := time.Now().UTC().Sub(d.EndTime)
+	return int(difference.Hours()), int(difference.Hours() / 24), nil
+}
 
 func main() {
 	var err error
@@ -70,7 +96,7 @@ func main() {
 	var s scraper.Scraper
 	s = &mlxscraper.Scraper{
 		URL:         "http://app.metrolisboa.pt/status/estado_Linhas.php",
-		NetworkID:   "pt-ml",
+		NetworkID:   MLnetworkID,
 		NetworkName: "Metro de Lisboa",
 		Source: &interfaces.Source{
 			ID:          "mlxscraper-pt-ml",
@@ -97,6 +123,13 @@ func main() {
 		if err != nil {
 			mainLog.Println(err)
 			return
+		}
+
+		d, err := status.Line.LastDisturbance(tx)
+		if err == nil {
+			mainLog.Println("Last disturbance at", d.StartTime, "description:", d.Description)
+		} else {
+			mainLog.Println(err)
 		}
 
 		disturbances, err := status.Line.OngoingDisturbances(tx)
@@ -150,6 +183,33 @@ func main() {
 	defer s.End()
 
 	for {
+		printLatestDisturbance(rootSqalxNode)
+		hours, days, err := MLNoDisturbanceUptime(rootSqalxNode)
+		if err != nil {
+			mainLog.Println(err)
+		}
+		mainLog.Printf("Since last disturbance: %d hours or %d days", hours, days)
 		time.Sleep(1 * time.Minute)
+	}
+}
+
+func printLatestDisturbance(node sqalx.Node) {
+	tx, err := node.Beginx()
+	if err != nil {
+		mainLog.Println(err)
+		return
+	}
+	defer tx.Commit() // read-only tx
+
+	n, err := interfaces.GetNetwork(tx, "pt-ml")
+	if err != nil {
+		mainLog.Println(err)
+		return
+	}
+	d, err := n.LastDisturbance(tx)
+	if err == nil {
+		mainLog.Println("Network last disturbance at", d.StartTime, "description:", d.Description)
+	} else {
+		mainLog.Println(err)
 	}
 }

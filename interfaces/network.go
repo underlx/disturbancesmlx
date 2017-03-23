@@ -66,6 +66,39 @@ func GetNetwork(node sqalx.Node, id string) (*Network, error) {
 	return &network, nil
 }
 
+// Lines returns the lines in this network
+func (network *Network) Lines(node sqalx.Node) ([]*Line, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"network": network.ID})
+	return getLinesWithSelect(node, s)
+}
+
+// LastDisturbance returns the latest disturbance affecting this line
+func (network *Network) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit() // read-only tx
+	var disturbance *Disturbance
+	lines, err := network.Lines(tx)
+	if err != nil {
+		return disturbance, errors.New("LastDisturbance: " + err.Error())
+	}
+	for _, line := range lines {
+		d, err := line.LastDisturbance(tx)
+		if err != nil {
+			continue
+		}
+		if disturbance == nil ||
+			(!d.Ended && d.StartTime.After(disturbance.StartTime)) ||
+			d.EndTime.After(disturbance.EndTime) {
+			disturbance = d
+		}
+	}
+	return disturbance, nil
+}
+
 // Update adds or updates the network
 func (network *Network) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
