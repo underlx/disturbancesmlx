@@ -28,6 +28,7 @@ var (
 	rootSqalxNode sqalx.Node
 	secrets       *keybox.Keybox
 	mainLog       = log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	webLog        = log.New(os.Stdout, "web", log.Ldate|log.Ltime)
 )
 
 // Return the time since the last Metro de Lisboa disturbance in hours and days
@@ -38,7 +39,7 @@ func MLNoDisturbanceUptime(node sqalx.Node) (hours int, days int, err error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	n, err := interfaces.GetNetwork(rootSqalxNode, "pt-ml")
+	n, err := interfaces.GetNetwork(rootSqalxNode, MLnetworkID)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -182,6 +183,7 @@ func main() {
 		})
 	defer s.End()
 
+	go WebServer()
 	for {
 		printLatestDisturbance(rootSqalxNode)
 		hours, days, err := MLNoDisturbanceUptime(rootSqalxNode)
@@ -201,7 +203,7 @@ func printLatestDisturbance(node sqalx.Node) {
 	}
 	defer tx.Commit() // read-only tx
 
-	n, err := interfaces.GetNetwork(tx, "pt-ml")
+	n, err := interfaces.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		mainLog.Println(err)
 		return

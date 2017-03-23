@@ -13,6 +13,7 @@ import (
 type Line struct {
 	ID      string
 	Name    string
+	Color   string
 	Network *Network
 }
 
@@ -30,7 +31,7 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("id", "name", "network").
+	rows, err := sbuilder.Columns("id", "name", "color", "network").
 		From("mline").
 		RunWith(tx).Query()
 	defer rows.Close()
@@ -42,6 +43,7 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 		err := rows.Scan(
 			&line.ID,
 			&line.Name,
+			&line.Color,
 			&networkID)
 		if err != nil {
 			return lines, fmt.Errorf("getLinesWithSelect: %s", err)
@@ -74,10 +76,11 @@ func GetLine(node sqalx.Node, id string) (*Line, error) {
 	defer tx.Commit() // read-only tx
 
 	var networkID string
-	err = sdb.Select("id", "name", "network").
+	err = sdb.Select("id", "name", "color", "network").
 		From("mline").
 		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().Scan(&line.ID, &line.Name, &networkID)
+		RunWith(tx).QueryRow().
+		Scan(&line.ID, &line.Name, &line.Color, &networkID)
 	if err != nil {
 		return &line, errors.New("GetLine: " + err.Error())
 	}
@@ -111,8 +114,8 @@ func (line *Line) DisturbancesBetween(node sqalx.Node, startTime time.Time, endT
 	return getDisturbancesWithSelect(node, s)
 }
 
-// LastDisturbance returns the latest disturbance affecting this line
-func (line *Line) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
+// LastOngoingDisturbance returns the latest ongoing disturbance affecting this line
+func (line *Line) LastOngoingDisturbance(node sqalx.Node) (*Disturbance, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return nil, err
@@ -128,22 +131,38 @@ func (line *Line) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(disturbances) <= 0 {
+	if len(disturbances) == 0 {
+		return nil, errors.New("No ongoing disturbances for this line")
+	}
+	return disturbances[0], nil
+}
+
+// LastDisturbance returns the latest disturbance affecting this line
+func (line *Line) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit() // read-only tx
+
+	// are there any ongoing disturbances? get the one with most recent START time
+	disturbance, err := line.LastOngoingDisturbance(tx)
+	if err != nil {
 		// no ongoing disturbances. look at past ones and get the one with the most recent END time
 		s := sdb.Select().
 			Where(sq.Eq{"mline": line.ID}).
 			Where(sq.Expr("time_end = (SELECT MAX(time_end) FROM line_disturbance WHERE mline = ?)", line.ID)).
 			OrderBy("time_end DESC")
-		disturbances, err = getDisturbancesWithSelect(tx, s)
+		disturbances, err := getDisturbancesWithSelect(tx, s)
 		if err != nil {
 			return nil, errors.New("LastDisturbance: " + err.Error())
 		}
 		if len(disturbances) == 0 {
 			return nil, errors.New("No disturbances for this line")
 		}
+		return disturbances[0], err
 	}
-
-	return disturbances[0], err
+	return disturbance, err
 }
 
 // Update adds or updates the line
@@ -160,10 +179,10 @@ func (line *Line) Update(node sqalx.Node) error {
 	}
 
 	_, err = sdb.Insert("mline").
-		Columns("id", "name", "network").
-		Values(line.ID, line.Name, line.Network.ID).
-		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, network = ?",
-			line.Name, line.Network.ID).
+		Columns("id", "name", "color", "network").
+		Values(line.ID, line.Name, line.Color, line.Network.ID).
+		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, color = ?, network = ?",
+			line.Name, line.Color, line.Network.ID).
 		RunWith(tx).Exec()
 
 	if err != nil {

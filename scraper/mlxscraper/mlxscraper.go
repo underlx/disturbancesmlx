@@ -106,6 +106,14 @@ func (sc *Scraper) update() {
 
 			doc.Find("table").First().Find("tr").Each(func(i int, s *goquery.Selection) {
 				line := s.Find("td").First()
+
+				style, _ := line.Attr("style")
+				color := "000000"
+				pound := strings.Index(style, "#")
+				if pound > -1 {
+					color = style[pound+1 : pound+7]
+				}
+
 				words := strings.Split(line.Find("b").Text(), " ")
 				if len(words) < 2 {
 					sc.log.Println("Could not parse line name")
@@ -116,6 +124,7 @@ func (sc *Scraper) update() {
 				newLines[lineID] = &interfaces.Line{
 					Name:    lineName,
 					ID:      lineID,
+					Color:   color,
 					Network: sc.Networks()[0],
 				}
 

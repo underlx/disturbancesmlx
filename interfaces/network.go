@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"sort"
+
 	sq "github.com/gbl08ma/squirrel"
 	"github.com/heetch/sqalx"
 )
@@ -80,23 +82,37 @@ func (network *Network) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 		return nil, err
 	}
 	defer tx.Commit() // read-only tx
-	var disturbance *Disturbance
 	lines, err := network.Lines(tx)
 	if err != nil {
-		return disturbance, errors.New("LastDisturbance: " + err.Error())
+		return nil, errors.New("LastDisturbance: " + err.Error())
 	}
+	lastDisturbances := []*Disturbance{}
 	for _, line := range lines {
 		d, err := line.LastDisturbance(tx)
 		if err != nil {
 			continue
 		}
-		if disturbance == nil ||
-			(!d.Ended && d.StartTime.After(disturbance.StartTime)) ||
-			d.EndTime.After(disturbance.EndTime) {
-			disturbance = d
-		}
+		lastDisturbances = append(lastDisturbances, d)
 	}
-	return disturbance, nil
+	if len(lastDisturbances) == 0 {
+		return nil, errors.New("No disturbances for this network")
+	}
+	sort.Slice(lastDisturbances, func(iidx, jidx int) bool {
+		i := lastDisturbances[iidx]
+		j := lastDisturbances[jidx]
+		// i < j ?
+		if i.Ended && j.Ended {
+			return i.EndTime.Before(j.EndTime)
+		}
+		if i.Ended && !j.Ended {
+			return true
+		}
+		if !i.Ended && j.Ended {
+			return false
+		}
+		return i.StartTime.Before(j.StartTime)
+	})
+	return lastDisturbances[len(lastDisturbances)-1], nil
 }
 
 // Update adds or updates the network
