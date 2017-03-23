@@ -78,6 +78,15 @@ func GetLine(node sqalx.Node, id string) (*Line, error) {
 	return &line, nil
 }
 
+// OngoingDisturbances returns a slice with all ongoing disturbances on this line
+func (line *Line) OngoingDisturbances(node sqalx.Node) ([]*Disturbance, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"mline": line.ID}).
+		Where("time_end IS NULL").
+		OrderBy("time_start ASC")
+	return getDisturbancesWithSelect(node, s)
+}
+
 // Update adds or updates the line
 func (line *Line) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()

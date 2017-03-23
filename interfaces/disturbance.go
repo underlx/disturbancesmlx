@@ -23,87 +23,13 @@ type Disturbance struct {
 
 // GetDisturbances returns a slice with all registered disturbancees
 func GetDisturbances(node sqalx.Node) ([]*Disturbance, error) {
-	disturbances := []*Disturbance{}
-
-	tx, err := node.Beginx()
-	if err != nil {
-		return disturbances, err
-	}
-	defer tx.Commit() // read-only tx
-
-	rows, err := sdb.Select("id", "time_start", "time_end", "mline", "description").
-		From("line_disturbance").
-		OrderBy("time_start ASC").
-		RunWith(tx).Query()
-	if err != nil {
-		return disturbances, fmt.Errorf("GetDisturbances: %s", err)
-	}
-
-	lineIDs := []string{}
-	for rows.Next() {
-		var disturbance Disturbance
-		var timeEnd pq.NullTime
-		var lineID string
-		err := rows.Scan(
-			&disturbance.ID,
-			&disturbance.StartTime,
-			&timeEnd,
-			&lineID,
-			&disturbance.Description)
-		if err != nil {
-			rows.Close()
-			return disturbances, fmt.Errorf("GetDisturbances: %s", err)
-		}
-		disturbance.EndTime = timeEnd.Time
-		disturbance.Ended = timeEnd.Valid
-
-		disturbances = append(disturbances, &disturbance)
-		lineIDs = append(lineIDs, lineID)
-	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
-		return disturbances, fmt.Errorf("GetDisturbances: %s", err)
-	}
-	rows.Close()
-
-	for i := range disturbances {
-		disturbances[i].Line, err = GetLine(tx, lineIDs[i])
-		if err != nil {
-			return disturbances, fmt.Errorf("GetDisturbances: %s", err)
-		}
-		rows, err := sdb.Select("status_id").
-			From("line_disturbance_has_status").
-			Where(sq.Eq{"disturbance_id": disturbances[i].ID}).
-			RunWith(tx).Query()
-		if err != nil {
-			return disturbances, fmt.Errorf("GetDisturbances: %s", err)
-		}
-
-		for rows.Next() {
-			var statusID string
-			err := rows.Scan(&statusID)
-			if err != nil {
-				rows.Close()
-				return disturbances, fmt.Errorf("GetDisturbances: %s", err)
-			}
-			status, err := GetStatus(tx, statusID)
-			if err != nil {
-				rows.Close()
-				return disturbances, fmt.Errorf("GetDisturbances: %s", err)
-			}
-			disturbances[i].Statuses = append(disturbances[i].Statuses, status)
-		}
-		if err := rows.Err(); err != nil {
-			rows.Close()
-			return disturbances, fmt.Errorf("GetDisturbances: %s", err)
-		}
-		rows.Close()
-	}
-	return disturbances, nil
+	s := sdb.Select().
+		OrderBy("time_start ASC")
+	return getDisturbancesWithSelect(node, s)
 }
 
-// GetOngoingDisturbancesForLine returns a slice with all ongoing disturbances for a certain line
-func GetOngoingDisturbancesForLine(node sqalx.Node, line *Line) ([]*Disturbance, error) {
+// getDisturbancesWithSelect returns a slice with all disturbances that match the conditions in sbuilder
+func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Disturbance, error) {
 	disturbances := []*Disturbance{}
 
 	tx, err := node.Beginx()
@@ -112,11 +38,8 @@ func GetOngoingDisturbancesForLine(node sqalx.Node, line *Line) ([]*Disturbance,
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sdb.Select("id", "time_start", "time_end", "mline", "description").
+	rows, err := sbuilder.Columns("id", "time_start", "time_end", "mline", "description").
 		From("line_disturbance").
-		Where(sq.Eq{"mline": line.ID}).
-		Where("time_end IS NULL").
-		OrderBy("time_start ASC").
 		RunWith(tx).Query()
 	if err != nil {
 		return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)

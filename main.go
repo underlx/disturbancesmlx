@@ -99,7 +99,7 @@ func main() {
 			return
 		}
 
-		disturbances, err := interfaces.GetOngoingDisturbancesForLine(tx, status.Line)
+		disturbances, err := status.Line.OngoingDisturbances(tx)
 		if err != nil {
 			mainLog.Println(err)
 			return
