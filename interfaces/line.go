@@ -165,12 +165,12 @@ func (line *Line) CountDisturbancesByHourOfDay(node sqalx.Node, start time.Time,
 	defer tx.Commit() // read-only tx
 
 	rows, err := tx.Query("SELECT date_part('hour', curd) AS hour, COUNT(id) "+
-		"FROM generate_series($1::date, $2::date, '1 hour') AS curd "+
+		"FROM generate_series(($2 at time zone $1)::date, ($3 at time zone $1)::date, '1 hour') AS curd "+
 		"LEFT OUTER JOIN line_disturbance ON "+
-		"(curd BETWEEN date_trunc('hour', time_start) AND date_trunc('hour', time_end)) "+
-		"AND mline = $3 "+
+		"(curd BETWEEN date_trunc('hour', time_start at time zone $1) AND date_trunc('hour', time_end at time zone $1)) "+
+		"AND mline = $4 "+
 		"GROUP BY hour ORDER BY hour;",
-		start, end, line.ID)
+		start.Location().String(), start, end, line.ID)
 	if err != nil {
 		return []int{}, fmt.Errorf("CountDisturbancesByDay: %s", err)
 	}
