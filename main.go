@@ -11,7 +11,7 @@ import (
 
 	sq "github.com/gbl08ma/squirrel"
 
-	"tny.im/clouttery-server/keybox"
+	"github.com/gbl08ma/keybox"
 	"tny.im/disturbancesmlx/interfaces"
 	"tny.im/disturbancesmlx/scraper"
 	"tny.im/disturbancesmlx/scraper/mlxscraper"
