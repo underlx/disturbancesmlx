@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"text/template"
 	"time"
@@ -48,15 +49,49 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
+	loc, _ := time.LoadLocation("Europe/Lisbon")
 	p := struct {
 		Hours int
 		Days  int
 		Lines []struct {
 			*interfaces.Line
-			Down    bool
-			Minutes int
+			Down       bool
+			Minutes    int
+			DayCounts  []int
+			HourCounts []int
 		}
-	}{}
+		DayNames      []string
+		LastChangeAgo int
+		LastUpdateAgo int
+	}{
+		LastChangeAgo: int(time.Now().Sub(lastChange).Minutes()),
+		LastUpdateAgo: int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()),
+	}
+
+	t := time.Now().In(loc).AddDate(0, 0, -6)
+	for i := 0; i < 7; i++ {
+		weekDay := ""
+		switch t.Weekday() {
+		case time.Sunday:
+			weekDay = "dom"
+		case time.Monday:
+			weekDay = "seg"
+		case time.Tuesday:
+			weekDay = "ter"
+		case time.Wednesday:
+			weekDay = "qua"
+		case time.Thursday:
+			weekDay = "qui"
+		case time.Friday:
+			weekDay = "sex"
+		case time.Saturday:
+			weekDay = "sáb"
+		}
+		name := fmt.Sprintf("%s, %d", weekDay, t.Day())
+		p.DayNames = append(p.DayNames, name)
+		t = t.AddDate(0, 0, 1)
+	}
+
 	p.Hours, p.Days, err = MLNoDisturbanceUptime(tx)
 	if err != nil {
 		webLog.Println(err)
@@ -78,8 +113,10 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 
 	p.Lines = make([]struct {
 		*interfaces.Line
-		Down    bool
-		Minutes int
+		Down       bool
+		Minutes    int
+		DayCounts  []int
+		HourCounts []int
 	}, len(lines))
 
 	for i := range lines {
@@ -89,6 +126,26 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			p.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
 		}
+
+		p.Lines[i].DayCounts, err = lines[i].CountDisturbancesByDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc))
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		hourCounts, err := lines[i].CountDisturbancesByHourOfDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc))
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// Metro de Lisboa starts operating at 06:30 AM and stops at 01:00 AM
+		for j := 6; j < 24; j++ {
+			p.Lines[i].HourCounts = append(p.Lines[i].HourCounts, hourCounts[j])
+		}
+		p.Lines[i].HourCounts = append(p.Lines[i].HourCounts, hourCounts[0])
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "index.html", p)

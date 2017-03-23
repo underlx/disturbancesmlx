@@ -29,6 +29,7 @@ type Scraper struct {
 	statusCallback         func(status *interfaces.Status)
 	topologyChangeCallback func(scraper.Scraper)
 	firstUpdate            bool
+	lastUpdate             time.Time
 
 	URL         string
 	NetworkID   string
@@ -129,6 +130,7 @@ func (sc *Scraper) update() {
 				}
 
 				if !sc.firstUpdate {
+					sc.lastUpdate = time.Now().UTC()
 					status := line.Next()
 					if len(status.Find(".semperturbacao").Nodes) == 0 {
 						status := &interfaces.Status{
@@ -183,4 +185,8 @@ func (sc *Scraper) Lines() []*interfaces.Line {
 		return lines[i].Name < lines[j].Name
 	})
 	return lines
+}
+
+func (sc *Scraper) LastUpdate() time.Time {
+	return sc.lastUpdate
 }

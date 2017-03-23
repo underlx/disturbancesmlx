@@ -37,7 +37,7 @@
       border-top: 1px solid #eee;
       margin-top: 3.4286em;
       padding: 1.1429em;
-      background: rgb(250, 250, 250);
+      background: rgb(245, 245, 245);
       color: #777;
     }
     .pure-g [class*=pure-u] {
@@ -119,6 +119,9 @@
 <body>
   <div class="header">
     <div class="pure-g">
+      <div class="pure-u-1" style="text-align: center; background-color: #ddd;">
+        <strong>Estado das linhas</strong> <small>- última alteração há {{ .LastChangeAgo }} minutos</small>
+      </div>
       {{ $numlines := len .Lines }}
       {{ range $line := .Lines }}
         <div class="pure-u-1 pure-u-sm-1-{{ $numlines }} line status" style="background-color: #{{ $line.Color }};">
@@ -133,16 +136,6 @@
           {{ end }}
         </div>
       {{ end }}
-      <!--- <div class="pure-u-1 pure-u-sm-1-4 line yellow status">Amarela <span style="float: right;"><i class="fa fa-check-square" aria-hidden="true"></i></span></div>
-      <div class="pure-u-1 pure-u-sm-1-4 line blue status">Azul <span style="float: right;"><i class="fa fa-check-square" aria-hidden="true"></i></span></div>
-      <div class="pure-u-1 pure-u-sm-1-4 line green status">
-        Verde
-        <span style="float: right;">
-          <span style="font-size: 60%;">desde há 12 min</span>
-          <i class="fa fa-times-rectangle" aria-hidden="true"></i>
-        </span>
-      </div>
-      <div class="pure-u-1 pure-u-sm-1-4 line red status">Vermelha <span style="float: right;"><i class="fa fa-check-square" aria-hidden="true"></i></span></div> -->
     </div>
     <div class="pure-g ubuntu" style="margin-left: auto; margin-right: auto; width: 60%; text-transform: uppercase;">
       <div class="pure-u-1 ubuntu" style="font-size: 6.2vw; white-space: nowrap;">O Metro de Lisboa</div>
@@ -178,60 +171,25 @@
           <thead>
             <tr>
               <th>Linha</th>
-              <th class="smallhead">Sex, 10</th>
-              <th class="smallhead">Sáb, 11</th>
-              <th class="smallhead">Dom, 12</th>
-              <th class="smallhead">Seg, 13</th>
-              <th class="smallhead">Ter, 14</th>
-              <th class="smallhead">Qua, 15</th>
-              <th class="smallhead">Qui, 16</th>
+              {{ range $day := .DayNames }}
+              <th class="smallhead">{{ $day }}</th>
+              {{ end }}
             </tr>
           </thead>
 
           <tbody>
+            {{ range $line := .Lines }}
             <tr>
-              <td class="line yellow">Amarela</td>
-              <td class="status ok">0 <i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1 <i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2 <i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3 <i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4 <i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1 <i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2 <i class="fa fa-times" aria-hidden="true"></i></td>
+              <td class="line" style="background-color: #{{ $line.Color }};">{{ $line.Name }}</td>
+              {{ range $count := $line.DayCounts }}
+                {{ if eq $count 0 }}
+                  <td class="status ok">0 <i class="fa fa-check" aria-hidden="true"></i></td>
+                {{ else }}
+                  <td class="status problem">{{ $count }} <i class="fa fa-times" aria-hidden="true"></i></td>
+                {{ end }}
+              {{end}}
             </tr>
-
-            <tr>
-              <td class="line blue">Azul</td>
-              <td class="status problem">1 <i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0 <i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<i class="fa fa-times" aria-hidden="true"></i></td>
-            </tr>
-
-            <tr>
-              <td class="line green">Verde</td>
-              <td class="status problem">1<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0 <i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">2 <i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3 <i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4 <i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1 <i class="fa fa-times" aria-hidden="true"></i></td>
-            </tr>
-
-            <tr>
-              <td class="line red">Vermelha</td>
-              <td class="status problem">1<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0 <i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<i class="fa fa-times" aria-hidden="true"></i></td>
-            </tr>
+            {{end}}
           </tbody>
         </table>
         <h2>Por hora do dia</h2>
@@ -262,97 +220,18 @@
           </thead>
 
           <tbody>
+            {{ range $line := .Lines }}
             <tr>
-              <td class="line yellow">Amarela</td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
+              <td class="line" style="background-color: #{{ $line.Color }};">{{ $line.Name }}</td>
+              {{ range $count := $line.HourCounts }}
+                {{ if eq $count 0 }}
+                  <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
+                {{ else }}
+                  <td class="status problem">{{ $count }}<br><i class="fa fa-times" aria-hidden="true"></i></td>
+                {{ end }}
+              {{end}}
             </tr>
-
-            <tr>
-              <td class="line blue">Azul</td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-            </tr>
-
-            <tr>
-              <td class="line green">Verde</td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-            </tr>
-
-            <tr>
-              <td class="line red">Vermelha</td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">1<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">2<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">3<br><i class="fa fa-times" aria-hidden="true"></i></td>
-              <td class="status problem">4<br><i class="fa fa-times" aria-hidden="true"></i></td>
-            </tr>
+            {{end}}
           </tbody>
         </table>
         <p>Serão disponibilizados mais dados, para intervalos de tempo maiores, à medida que estes sejam recolhidos.</p>
@@ -365,15 +244,12 @@
         <p>
             Este <em>website</em> não tem qualquer ligação à <em>Metropolitano de Lisboa, E.P.E.</em><br>
             Não podemos garantir a correcção da informação fornecida.<br>
-            Apenas as autoridades competentes poderão fornecer dados oficiais.
+            Só as autoridades competentes poderão fornecer dados oficiais.
         </p>
       </div>
   
       <div class="pure-u-1 pure-u-sm-1-2">
-        <ul style="list-style: none; text-align: right;">
-            <li>Código no <a href="https://github.com/gbl08ma/">GitHub</a></li>
-            <li><a href="https://gbl08ma.github.io/contact/">Contactos</a></li>
-        </ul>
+        <p style="text-align: right;">Código no <a href="https://github.com/gbl08ma/">GitHub</a> | <a href="https://gbl08ma.github.io/contact/">Contactos</a></p>
 
         <p style="text-align: right;">
             Copyright © 2017 <a href="http://segvault.tny.im" target="_blank"><img src="/static/img/segvault-16.png" alt="Segvault"></a> / <a href="https://gbl08ma.github.io" target="_blank">gbl08ma</a>

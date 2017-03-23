@@ -34,6 +34,9 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 	rows, err := sbuilder.Columns("id", "name", "color", "network").
 		From("mline").
 		RunWith(tx).Query()
+	if err != nil {
+		return lines, fmt.Errorf("getLinesWithSelect: %s", err)
+	}
 	defer rows.Close()
 
 	var networkIDs []string
@@ -112,6 +115,84 @@ func (line *Line) DisturbancesBetween(node sqalx.Node, startTime time.Time, endT
 			},
 		}).OrderBy("time_start ASC")
 	return getDisturbancesWithSelect(node, s)
+}
+
+// CountDisturbancesByDay counts disturbances by day between the specified dates
+func (line *Line) CountDisturbancesByDay(node sqalx.Node, start time.Time, end time.Time) ([]int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return []int{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	rows, err := tx.Query("SELECT curd, COUNT(id) "+
+		"FROM generate_series($1::date, $2::date, '1 day') AS curd "+
+		"LEFT OUTER JOIN line_disturbance ON "+
+		"(curd BETWEEN time_start::date AND time_end::date) "+
+		"AND mline = $3 "+
+		"GROUP BY curd ORDER BY curd;",
+		start, end, line.ID)
+	if err != nil {
+		return []int{}, fmt.Errorf("CountDisturbancesByDay: %s", err)
+	}
+	defer rows.Close()
+
+	var counts []int
+	for rows.Next() {
+		var date time.Time
+		var count int
+		err := rows.Scan(&date, &count)
+		if err != nil {
+			return counts, fmt.Errorf("CountDisturbancesByDay: %s", err)
+		}
+		if err != nil {
+			return counts, fmt.Errorf("CountDisturbancesByDay: %s", err)
+		}
+		counts = append(counts, count)
+	}
+	if err := rows.Err(); err != nil {
+		return counts, fmt.Errorf("CountDisturbancesByDay: %s", err)
+	}
+	return counts, nil
+}
+
+// CountDisturbancesByHourOfDay counts disturbances by hour of day between the specified dates
+func (line *Line) CountDisturbancesByHourOfDay(node sqalx.Node, start time.Time, end time.Time) ([]int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return []int{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	rows, err := tx.Query("SELECT date_part('hour', curd) AS hour, COUNT(id) "+
+		"FROM generate_series($1::date, $2::date, '1 hour') AS curd "+
+		"LEFT OUTER JOIN line_disturbance ON "+
+		"(curd BETWEEN date_trunc('hour', time_start) AND date_trunc('hour', time_end)) "+
+		"AND mline = $3 "+
+		"GROUP BY hour ORDER BY hour;",
+		start, end, line.ID)
+	if err != nil {
+		return []int{}, fmt.Errorf("CountDisturbancesByDay: %s", err)
+	}
+	defer rows.Close()
+
+	var counts []int
+	for rows.Next() {
+		var hour int
+		var count int
+		err := rows.Scan(&hour, &count)
+		if err != nil {
+			return counts, fmt.Errorf("CountDisturbancesByDay: %s", err)
+		}
+		if err != nil {
+			return counts, fmt.Errorf("CountDisturbancesByDay: %s", err)
+		}
+		counts = append(counts, count)
+	}
+	if err := rows.Err(); err != nil {
+		return counts, fmt.Errorf("CountDisturbancesByDay: %s", err)
+	}
+	return counts, nil
 }
 
 // LastOngoingDisturbance returns the latest ongoing disturbance affecting this line

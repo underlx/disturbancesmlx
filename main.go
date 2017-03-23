@@ -29,6 +29,8 @@ var (
 	secrets       *keybox.Keybox
 	mainLog       = log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	webLog        = log.New(os.Stdout, "web", log.Ldate|log.Ltime)
+	mlxscr        scraper.Scraper
+	lastChange    time.Time
 )
 
 // Return the time since the last Metro de Lisboa disturbance in hours and days
@@ -94,8 +96,7 @@ func main() {
 	mainLog.Println("Database opened")
 
 	l := log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime)
-	var s scraper.Scraper
-	s = &mlxscraper.Scraper{
+	mlxscr = &mlxscraper.Scraper{
 		URL:         "http://app.metrolisboa.pt/status/estado_Linhas.php",
 		NetworkID:   MLnetworkID,
 		NetworkName: "Metro de Lisboa",
@@ -106,7 +107,7 @@ func main() {
 		},
 		Period: 1 * time.Minute,
 	}
-	s.Begin(l, func(status *interfaces.Status) {
+	mlxscr.Begin(l, func(status *interfaces.Status) {
 		tx, err := rootSqalxNode.Beginx()
 		if err != nil {
 			mainLog.Println(err)
@@ -128,7 +129,7 @@ func main() {
 
 		d, err := status.Line.LastDisturbance(tx)
 		if err == nil {
-			mainLog.Println("Last disturbance at", d.StartTime, "description:", d.Description)
+			mainLog.Println("   Last disturbance at", d.StartTime, "description:", d.Description)
 		} else {
 			mainLog.Println(err)
 		}
@@ -141,7 +142,7 @@ func main() {
 		found := len(disturbances) > 0
 		var disturbance *interfaces.Disturbance
 		if found {
-			mainLog.Println("Found ongoing disturbance")
+			mainLog.Println("   Found ongoing disturbance")
 			disturbance = disturbances[len(disturbances)-1]
 		} else {
 			disturbance = &interfaces.Disturbance{
@@ -171,6 +172,7 @@ func main() {
 				return
 			}
 		}
+		lastChange = time.Now().UTC()
 		tx.Commit()
 	},
 		func(s scraper.Scraper) {
@@ -181,16 +183,18 @@ func main() {
 				line.Update(rootSqalxNode)
 			}
 		})
-	defer s.End()
+	defer mlxscr.End()
 
 	go WebServer()
 	for {
-		printLatestDisturbance(rootSqalxNode)
-		hours, days, err := MLNoDisturbanceUptime(rootSqalxNode)
-		if err != nil {
-			mainLog.Println(err)
+		if DEBUG {
+			printLatestDisturbance(rootSqalxNode)
+			hours, days, err := MLNoDisturbanceUptime(rootSqalxNode)
+			if err != nil {
+				mainLog.Println(err)
+			}
+			mainLog.Printf("Since last disturbance: %d hours or %d days", hours, days)
 		}
-		mainLog.Printf("Since last disturbance: %d hours or %d days", hours, days)
 		time.Sleep(1 * time.Minute)
 	}
 }

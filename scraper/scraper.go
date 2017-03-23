@@ -3,6 +3,8 @@ package scraper
 import (
 	"log"
 
+	"time"
+
 	"tny.im/disturbancesmlx/interfaces"
 )
 
@@ -15,4 +17,5 @@ type Scraper interface {
 	End()
 	Networks() []*interfaces.Network
 	Lines() []*interfaces.Line
+	LastUpdate() time.Time
 }
