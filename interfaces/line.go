@@ -3,6 +3,7 @@ package interfaces
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	sq "github.com/gbl08ma/squirrel"
 	"github.com/heetch/sqalx"
@@ -87,6 +88,20 @@ func (line *Line) OngoingDisturbances(node sqalx.Node) ([]*Disturbance, error) {
 	return getDisturbancesWithSelect(node, s)
 }
 
+// DisturbancesBetween returns a slice with all disturbances that start or end between the specified times
+func (line *Line) DisturbancesBetween(node sqalx.Node, startTime time.Time, endTime time.Time) ([]*Disturbance, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"mline": line.ID}).
+		Where(sq.Or{
+		sq.Expr("time_start BETWEEN ? AND ?", startTime, endTime),
+		sq.And{
+			sq.Expr("time_end IS NOT NULL"),
+			sq.Expr("time_end BETWEEN ? AND ?", startTime, endTime),
+		},
+	}).OrderBy("time_start ASC")
+	return getDisturbancesWithSelect(node, s)
+}
+
 // Update adds or updates the line
 func (line *Line) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
@@ -104,7 +119,7 @@ func (line *Line) Update(node sqalx.Node) error {
 		Columns("id", "name", "network").
 		Values(line.ID, line.Name, line.Network.ID).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, network = ?",
-			line.Name, line.Network.ID).
+		line.Name, line.Network.ID).
 		RunWith(tx).Exec()
 
 	if err != nil {
