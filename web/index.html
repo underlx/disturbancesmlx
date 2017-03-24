@@ -74,17 +74,12 @@
     .line {
       color: white;
     }
-    .line.yellow {
-      background-color: #FDB813;
-    }
-    .line.blue {
-      background-color: #4E84C4;
-    }
-    .line.green {
-      background-color: #00A9A6;
-    }
-    .line.red {
-      background-color: #ED2B74;
+
+    .dimmed {
+      background: linear-gradient(90deg,
+        rgba(0, 0, 0, 0), 
+        rgba(0, 0, 0, 0.5)
+      );
     }
 
     .status.problem {
@@ -141,6 +136,32 @@
         font-size: 60%;
       }
     }
+
+    @keyframes blink {
+      0% { opacity: 1 }
+      50% { opacity: 0.5 }
+      100% { opacity: 1 }
+    }
+    @-webkit-keyframes blink {
+        0% { opacity: 1 }
+        50% { opacity: 0.5 }
+        100% { opacity: 1 }
+    }
+
+    .errorblink {
+      -moz-transition:all 0.5s ease-in-out;
+      -webkit-transition:all 0.5s ease-in-out;
+      -o-transition:all 0.5s ease-in-out;
+      -ms-transition:all 0.5s ease-in-out;
+      transition:all 0.5s ease-in-out;
+      -moz-animation:blink normal 1.5s infinite ease-in-out;
+      /* Firefox */
+      -webkit-animation:blink normal 1.5s infinite ease-in-out;
+      /* Webkit */
+      -ms-animation:blink normal 1.5s infinite ease-in-out;
+      /* IE */
+      animation:blink normal 1.5s infinite ease-in-out;
+    }
   </style>
 </head>
 
@@ -152,12 +173,12 @@
       </div>
       {{ $numlines := len .Lines }}
       {{ range $line := .Lines }}
-        <div class="pure-u-1 pure-u-sm-1-{{ $numlines }} line status" style="background-color: #{{ $line.Color }};">
+        <div class="pure-u-1 pure-u-sm-1-{{ $numlines }} line status{{if $line.Down}} dimmed{{end}}" style="background-color: #{{ $line.Color }};">
           {{ $line.Name }}
           {{ if $line.Down }}
           <span style="float: right;">
             <span style="font-size: 60%;">desde há {{ $line.Minutes }} min</span>
-            <i class="fa fa-times-rectangle" aria-hidden="true"></i>
+            <i class="fa fa-times-rectangle errorblink" aria-hidden="true"></i>
           </span>
           {{ else }}
           <span style="float: right;"><i class="fa fa-check-square" aria-hidden="true"></i></span>
