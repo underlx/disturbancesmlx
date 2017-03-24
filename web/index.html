@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Perturbações ML</title>
+  <title>Perturbações do Metro de Lisboa</title>
   <meta name="description" content="Estado das linhas do Metro de Lisboa"/>
   <meta name="keywords" content="ML, metro, lisboa, perturbações, linhas, estado"/>
   <meta name="author" content="Segvault"/>
@@ -33,6 +33,15 @@
       margin-bottom: 50px;
     }
 
+    .content {
+      max-width: 650px;
+      padding-left:5px;
+      padding-right: 5px;
+      box-sizing: border-box;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
     .footer {
       font-size: 87.5%;
       border-top: 1px solid #eee;
@@ -53,7 +62,7 @@
       text-align: right;
     }
     .unitlink > a {
-      color: darkgray;
+      color: #777;
     }
 
     .status {
@@ -114,6 +123,24 @@
       overflow:hidden;
       color: #e0e0e0;
     }
+
+    @media screen and (max-width: 35.5em) {
+      .pure-table {
+        font-size: 80%;
+      }
+    }
+
+    @media screen and (max-width: 25em) {
+      .pure-table {
+        font-size: 70%;
+      }
+    }
+
+    @media screen and (max-width: 17.5em) {
+      .pure-table {
+        font-size: 60%;
+      }
+    }
   </style>
 </head>
 
@@ -165,7 +192,7 @@
     </div>
   </div>
   <div class="content">
-    <div class="pure-g" style="max-width: 600px; margin-left: auto; margin-right: auto;">
+    <div class="pure-g">
       <div class="pure-u-1">
         <h1><em>Perturbações</em> na última semana</h1>
         <table class="pure-table" style="width: 100%; text-align: center;">
@@ -251,7 +278,7 @@
   </div>
   <div class="footer">
     <div class="pure-g">
-      <div class="pure-u-1 pure-u-sm-1-2">
+      <div class="pure-u-1 pure-u-md-1-2">
         <p>
             Este <em>website</em> não tem qualquer ligação à <em>Metropolitano de Lisboa, E.P.E.</em><br>
             Não podemos garantir a correcção da informação fornecida.<br>
@@ -259,12 +286,15 @@
         </p>
       </div>
   
-      <div class="pure-u-1 pure-u-sm-1-2">
+      <div class="pure-u-4-5 pure-u-md-5-12" style="padding-right: 5px; box-sizing: border-box;">
         <p style="text-align: right;">Código no <a href="https://github.com/gbl08ma/">GitHub</a> | <a href="https://gbl08ma.github.io/contact/">Contactos</a></p>
 
         <p style="text-align: right;">
             Copyright © 2017 <a href="http://segvault.tny.im" target="_blank"><img src="/static/img/segvault-16.png" alt="Segvault"></a> / <a href="https://gbl08ma.github.io" target="_blank">gbl08ma</a>
         </p>
+      </div>
+      <div class="pure-u-1-5 pure-u-md-1-12">
+        <div class="addthis_inline_share_toolbox" style="float: right;"></div>
       </div>
     </div>
   </div>
@@ -302,5 +332,6 @@
       document.getElementById("days").style.display = 'block';
     }
   </script>
+  <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-4db86daf5f387595"></script> 
 </body>
 </html>
