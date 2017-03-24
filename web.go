@@ -105,7 +105,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.Days = int(date.NewAt(time.Now().In(loc)).Sub(date.NewAt(lastDisturbanceTime.In(loc))))
-	p.Hours = int(time.Now().In(loc).In(loc).Sub(lastDisturbanceTime.In(loc)).Hours() / 24)
+	p.Hours = int(time.Since(lastDisturbanceTime).Hours())
 
 	n, err := interfaces.GetNetwork(tx, MLnetworkID)
 	if err != nil {
