@@ -108,12 +108,12 @@ func (line *Line) DisturbancesBetween(node sqalx.Node, startTime time.Time, endT
 	s := sdb.Select().
 		Where(sq.Eq{"mline": line.ID}).
 		Where(sq.Or{
-			sq.Expr("time_start BETWEEN ? AND ?", startTime, endTime),
-			sq.And{
-				sq.Expr("time_end IS NOT NULL"),
-				sq.Expr("time_end BETWEEN ? AND ?", startTime, endTime),
-			},
-		}).OrderBy("time_start ASC")
+		sq.Expr("time_start BETWEEN ? AND ?", startTime, endTime),
+		sq.And{
+			sq.Expr("time_end IS NOT NULL"),
+			sq.Expr("time_end BETWEEN ? AND ?", startTime, endTime),
+		},
+	}).OrderBy("time_start ASC")
 	return getDisturbancesWithSelect(node, s)
 }
 
@@ -128,7 +128,7 @@ func (line *Line) CountDisturbancesByDay(node sqalx.Node, start time.Time, end t
 	rows, err := tx.Query("SELECT curd, COUNT(id) "+
 		"FROM generate_series(($2 at time zone $1)::date, ($3 at time zone $1)::date, '1 day') AS curd "+
 		"LEFT OUTER JOIN line_disturbance ON "+
-		"(curd BETWEEN (time_start at time zone $1)::date AND (time_end at time zone $1)::date) "+
+		"(curd BETWEEN (time_start at time zone $1)::date AND (coalesce(time_end, now()) at time zone $1)::date) "+
 		"AND mline = $4 "+
 		"GROUP BY curd ORDER BY curd;",
 		start.Location().String(), start, end, line.ID)
@@ -165,9 +165,9 @@ func (line *Line) CountDisturbancesByHourOfDay(node sqalx.Node, start time.Time,
 	defer tx.Commit() // read-only tx
 
 	rows, err := tx.Query("SELECT date_part('hour', curd) AS hour, COUNT(id) "+
-		"FROM generate_series(($2 at time zone $1)::date, ($3 at time zone $1)::date, '1 hour') AS curd "+
+		"FROM generate_series(($2 at time zone $1)::date, ($3 at time zone $1)::date + interval '1 day' - interval '1 second', '1 hour') AS curd "+
 		"LEFT OUTER JOIN line_disturbance ON "+
-		"(curd BETWEEN date_trunc('hour', time_start at time zone $1) AND date_trunc('hour', time_end at time zone $1)) "+
+		"(curd BETWEEN date_trunc('hour', time_start at time zone $1) AND date_trunc('hour', coalesce(time_end, now()) at time zone $1)) "+
 		"AND mline = $4 "+
 		"GROUP BY hour ORDER BY hour;",
 		start.Location().String(), start, end, line.ID)
@@ -263,7 +263,7 @@ func (line *Line) Update(node sqalx.Node) error {
 		Columns("id", "name", "color", "network").
 		Values(line.ID, line.Name, line.Color, line.Network.ID).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, color = ?, network = ?",
-			line.Name, line.Color, line.Network.ID).
+		line.Name, line.Color, line.Network.ID).
 		RunWith(tx).Exec()
 
 	if err != nil {
