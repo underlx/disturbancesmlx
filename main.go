@@ -33,29 +33,28 @@ var (
 	lastChange    time.Time
 )
 
-// Return the time since the last Metro de Lisboa disturbance in hours and days
-func MLNoDisturbanceUptime(node sqalx.Node) (hours int, days int, err error) {
+// MLlastDisturbanceTime returns the time of the latest Metro de Lisboa disturbance
+func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
-		return 0, 0, err
+		return time.Now().UTC(), err
 	}
 	defer tx.Commit() // read-only tx
 
 	n, err := interfaces.GetNetwork(rootSqalxNode, MLnetworkID)
 	if err != nil {
-		return 0, 0, err
+		return time.Now().UTC(), err
 	}
 	d, err := n.LastDisturbance(rootSqalxNode)
 	if err != nil {
-		return 0, 0, err
+		return time.Now().UTC(), err
 	}
 
 	if !d.Ended {
-		return 0, 0, nil
+		return time.Now().UTC(), nil
 	}
 
-	difference := time.Now().UTC().Sub(d.EndTime)
-	return int(difference.Hours()), int(difference.Hours() / 24), nil
+	return d.EndTime, nil
 }
 
 func main() {
@@ -189,11 +188,11 @@ func main() {
 	for {
 		if DEBUG {
 			printLatestDisturbance(rootSqalxNode)
-			hours, days, err := MLNoDisturbanceUptime(rootSqalxNode)
+			ld, err := MLlastDisturbanceTime(rootSqalxNode)
 			if err != nil {
 				mainLog.Println(err)
 			}
-			mainLog.Printf("Since last disturbance: %d hours or %d days", hours, days)
+			mainLog.Printf("Last disturbance: %s", ld.String())
 		}
 		time.Sleep(1 * time.Minute)
 	}
