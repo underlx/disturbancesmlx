@@ -59,7 +59,7 @@ func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
 }
 
 // MLlineAvailability returns the availability for a Metro de Lisboa line
-func MLlineAvailability(node sqalx.Node, line *interfaces.Line, startTime time.Time, endTime time.Time) (float64, error) {
+func MLlineAvailability(node sqalx.Node, line *interfaces.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error) {
 	// calculate closed time
 	var closedDuration time.Duration
 	ct := startTime

@@ -62,6 +62,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 			HourCounts      []int
 			LastDisturbance *interfaces.Disturbance
 			Availability    string
+			AvgDuration     string
 		}
 		DayNames          []string
 		LastChangeAgoMin  int
@@ -129,6 +130,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		HourCounts      []int
 		LastDisturbance *interfaces.Disturbance
 		Availability    string
+		AvgDuration     string
 	}, len(lines))
 
 	for i := range lines {
@@ -166,7 +168,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		}
 		p.Lines[i].HourCounts = append(p.Lines[i].HourCounts, hourCounts[0])
 
-		availability, err := MLlineAvailability(tx, lines[i], time.Now().In(loc).Add(-24*7*time.Hour), time.Now().In(loc))
+		availability, avgd, err := MLlineAvailability(tx, lines[i], time.Now().In(loc).Add(-24*7*time.Hour), time.Now().In(loc))
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -174,6 +176,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		p.Lines[i].Availability = fmt.Sprintf("%.03f%%", availability*100)
+		p.Lines[i].AvgDuration = fmt.Sprintf("%.01f", avgd.Minutes())
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "index.html", p)
