@@ -287,11 +287,22 @@
         <h1>Últimas <em>perturbações</em> por linha</h1>
         {{ range $line := .Lines }}
         <h3 style="color: #{{ $line.Color }};">{{ $line.Name }}</h3>
-        <blockquote>{{ $line.LastDisturbance.Description }}
-          <br><span style="color: #777;">{{ formatDisturbanceTime $line.LastDisturbance.StartTime }} - 
-            {{ if $line.LastDisturbance.Ended }}{{ formatDisturbanceTime $line.LastDisturbance.EndTime }}{{else}}<em>Por resolver</em>{{end}}
-          </span>
-        </blockquote>
+        <div style="padding-left: 40px;">
+          {{ range $index, $s := $line.LastDisturbance.Statuses }}
+            {{if (eq $index 0) }}
+            <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status }}</span>
+            {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
+            {{else}}
+              {{if (ne (index $line.LastDisturbance.Statuses (minus $index 1)).Status $s.Status)}}
+              <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status }}</span>
+              {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
+              {{end}}
+            {{end}}
+          {{end}}
+          {{ if not $line.LastDisturbance.Ended }}
+            <p><em>Por resolver</em> <i style="color: red;" class="fa fa-times" aria-hidden="true"></p>
+          {{end}}
+        </div>
         {{end}}
         <p style="margin-top: 50px;">Serão disponibilizados mais dados, para intervalos de tempo maiores, à medida que estes sejam recolhidos.</p>
       </div>
