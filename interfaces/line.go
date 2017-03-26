@@ -246,6 +246,32 @@ func (line *Line) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 	return disturbance, err
 }
 
+// Availability returns the fraction of time this line operated without issues between the specified times
+func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime time.Time, closedDuration time.Duration) (float64, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 100.0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	disturbances, err := line.DisturbancesBetween(tx, startTime, endTime)
+	if err != nil {
+		return 100.0, err
+	}
+
+	var downTime time.Duration
+	for _, d := range disturbances {
+		if d.Ended {
+			downTime += d.EndTime.Sub(d.StartTime)
+		} else {
+			downTime += endTime.Sub(d.StartTime)
+		}
+	}
+
+	totalTime := endTime.Sub(startTime) - closedDuration
+	return 1.0 - (downTime.Minutes() / totalTime.Minutes()), nil
+}
+
 // Update adds or updates the line
 func (line *Line) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()

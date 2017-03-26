@@ -75,7 +75,7 @@ func (network *Network) Lines(node sqalx.Node) ([]*Line, error) {
 	return getLinesWithSelect(node, s)
 }
 
-// LastDisturbance returns the latest disturbance affecting this line
+// LastDisturbance returns the latest disturbance affecting this network
 func (network *Network) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 	tx, err := node.Beginx()
 	if err != nil {

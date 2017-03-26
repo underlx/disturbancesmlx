@@ -241,7 +241,12 @@
             {{end}}
           </tbody>
         </table>
-        <h2>Por hora do dia</h2>
+        <h2>Disponibilidade na última semana</h2>
+        {{ range $line := .Lines }}
+        <p><span style="color: #{{ $line.Color }};">{{ $line.Name }}</span>: {{ $line.Availability }}</p>
+        {{end}}
+        <p style="color: #777;"><small>A disponibilidade corresponde ao tempo em que uma linha funciona sem perturbações, como percentagem do tempo de exploração (horas a que o Metro está aberto ao público).</small></p>
+        <h2><em>Perturbações</em> por hora do dia, na última semana</h2>
         <table class="pure-table tinycells" style="width: 100%; text-align: center;">
           <thead>
             <tr>
