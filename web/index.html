@@ -119,6 +119,16 @@
       color: #e0e0e0;
     }
 
+    .hideOnLarge {
+      display: block;
+    }
+
+    @media screen and (min-width: 48em) {
+      .hideOnLarge {
+        display: none;
+      }
+    }
+
     @media screen and (max-width: 35.5em) {
       .pure-table {
         font-size: 80%;
@@ -322,14 +332,14 @@
             Só as autoridades competentes poderão fornecer dados oficiais.
         </p>
       </div>
-      <div class="pure-u-4-5 pure-u-md-5-12" style="padding-right: 5px; box-sizing: border-box;">
+      <div class="pure-u-4-5 pure-u-md-1-2" style="padding-right: 5px; box-sizing: border-box;">
         <p style="text-align: right;">Código no <a href="https://github.com/gbl08ma/disturbancesmlx">GitHub</a> | <a href="https://gbl08ma.github.io/contact/">Contactos</a></p>
 
         <p style="text-align: right;">
             Copyright © 2017 <a href="http://segvault.tny.im" target="_blank"><img src="/static/img/segvault-16.png" alt="Segvault"></a> / <a href="https://gbl08ma.github.io" target="_blank">gbl08ma</a>
         </p>
       </div>
-      <div class="pure-u-1-5 pure-u-md-1-12">
+      <div class="pure-u-1-5 hideOnLarge">
         <div class="addthis_inline_share_toolbox" style="float: right;"></div>
       </div>
     </div>
