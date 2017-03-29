@@ -1,0 +1,18 @@
+{
+    "name": "Perturba\u00e7\u00f5es",
+    "icons": [
+        {
+            "src": "/static/img/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/static/img/android-chrome-256x256.png",
+            "sizes": "256x256",
+            "type": "image/png"
+        }
+    ],
+    "theme_color": "#efe9e5",
+    "background_color": "#efe9e5",
+    "display": "standalone"
+}
