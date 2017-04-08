@@ -12,8 +12,8 @@ import (
 
 // Network is a transportation network
 type Network struct {
-	ID   string `msgpack:"id" json:"id"`
-	Name string `msgpack:"name" json:"name"`
+	ID   string
+	Name string
 }
 
 // GetNetworks returns a slice with all registered networks
