@@ -12,8 +12,8 @@ import (
 
 // Network is a transportation network
 type Network struct {
-	ID   string
-	Name string
+	ID   string `msgpack:"id" json:"id"`
+	Name string `msgpack:"name" json:"name"`
 }
 
 // GetNetworks returns a slice with all registered networks
@@ -73,6 +73,13 @@ func (network *Network) Lines(node sqalx.Node) ([]*Line, error) {
 	s := sdb.Select().
 		Where(sq.Eq{"network": network.ID})
 	return getLinesWithSelect(node, s)
+}
+
+// Stations returns the stations in this network
+func (network *Network) Stations(node sqalx.Node) ([]*Station, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"network": network.ID})
+	return getStationsWithSelect(node, s)
 }
 
 // LastDisturbance returns the latest disturbance affecting this network

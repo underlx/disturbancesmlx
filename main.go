@@ -207,6 +207,7 @@ func main() {
 	defer mlxscr.End()
 
 	go WebServer()
+	go APIserver()
 	for {
 		if DEBUG {
 			printLatestDisturbance(rootSqalxNode)

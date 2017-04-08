@@ -94,6 +94,14 @@ func GetLine(node sqalx.Node, id string) (*Line, error) {
 	return &line, nil
 }
 
+// Stations returns the stations that are served by this line
+func (line *Line) Stations(node sqalx.Node) ([]*Station, error) {
+	s := sdb.Select().
+		Join("line_has_station ON line_id = ? AND station_id = id", line.ID).
+		OrderBy("position")
+	return getStationsWithSelect(node, s)
+}
+
 // OngoingDisturbances returns a slice with all ongoing disturbances on this line
 func (line *Line) OngoingDisturbances(node sqalx.Node) ([]*Disturbance, error) {
 	s := sdb.Select().
@@ -108,12 +116,12 @@ func (line *Line) DisturbancesBetween(node sqalx.Node, startTime time.Time, endT
 	s := sdb.Select().
 		Where(sq.Eq{"mline": line.ID}).
 		Where(sq.Or{
-		sq.Expr("time_start BETWEEN ? AND ?", startTime, endTime),
-		sq.And{
-			sq.Expr("time_end IS NOT NULL"),
-			sq.Expr("time_end BETWEEN ? AND ?", startTime, endTime),
-		},
-	}).OrderBy("time_start ASC")
+			sq.Expr("time_start BETWEEN ? AND ?", startTime, endTime),
+			sq.And{
+				sq.Expr("time_end IS NOT NULL"),
+				sq.Expr("time_end BETWEEN ? AND ?", startTime, endTime),
+			},
+		}).OrderBy("time_start ASC")
 	return getDisturbancesWithSelect(node, s)
 }
 
@@ -294,7 +302,7 @@ func (line *Line) Update(node sqalx.Node) error {
 		Columns("id", "name", "color", "network").
 		Values(line.ID, line.Name, line.Color, line.Network.ID).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, color = ?, network = ?",
-		line.Name, line.Color, line.Network.ID).
+			line.Name, line.Color, line.Network.ID).
 		RunWith(tx).Exec()
 
 	if err != nil {
