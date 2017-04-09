@@ -13,9 +13,9 @@ import (
 	sq "github.com/gbl08ma/squirrel"
 
 	"github.com/gbl08ma/keybox"
-	"tny.im/disturbancesmlx/interfaces"
-	"tny.im/disturbancesmlx/scraper"
-	"tny.im/disturbancesmlx/scraper/mlxscraper"
+	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/scraper"
+	"github.com/gbl08ma/disturbancesmlx/scraper/mlxscraper"
 )
 
 const (

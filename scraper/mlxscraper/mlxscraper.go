@@ -15,8 +15,8 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	uuid "github.com/satori/go.uuid"
-	"tny.im/disturbancesmlx/interfaces"
-	"tny.im/disturbancesmlx/scraper"
+	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/scraper"
 )
 
 // Scraper is a scraper for the status of Metro de Lisboa

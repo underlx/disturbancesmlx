@@ -6,7 +6,7 @@ import (
 	"text/template"
 	"time"
 
-	"tny.im/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/interfaces"
 
 	"github.com/gorilla/mux"
 	"github.com/rickb777/date"

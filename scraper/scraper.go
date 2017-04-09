@@ -5,7 +5,7 @@ import (
 
 	"time"
 
-	"tny.im/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/interfaces"
 )
 
 // Scraper is something that runs in the background retrieving status of lines

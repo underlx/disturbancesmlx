@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/yarf-framework/yarf"
-	"tny.im/disturbancesmlx/resource"
+	"github.com/gbl08ma/disturbancesmlx/resource"
 )
 
 func APIserver() {

@@ -3,7 +3,7 @@ package resource
 import (
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
-	"tny.im/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/interfaces"
 )
 
 // Line composites resource
