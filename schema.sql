@@ -73,3 +73,9 @@ CREATE TABLE IF NOT EXISTS "station_has_wifiap" (
     bssid VARCHAR(17) NOT NULL REFERENCES wifiap (bssid),
     PRIMARY KEY (station_id, bssid)
 );
+
+CREATE TABLE IF NOT EXISTS "dataset_info" (
+    network_id VARCHAR(36) NOT NULL REFERENCES network (id) PRIMARY KEY,
+    version TIMESTAMP WITH TIME ZONE NOT NULL,
+    authors TEXT[] NOT NULL
+);

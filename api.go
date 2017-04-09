@@ -22,6 +22,9 @@ func APIserver() {
 	v1.Add("/disturbances", new(resource.Disturbance).WithNode(rootSqalxNode))
 	v1.Add("/disturbances/:id", new(resource.Disturbance).WithNode(rootSqalxNode))
 
+	v1.Add("/datasets", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
+	v1.Add("/datasets/:id", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
+
 	y.AddGroup(v1)
 
 	y.Logger = webLog
