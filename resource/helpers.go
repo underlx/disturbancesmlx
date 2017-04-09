@@ -25,15 +25,15 @@ func RenderData(c *yarf.Context, data interface{}) {
 	accept := c.Request.Header.Get("Accept")
 	switch {
 	case strings.Contains(accept, "json"):
-		c.Response.Header().Set("Content-Type", "application/json")
+		c.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 		c.RenderJSON(data)
 	case strings.Contains(accept, "xml") && !strings.Contains(accept, "xhtml"):
-		c.Response.Header().Set("Content-Type", "application/xml")
+		c.Response.Header().Set("Content-Type", "application/xml; charset=utf-8")
 		c.RenderXML(data)
 	case strings.Contains(accept, "msgpack"):
 		RenderMsgpack(c, data)
 	default:
-		c.Response.Header().Set("Content-Type", "application/json")
+		c.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 		c.RenderJSONIndent(data)
 	}
 }

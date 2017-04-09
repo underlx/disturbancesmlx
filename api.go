@@ -17,6 +17,9 @@ func APIserver() {
 	y.Add("/stations", new(resource.Station).WithNode(rootSqalxNode))
 	y.Add("/stations/:id", new(resource.Station).WithNode(rootSqalxNode))
 
+	y.Add("/disturbances", new(resource.Disturbance).WithNode(rootSqalxNode))
+	y.Add("/disturbances/:id", new(resource.Disturbance).WithNode(rootSqalxNode))
+
 	y.Logger = webLog
 	y.Silent = true
 	y.Start(":12000")

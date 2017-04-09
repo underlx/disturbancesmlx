@@ -28,6 +28,19 @@ func GetDisturbances(node sqalx.Node) ([]*Disturbance, error) {
 	return getDisturbancesWithSelect(node, s)
 }
 
+// GetDisturbancesBetween returns a slice with disturbances affecting the specified interval
+func GetDisturbancesBetween(node sqalx.Node, start time.Time, end time.Time) ([]*Disturbance, error) {
+	s := sdb.Select().
+		Where(sq.Or{
+			sq.Expr("time_start BETWEEN ? AND ?",
+				start, end),
+			sq.Expr("time_end BETWEEN ? AND ?",
+				start, end),
+		}).
+		OrderBy("time_start ASC")
+	return getDisturbancesWithSelect(node, s)
+}
+
 // getDisturbancesWithSelect returns a slice with all disturbances that match the conditions in sbuilder
 func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Disturbance, error) {
 	disturbances := []*Disturbance{}
