@@ -165,20 +165,25 @@ func GetDisturbance(node sqalx.Node, id string) (*Disturbance, error) {
 	}
 	defer rows.Close()
 
+	statusIDs := []string{}
 	for rows.Next() {
 		var statusID string
 		err := rows.Scan(&statusID)
 		if err != nil {
 			return &disturbance, fmt.Errorf("GetDisturbance: %s", err)
 		}
-		status, err := GetStatus(tx, statusID)
+		statusIDs = append(statusIDs, statusID)
+	}
+	if err := rows.Err(); err != nil {
+		return &disturbance, fmt.Errorf("GetDisturbance: %s", err)
+	}
+
+	for j := range statusIDs {
+		status, err := GetStatus(tx, statusIDs[j])
 		if err != nil {
 			return &disturbance, fmt.Errorf("GetDisturbance: %s", err)
 		}
 		disturbance.Statuses = append(disturbance.Statuses, status)
-	}
-	if err := rows.Err(); err != nil {
-		return &disturbance, fmt.Errorf("GetDisturbance: %s", err)
 	}
 
 	return &disturbance, nil
