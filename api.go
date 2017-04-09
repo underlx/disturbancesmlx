@@ -8,17 +8,21 @@ import (
 func APIserver() {
 	y := yarf.New()
 
-	y.Add("/networks", new(resource.Network).WithNode(rootSqalxNode))
-	y.Add("/networks/:id", new(resource.Network).WithNode(rootSqalxNode))
+	v1 := yarf.RouteGroup("/v1")
 
-	y.Add("/lines", new(resource.Line).WithNode(rootSqalxNode))
-	y.Add("/lines/:id", new(resource.Line).WithNode(rootSqalxNode))
+	v1.Add("/networks", new(resource.Network).WithNode(rootSqalxNode))
+	v1.Add("/networks/:id", new(resource.Network).WithNode(rootSqalxNode))
 
-	y.Add("/stations", new(resource.Station).WithNode(rootSqalxNode))
-	y.Add("/stations/:id", new(resource.Station).WithNode(rootSqalxNode))
+	v1.Add("/lines", new(resource.Line).WithNode(rootSqalxNode))
+	v1.Add("/lines/:id", new(resource.Line).WithNode(rootSqalxNode))
 
-	y.Add("/disturbances", new(resource.Disturbance).WithNode(rootSqalxNode))
-	y.Add("/disturbances/:id", new(resource.Disturbance).WithNode(rootSqalxNode))
+	v1.Add("/stations", new(resource.Station).WithNode(rootSqalxNode))
+	v1.Add("/stations/:id", new(resource.Station).WithNode(rootSqalxNode))
+
+	v1.Add("/disturbances", new(resource.Disturbance).WithNode(rootSqalxNode))
+	v1.Add("/disturbances/:id", new(resource.Disturbance).WithNode(rootSqalxNode))
+
+	y.AddGroup(v1)
 
 	y.Logger = webLog
 	y.Silent = true
