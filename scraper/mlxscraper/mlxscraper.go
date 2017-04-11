@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	uuid "github.com/satori/go.uuid"
 	"github.com/gbl08ma/disturbancesmlx/interfaces"
 	"github.com/gbl08ma/disturbancesmlx/scraper"
+	uuid "github.com/satori/go.uuid"
 )
 
 // Scraper is a scraper for the status of Metro de Lisboa
@@ -105,17 +105,21 @@ func (sc *Scraper) update() {
 
 			newLines := make(map[string]*interfaces.Line)
 
+			css := doc.Find("style").First().Text()
+
 			doc.Find("table").First().Find("tr").Each(func(i int, s *goquery.Selection) {
 				line := s.Find("td").First()
 
-				style, _ := line.Attr("style")
+				class, _ := line.Attr("class")
 				color := "000000"
-				pound := strings.Index(style, "#")
+				classInCSS := strings.Index(css, class)
+				pound := strings.Index(css[classInCSS:], "#")
+				pound += classInCSS
 				if pound > -1 {
-					color = style[pound+1 : pound+7]
+					color = css[pound+1 : pound+7]
 				}
 
-				words := strings.Split(line.Find("b").Text(), " ")
+				words := strings.Split(line.Find("img").AttrOr("alt", ""), " ")
 				if len(words) < 2 {
 					sc.log.Println("Could not parse line name")
 					return
