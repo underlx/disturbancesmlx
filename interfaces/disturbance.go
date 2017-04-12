@@ -233,7 +233,7 @@ func (disturbance *Disturbance) Update(node sqalx.Node) error {
 }
 
 // Delete deletes the disturbance
-func (disturbance *Disturbance) Delete(node sqalx.Node, disturbanceID string) error {
+func (disturbance *Disturbance) Delete(node sqalx.Node) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err

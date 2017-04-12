@@ -101,7 +101,7 @@ func (station *Station) Lines(node sqalx.Node) ([]*Line, error) {
 // WiFiAPs returns the WiFi APs that are available in this station
 func (station *Station) WiFiAPs(node sqalx.Node) ([]*WiFiAP, error) {
 	s := sdb.Select().
-		Join("station_has_wifiap ON station_id = ? AND wifiap.bssid = station_has_wifiap.bssid", station.ID)
+		Where(sq.Eq{"station_id": station.ID})
 	return getWiFiAPsWithSelect(node, s)
 }
 
@@ -132,7 +132,7 @@ func (station *Station) Update(node sqalx.Node) error {
 }
 
 // Delete deletes the station
-func (station *Station) Delete(node sqalx.Node, stationID string) error {
+func (station *Station) Delete(node sqalx.Node) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err

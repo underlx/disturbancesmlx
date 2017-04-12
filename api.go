@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/yarf-framework/yarf"
 	"github.com/gbl08ma/disturbancesmlx/resource"
+	"github.com/yarf-framework/yarf"
 )
 
 func APIserver() {
@@ -18,6 +18,12 @@ func APIserver() {
 
 	v1.Add("/stations", new(resource.Station).WithNode(rootSqalxNode))
 	v1.Add("/stations/:id", new(resource.Station).WithNode(rootSqalxNode))
+
+	v1.Add("/connections", new(resource.Connection).WithNode(rootSqalxNode))
+	v1.Add("/connections/:from/:to", new(resource.Connection).WithNode(rootSqalxNode))
+
+	v1.Add("/transfers", new(resource.Transfer).WithNode(rootSqalxNode))
+	v1.Add("/transfers/:station/:from/:to", new(resource.Transfer).WithNode(rootSqalxNode))
 
 	v1.Add("/disturbances", new(resource.Disturbance).WithNode(rootSqalxNode))
 	v1.Add("/disturbances/:id", new(resource.Disturbance).WithNode(rootSqalxNode))

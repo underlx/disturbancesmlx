@@ -134,7 +134,7 @@ func (status *Status) Update(node sqalx.Node) error {
 }
 
 // Delete deletes the status
-func (status *Status) Delete(node sqalx.Node, statusID string) error {
+func (status *Status) Delete(node sqalx.Node) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err

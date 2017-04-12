@@ -18,7 +18,7 @@ type Dataset struct {
 
 type apiDataset struct {
 	NetworkID string         `msgpack:"network" json:"network"`
-	Version   time.Time      `msgpack:"version" json:"version"`
+	Version   string         `msgpack:"version" json:"version"`
 	Authors   pq.StringArray `msgpack:"authors" json:"authors"`
 }
 
@@ -41,14 +41,17 @@ func (n *Dataset) Get(c *yarf.Context) error {
 
 	if c.Param("id") != "" {
 		var dataset apiDataset
+		var version time.Time
 		err := n.sdb.Select("network_id", "version", "authors").
 			From("dataset_info").RunWith(tx).QueryRow().Scan(
 			&dataset.NetworkID,
-			&dataset.Version,
+			&version,
 			&dataset.Authors)
 		if err != nil {
 			return err
 		}
+
+		dataset.Version = version.Format(time.RFC3339)
 
 		RenderData(c, dataset)
 	} else {
@@ -62,13 +65,17 @@ func (n *Dataset) Get(c *yarf.Context) error {
 
 		for rows.Next() {
 			var dataset apiDataset
+			var version time.Time
 			err := rows.Scan(
 				&dataset.NetworkID,
-				&dataset.Version,
+				&version,
 				&dataset.Authors)
 			if err != nil {
 				return err
 			}
+
+			dataset.Version = version.Format(time.RFC3339)
+
 			datasets = append(datasets, &dataset)
 		}
 		if err := rows.Err(); err != nil {

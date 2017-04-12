@@ -312,7 +312,7 @@ func (line *Line) Update(node sqalx.Node) error {
 }
 
 // Delete deletes the line
-func (line *Line) Delete(node sqalx.Node, lineID string) error {
+func (line *Line) Delete(node sqalx.Node) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err

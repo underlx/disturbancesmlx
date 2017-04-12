@@ -1,6 +1,9 @@
+DROP TABLE dataset_info;
 DROP TABLE station_has_wifiap;
 DROP TABLE wifiap;
 DROP TABLE line_has_station;
+DROP TABLE transfer;
+DROP TABLE connection;
 DROP TABLE station;
 DROP TABLE line_disturbance_has_status;
 DROP TABLE line_disturbance;
@@ -56,6 +59,21 @@ CREATE TABLE IF NOT EXISTS "station" (
     network VARCHAR(36) NOT NULL REFERENCES network (id)
 );
 
+CREATE TABLE IF NOT EXISTS "connection" (
+    from_station VARCHAR(36) NOT NULL REFERENCES station (id),
+    to_station VARCHAR(36) NOT NULL REFERENCES station (id),
+    typ_time INT NOT NULL,
+    PRIMARY KEY (from_station, to_station)
+);
+
+CREATE TABLE IF NOT EXISTS "transfer" (
+    station_id VARCHAR(36) NOT NULL REFERENCES station (id),
+    from_line VARCHAR(36) NOT NULL REFERENCES mline (id),
+    to_line VARCHAR(36) NOT NULL REFERENCES mline (id),
+    typ_time INT NOT NULL,
+    PRIMARY KEY (station_id, from_line, to_line)
+);
+
 CREATE TABLE IF NOT EXISTS "line_has_station" (
     line_id VARCHAR(36) NOT NULL REFERENCES mline (id),
     station_id VARCHAR(36) NOT NULL REFERENCES station (id),
@@ -71,6 +89,7 @@ CREATE TABLE IF NOT EXISTS "wifiap" (
 CREATE TABLE IF NOT EXISTS "station_has_wifiap" (
     station_id VARCHAR(36) NOT NULL REFERENCES station (id),
     bssid VARCHAR(17) NOT NULL REFERENCES wifiap (bssid),
+    line_id VARCHAR(36) REFERENCES mline (id),
     PRIMARY KEY (station_id, bssid)
 );
 

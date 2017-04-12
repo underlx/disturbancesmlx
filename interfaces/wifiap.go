@@ -12,6 +12,7 @@ import (
 type WiFiAP struct {
 	BSSID string
 	SSID  string
+	Line  string
 }
 
 // GetWiFiAPs returns a slice with all registered wiFiAPs
@@ -28,8 +29,9 @@ func getWiFiAPsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*WiFiAP
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("wifiap.bssid", "wifiap.ssid").
+	rows, err := sbuilder.Columns("wifiap.bssid", "wifiap.ssid", "line_id").
 		From("wifiap").
+		Join("station_has_wifiap ON wifiap.bssid = station_has_wifiap.bssid").
 		RunWith(tx).Query()
 	if err != nil {
 		return wiFiAPs, fmt.Errorf("getWiFiAPsWithSelect: %s", err)
@@ -40,7 +42,8 @@ func getWiFiAPsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*WiFiAP
 		var wiFiAP WiFiAP
 		err := rows.Scan(
 			&wiFiAP.BSSID,
-			&wiFiAP.SSID)
+			&wiFiAP.SSID,
+			&wiFiAP.Line)
 		if err != nil {
 			return wiFiAPs, fmt.Errorf("getWiFiAPsWithSelect: %s", err)
 		}
@@ -68,7 +71,7 @@ func GetWiFiAP(node sqalx.Node, bssid string) (*WiFiAP, error) {
 		From("wifiap").
 		Where(sq.Eq{"bssid": bssid}).
 		RunWith(tx).QueryRow().
-		Scan(&wiFiAP.BSSID, &wiFiAP.SSID)
+		Scan(&wiFiAP.BSSID, &wiFiAP.SSID, &wiFiAP.Line)
 	if err != nil {
 		return &wiFiAP, errors.New("GetWiFiAP: " + err.Error())
 	}

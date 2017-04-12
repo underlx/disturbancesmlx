@@ -1,9 +1,9 @@
 package resource
 
 import (
+	"github.com/gbl08ma/disturbancesmlx/interfaces"
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
 )
 
 // Network composites resource
@@ -17,9 +17,9 @@ type apiNetwork struct {
 }
 
 type apiNetworkWrapper struct {
-	apiNetwork
-	Lines    []string `msgpack:"lines" json:"lines"`
-	Stations []string `msgpack:"stations" json:"stations"`
+	apiNetwork `msgpack:",inline"`
+	Lines      []string `msgpack:"lines" json:"lines"`
+	Stations   []string `msgpack:"stations" json:"stations"`
 }
 
 func (r *Network) WithNode(node sqalx.Node) *Network {

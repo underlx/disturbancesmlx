@@ -1,9 +1,9 @@
 package resource
 
 import (
+	"github.com/gbl08ma/disturbancesmlx/interfaces"
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
 )
 
 // Station composites resource
@@ -17,11 +17,16 @@ type apiStation struct {
 	Network *interfaces.Network `msgpack:"-" json:"-"`
 }
 
+type wifiWrapper struct {
+	BSSID string `msgpack:"bssid" json:"bssid"`
+	Line  string `msgpack:"line" json:"line"`
+}
+
 type apiStationWrapper struct {
 	apiStation `msgpack:",inline"`
-	NetworkID  string   `msgpack:"network" json:"network"`
-	Lines      []string `msgpack:"lines" json:"lines"`
-	WiFiAPs    []string `msgpack:"wiFiAPs" json:"wiFiAPs"`
+	NetworkID  string        `msgpack:"network" json:"network"`
+	Lines      []string      `msgpack:"lines" json:"lines"`
+	WiFiAPs    []wifiWrapper `msgpack:"wiFiAPs" json:"wiFiAPs"`
 }
 
 func (r *Station) WithNode(node sqalx.Node) *Station {
@@ -55,13 +60,16 @@ func (n *Station) Get(c *yarf.Context) error {
 			data.Lines = append(data.Lines, line.ID)
 		}
 
-		data.WiFiAPs = []string{}
+		data.WiFiAPs = []wifiWrapper{}
 		wiFiAPs, err := station.WiFiAPs(tx)
 		if err != nil {
 			return err
 		}
 		for _, ap := range wiFiAPs {
-			data.WiFiAPs = append(data.WiFiAPs, ap.BSSID)
+			data.WiFiAPs = append(data.WiFiAPs, wifiWrapper{
+				BSSID: ap.BSSID,
+				Line:  ap.Line,
+			})
 		}
 
 		RenderData(c, data)
@@ -86,13 +94,16 @@ func (n *Station) Get(c *yarf.Context) error {
 				apistations[i].Lines = append(apistations[i].Lines, line.ID)
 			}
 
-			apistations[i].WiFiAPs = []string{}
+			apistations[i].WiFiAPs = []wifiWrapper{}
 			wiFiAPs, err := stations[i].WiFiAPs(tx)
 			if err != nil {
 				return err
 			}
 			for _, ap := range wiFiAPs {
-				apistations[i].WiFiAPs = append(apistations[i].WiFiAPs, ap.BSSID)
+				apistations[i].WiFiAPs = append(apistations[i].WiFiAPs, wifiWrapper{
+					BSSID: ap.BSSID,
+					Line:  ap.Line,
+				})
 			}
 		}
 		RenderData(c, apistations)

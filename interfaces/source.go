@@ -90,7 +90,7 @@ func (source *Source) Update(node sqalx.Node) error {
 }
 
 // Delete deletes the source
-func (source *Source) Delete(node sqalx.Node, sourceID string) error {
+func (source *Source) Delete(node sqalx.Node) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err
