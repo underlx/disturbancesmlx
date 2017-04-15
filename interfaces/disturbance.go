@@ -21,9 +21,17 @@ type Disturbance struct {
 	Statuses    []*Status
 }
 
-// GetDisturbances returns a slice with all registered disturbancees
+// GetDisturbances returns a slice with all registered disturbances
 func GetDisturbances(node sqalx.Node) ([]*Disturbance, error) {
 	s := sdb.Select().
+		OrderBy("time_start ASC")
+	return getDisturbancesWithSelect(node, s)
+}
+
+// GetOngoingDisturbances returns a slice with all ongoing disturbances
+func GetOngoingDisturbances(node sqalx.Node) ([]*Disturbance, error) {
+	s := sdb.Select().
+		Where("time_end IS NULL").
 		OrderBy("time_start ASC")
 	return getDisturbancesWithSelect(node, s)
 }
@@ -56,7 +64,7 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 		From("line_disturbance").
 		RunWith(tx).Query()
 	if err != nil {
-		return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)
+		return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 	}
 
 	lineIDs := []string{}
@@ -72,7 +80,7 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 			&disturbance.Description)
 		if err != nil {
 			rows.Close()
-			return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)
+			return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 		}
 		disturbance.EndTime = timeEnd.Time
 		disturbance.Ended = timeEnd.Valid
@@ -82,21 +90,21 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 	}
 	if err := rows.Err(); err != nil {
 		rows.Close()
-		return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)
+		return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 	}
 	rows.Close()
 
 	for i := range disturbances {
 		disturbances[i].Line, err = GetLine(tx, lineIDs[i])
 		if err != nil {
-			return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)
+			return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 		}
 		rows, err := sdb.Select("status_id").
 			From("line_disturbance_has_status").
 			Where(sq.Eq{"disturbance_id": disturbances[i].ID}).
 			RunWith(tx).Query()
 		if err != nil {
-			return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)
+			return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 		}
 
 		statusIDs := []string{}
@@ -105,20 +113,20 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 			err := rows.Scan(&statusID)
 			if err != nil {
 				rows.Close()
-				return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)
+				return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 			}
 			statusIDs = append(statusIDs, statusID)
 		}
 		if err := rows.Err(); err != nil {
 			rows.Close()
-			return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)
+			return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 		}
 		rows.Close()
 
 		for j := range statusIDs {
 			status, err := GetStatus(tx, statusIDs[j])
 			if err != nil {
-				return disturbances, fmt.Errorf("GetOngoingDisturbancesForLine: %s", err)
+				return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 			}
 			disturbances[i].Statuses = append(disturbances[i].Statuses, status)
 		}

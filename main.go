@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	fcm "github.com/NaySoftware/go-fcm"
 	"github.com/SaidinWoT/timespan"
 	"github.com/heetch/sqalx"
 	"github.com/jmoiron/sqlx"
@@ -12,10 +13,10 @@ import (
 
 	sq "github.com/gbl08ma/squirrel"
 
-	"github.com/gbl08ma/keybox"
 	"github.com/gbl08ma/disturbancesmlx/interfaces"
 	"github.com/gbl08ma/disturbancesmlx/scraper"
 	"github.com/gbl08ma/disturbancesmlx/scraper/mlxscraper"
+	"github.com/gbl08ma/keybox"
 )
 
 const (
@@ -28,6 +29,7 @@ var (
 	sdb           sq.StatementBuilderType
 	rootSqalxNode sqalx.Node
 	secrets       *keybox.Keybox
+	fcmcl         *fcm.FcmClient
 	mainLog       = log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	webLog        = log.New(os.Stdout, "web", log.Ldate|log.Ltime)
 	mlxscr        scraper.Scraper
@@ -171,6 +173,7 @@ func main() {
 				Line: status.Line,
 			}
 		}
+		sendNotification := false
 		if status.IsDowntime && !found {
 			disturbance.StartTime = status.Time
 			disturbance.Description = status.Status
@@ -180,6 +183,7 @@ func main() {
 				mainLog.Println(err)
 				return
 			}
+			sendNotification = true
 		} else if found {
 			if !status.IsDowntime {
 				// "close" this disturbance
@@ -192,9 +196,12 @@ func main() {
 				mainLog.Println(err)
 				return
 			}
+			sendNotification = true
 		}
 		lastChange = time.Now().UTC()
-		tx.Commit()
+		if tx.Commit() == nil && sendNotification {
+			SendNotificationForDisturbance(disturbance, status)
+		}
 	},
 		func(s scraper.Scraper) {
 			for _, network := range s.Networks() {
@@ -208,6 +215,13 @@ func main() {
 
 	go WebServer()
 	go APIserver()
+
+	fcmServerKey, present := secrets.Get("firebaseServerKey")
+	if !present {
+		mainLog.Fatal("Firebase server key not present in keybox")
+	}
+	fcmcl = fcm.NewFcmClient(fcmServerKey)
+
 	for {
 		if DEBUG {
 			printLatestDisturbance(rootSqalxNode)
