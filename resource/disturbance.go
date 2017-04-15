@@ -3,9 +3,9 @@ package resource
 import (
 	"time"
 
+	"github.com/gbl08ma/disturbancesmlx/interfaces"
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
 )
 
 // Disturbance composites resource
@@ -88,7 +88,12 @@ func (n *Disturbance) Get(c *yarf.Context) error {
 		var err error
 		start := c.Request.URL.Query().Get("start")
 		if start == "" {
-			disturbances, err = interfaces.GetDisturbances(tx)
+			switch c.Request.URL.Query().Get("filter") {
+			case "ongoing":
+				disturbances, err = interfaces.GetOngoingDisturbances(tx)
+			default:
+				disturbances, err = interfaces.GetDisturbances(tx)
+			}
 		} else {
 			startTime, err2 := time.Parse(time.RFC3339, start)
 			if err2 != nil {
