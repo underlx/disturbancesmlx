@@ -1,9 +1,9 @@
 package resource
 
 import (
+	"github.com/gbl08ma/disturbancesmlx/interfaces"
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
 )
 
 // Line composites resource
@@ -12,10 +12,11 @@ type Line struct {
 }
 
 type apiLine struct {
-	ID      string              `msgpack:"id" json:"id"`
-	Name    string              `msgpack:"name" json:"name"`
-	Color   string              `msgpack:"color" json:"color"`
-	Network *interfaces.Network `msgpack:"-" json:"-"`
+	ID          string              `msgpack:"id" json:"id"`
+	Name        string              `msgpack:"name" json:"name"`
+	Color       string              `msgpack:"color" json:"color"`
+	TypicalCars int                 `msgpack:"typCars" json:"typCars"`
+	Network     *interfaces.Network `msgpack:"-" json:"-"`
 }
 
 type apiLineWrapper struct {

@@ -11,10 +11,11 @@ import (
 
 // Line is a Network line
 type Line struct {
-	ID      string
-	Name    string
-	Color   string
-	Network *Network
+	ID          string
+	Name        string
+	Color       string
+	TypicalCars int
+	Network     *Network
 }
 
 // GetLines returns a slice with all registered lines
@@ -31,7 +32,7 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("id", "name", "color", "network").
+	rows, err := sbuilder.Columns("id", "name", "color", "network", "typ_cars").
 		From("mline").
 		RunWith(tx).Query()
 	if err != nil {
@@ -47,7 +48,8 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 			&line.ID,
 			&line.Name,
 			&line.Color,
-			&networkID)
+			&networkID,
+			&line.TypicalCars)
 		if err != nil {
 			return lines, fmt.Errorf("getLinesWithSelect: %s", err)
 		}
@@ -79,11 +81,11 @@ func GetLine(node sqalx.Node, id string) (*Line, error) {
 	defer tx.Commit() // read-only tx
 
 	var networkID string
-	err = sdb.Select("id", "name", "color", "network").
+	err = sdb.Select("id", "name", "color", "network", "typ_cars").
 		From("mline").
 		Where(sq.Eq{"id": id}).
 		RunWith(tx).QueryRow().
-		Scan(&line.ID, &line.Name, &line.Color, &networkID)
+		Scan(&line.ID, &line.Name, &line.Color, &networkID, &line.TypicalCars)
 	if err != nil {
 		return &line, errors.New("GetLine: " + err.Error())
 	}
@@ -299,10 +301,10 @@ func (line *Line) Update(node sqalx.Node) error {
 	}
 
 	_, err = sdb.Insert("mline").
-		Columns("id", "name", "color", "network").
-		Values(line.ID, line.Name, line.Color, line.Network.ID).
-		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, color = ?, network = ?",
-			line.Name, line.Color, line.Network.ID).
+		Columns("id", "name", "color", "network", "typ_cars").
+		Values(line.ID, line.Name, line.Color, line.Network.ID, line.TypicalCars).
+		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, color = ?, network = ?, typ_cars = ?",
+			line.Name, line.Color, line.Network.ID, line.TypicalCars).
 		RunWith(tx).Exec()
 
 	if err != nil {

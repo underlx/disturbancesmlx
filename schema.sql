@@ -20,14 +20,16 @@ CREATE TABLE IF NOT EXISTS "source" (
 
 CREATE TABLE IF NOT EXISTS "network" (
     id VARCHAR(36) PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    typ_cars INT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "mline" (
     id VARCHAR(36) PRIMARY KEY,
     name TEXT NOT NULL,
     color VARCHAR(6) NOT NULL,
-    network VARCHAR(36) NOT NULL REFERENCES network (id)
+    network VARCHAR(36) NOT NULL REFERENCES network (id),
+    typ_cars INT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "line_status" (

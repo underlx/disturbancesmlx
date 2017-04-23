@@ -12,8 +12,9 @@ type Network struct {
 }
 
 type apiNetwork struct {
-	ID   string `msgpack:"id" json:"id"`
-	Name string `msgpack:"name" json:"name"`
+	ID          string `msgpack:"id" json:"id"`
+	Name        string `msgpack:"name" json:"name"`
+	TypicalCars int    `msgpack:"typCars" json:"typCars"`
 }
 
 type apiNetworkWrapper struct {

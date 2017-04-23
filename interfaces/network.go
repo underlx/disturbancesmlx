@@ -12,8 +12,9 @@ import (
 
 // Network is a transportation network
 type Network struct {
-	ID   string
-	Name string
+	ID          string
+	Name        string
+	TypicalCars int
 }
 
 // GetNetworks returns a slice with all registered networks
@@ -26,7 +27,7 @@ func GetNetworks(node sqalx.Node) ([]*Network, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sdb.Select("id", "name").
+	rows, err := sdb.Select("id", "name", "typ_cars").
 		From("network").RunWith(tx).Query()
 	if err != nil {
 		return networks, fmt.Errorf("GetNetworks: %s", err)
@@ -37,7 +38,8 @@ func GetNetworks(node sqalx.Node) ([]*Network, error) {
 		var network Network
 		err := rows.Scan(
 			&network.ID,
-			&network.Name)
+			&network.Name,
+			&network.TypicalCars)
 		if err != nil {
 			return networks, fmt.Errorf("GetNetworks: %s", err)
 		}
@@ -58,10 +60,10 @@ func GetNetwork(node sqalx.Node, id string) (*Network, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	err = sdb.Select("id", "name").
+	err = sdb.Select("id", "name", "typ_cars").
 		From("network").
 		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().Scan(&network.ID, &network.Name)
+		RunWith(tx).QueryRow().Scan(&network.ID, &network.Name, &network.TypicalCars)
 	if err != nil {
 		return &network, errors.New("GetNetwork: " + err.Error())
 	}
@@ -131,10 +133,10 @@ func (network *Network) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	_, err = sdb.Insert("network").
-		Columns("id", "name").
-		Values(network.ID, network.Name).
-		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?",
-			network.Name).
+		Columns("id", "name", "typ_cars").
+		Values(network.ID, network.Name, network.TypicalCars).
+		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, typ_cars = ?",
+			network.Name, network.TypicalCars).
 		RunWith(tx).Exec()
 
 	if err != nil {
