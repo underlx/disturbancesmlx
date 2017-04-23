@@ -204,12 +204,35 @@ func main() {
 		}
 	},
 		func(s scraper.Scraper) {
-			for _, network := range s.Networks() {
-				network.Update(rootSqalxNode)
+			tx, err := rootSqalxNode.Beginx()
+			if err != nil {
+				mainLog.Println(err)
+				return
 			}
-			for _, line := range s.Lines() {
-				line.Update(rootSqalxNode)
+			defer tx.Rollback()
+			for _, newnetwork := range s.Networks() {
+				newnetwork, err := interfaces.GetNetwork(tx, newnetwork.ID)
+				if err != nil {
+					mainLog.Println("New network " + newnetwork.ID)
+					err = newnetwork.Update(tx)
+					if err != nil {
+						mainLog.Println(err)
+						return
+					}
+				}
 			}
+			for _, newline := range s.Lines() {
+				newline, err := interfaces.GetLine(tx, newline.ID)
+				if err != nil {
+					mainLog.Println("New line " + newline.ID)
+					err = newline.Update(tx)
+					if err != nil {
+						mainLog.Println(err)
+						return
+					}
+				}
+			}
+			tx.Commit()
 		})
 	defer mlxscr.End()
 
