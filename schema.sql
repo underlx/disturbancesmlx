@@ -1,4 +1,8 @@
 DROP TABLE dataset_info;
+DROP TABLE station_lobby_schedule;
+DROP TABLE station_lobby_exit;
+DROP TABLE station_lobby;
+DROP TABLE station_feature;
 DROP TABLE station_has_wifiap;
 DROP TABLE wifiap;
 DROP TABLE line_has_station;
@@ -21,7 +25,8 @@ CREATE TABLE IF NOT EXISTS "source" (
 CREATE TABLE IF NOT EXISTS "network" (
     id VARCHAR(36) PRIMARY KEY,
     name TEXT NOT NULL,
-    typ_cars INT NOT NULL
+    typ_cars INT NOT NULL,
+    holidays INT[] NOT NULL,
 );
 
 CREATE TABLE IF NOT EXISTS "mline" (
@@ -93,6 +98,39 @@ CREATE TABLE IF NOT EXISTS "station_has_wifiap" (
     bssid VARCHAR(17) NOT NULL REFERENCES wifiap (bssid),
     line_id VARCHAR(36) REFERENCES mline (id),
     PRIMARY KEY (station_id, bssid)
+);
+
+CREATE TABLE IF NOT EXISTS "station_feature" (
+    station_id VARCHAR(36) NOT NULL REFERENCES station (id),
+    lift BOOLEAN NOT NULL,
+    bus BOOLEAN NOT NULL,
+    boat BOOLEAN NOT NULL,
+    train BOOLEAN NOT NULL,
+    airport BOOLEAN NOT NULL,
+    PRIMARY KEY (station_id)
+);
+
+CREATE TABLE IF NOT EXISTS "station_lobby" (
+    id VARCHAR(36) PRIMARY KEY,
+    station_id VARCHAR(36) NOT NULL REFERENCES station (id),
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "station_lobby_exit" (
+    id SERIAL PRIMARY KEY,
+    lobby_id VARCHAR(36) NOT NULL REFERENCES station_lobby (id),
+    world_coord POINT NOT NULL,
+    streets TEXT[] NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "station_lobby_schedule" (
+    lobby_id VARCHAR(36) NOT NULL REFERENCES station_lobby (id),
+    holiday BOOLEAN NOT NULL,
+    day INT NOT NULL,
+    open BOOLEAN NOT NULL,
+    open_time TIME NOT NULL,
+    open_duration INTERVAL NOT NULL,
+    PRIMARY KEY (lobby_id, holiday, day)
 );
 
 CREATE TABLE IF NOT EXISTS "dataset_info" (
