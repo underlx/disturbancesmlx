@@ -13,7 +13,7 @@ import (
 
 	sq "github.com/gbl08ma/squirrel"
 
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 	"github.com/gbl08ma/disturbancesmlx/scraper"
 	"github.com/gbl08ma/disturbancesmlx/scraper/mlxscraper"
 	"github.com/gbl08ma/keybox"
@@ -44,7 +44,7 @@ func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	n, err := interfaces.GetNetwork(rootSqalxNode, MLnetworkID)
+	n, err := dataobjects.GetNetwork(rootSqalxNode, MLnetworkID)
 	if err != nil {
 		return time.Now().UTC(), err
 	}
@@ -61,7 +61,7 @@ func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
 }
 
 // MLlineAvailability returns the availability for a Metro de Lisboa line
-func MLlineAvailability(node sqalx.Node, line *interfaces.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error) {
+func MLlineAvailability(node sqalx.Node, line *dataobjects.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error) {
 	// calculate closed time
 	var closedDuration time.Duration
 	ct := startTime
@@ -123,14 +123,14 @@ func main() {
 		URL:         "http://app.metrolisboa.pt/status/estado_Linhas.php",
 		NetworkID:   MLnetworkID,
 		NetworkName: "Metro de Lisboa",
-		Source: &interfaces.Source{
+		Source: &dataobjects.Source{
 			ID:          "mlxscraper-pt-ml",
 			Name:        "Metro de Lisboa estado_Linhas.php",
 			IsAutomatic: true,
 		},
 		Period: 1 * time.Minute,
 	}
-	mlxscr.Begin(l, func(status *interfaces.Status) {
+	mlxscr.Begin(l, func(status *dataobjects.Status) {
 		tx, err := rootSqalxNode.Beginx()
 		if err != nil {
 			mainLog.Println(err)
@@ -163,12 +163,12 @@ func main() {
 			return
 		}
 		found := len(disturbances) > 0
-		var disturbance *interfaces.Disturbance
+		var disturbance *dataobjects.Disturbance
 		if found {
 			mainLog.Println("   Found ongoing disturbance")
 			disturbance = disturbances[len(disturbances)-1]
 		} else {
-			disturbance = &interfaces.Disturbance{
+			disturbance = &dataobjects.Disturbance{
 				ID:   uuid.NewV4().String(),
 				Line: status.Line,
 			}
@@ -211,7 +211,7 @@ func main() {
 			}
 			defer tx.Rollback()
 			for _, newnetwork := range s.Networks() {
-				newnetwork, err := interfaces.GetNetwork(tx, newnetwork.ID)
+				newnetwork, err := dataobjects.GetNetwork(tx, newnetwork.ID)
 				if err != nil {
 					mainLog.Println("New network " + newnetwork.ID)
 					err = newnetwork.Update(tx)
@@ -222,7 +222,7 @@ func main() {
 				}
 			}
 			for _, newline := range s.Lines() {
-				newline, err := interfaces.GetLine(tx, newline.ID)
+				newline, err := dataobjects.GetLine(tx, newline.ID)
 				if err != nil {
 					mainLog.Println("New line " + newline.ID)
 					err = newline.Update(tx)
@@ -266,7 +266,7 @@ func printLatestDisturbance(node sqalx.Node) {
 	}
 	defer tx.Commit() // read-only tx
 
-	n, err := interfaces.GetNetwork(tx, MLnetworkID)
+	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		mainLog.Println(err)
 		return

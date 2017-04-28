@@ -1,4 +1,4 @@
-package interfaces
+package dataobjects
 
 import (
 	"errors"
@@ -136,7 +136,7 @@ func (network *Network) Update(node sqalx.Node) error {
 		Columns("id", "name", "typ_cars").
 		Values(network.ID, network.Name, network.TypicalCars).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, typ_cars = ?",
-			network.Name, network.TypicalCars).
+		network.Name, network.TypicalCars).
 		RunWith(tx).Exec()
 
 	if err != nil {

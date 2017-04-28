@@ -1,4 +1,4 @@
-package interfaces
+package dataobjects
 
 import (
 	sq "github.com/gbl08ma/squirrel"

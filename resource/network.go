@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
 )
@@ -36,7 +36,7 @@ func (n *Network) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	if c.Param("id") != "" {
-		network, err := interfaces.GetNetwork(tx, c.Param("id"))
+		network, err := dataobjects.GetNetwork(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
@@ -62,7 +62,7 @@ func (n *Network) Get(c *yarf.Context) error {
 		}
 		RenderData(c, data)
 	} else {
-		networks, err := interfaces.GetNetworks(tx)
+		networks, err := dataobjects.GetNetworks(tx)
 		if err != nil {
 			return err
 		}

@@ -6,7 +6,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 
 	"github.com/gorilla/mux"
 	"github.com/rickb777/date"
@@ -55,12 +55,12 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		Hours int
 		Days  int
 		Lines []struct {
-			*interfaces.Line
+			*dataobjects.Line
 			Down            bool
 			Minutes         int
 			DayCounts       []int
 			HourCounts      []int
-			LastDisturbance *interfaces.Disturbance
+			LastDisturbance *dataobjects.Disturbance
 			Availability    string
 			AvgDuration     string
 		}
@@ -109,7 +109,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	p.Days = int(date.NewAt(time.Now().In(loc)).Sub(date.NewAt(lastDisturbanceTime.In(loc))))
 	p.Hours = int(time.Since(lastDisturbanceTime).Hours())
 
-	n, err := interfaces.GetNetwork(tx, MLnetworkID)
+	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -123,12 +123,12 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.Lines = make([]struct {
-		*interfaces.Line
+		*dataobjects.Line
 		Down            bool
 		Minutes         int
 		DayCounts       []int
 		HourCounts      []int
-		LastDisturbance *interfaces.Disturbance
+		LastDisturbance *dataobjects.Disturbance
 		Availability    string
 		AvgDuration     string
 	}, len(lines))

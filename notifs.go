@@ -2,11 +2,11 @@ package main
 
 import (
 	fcm "github.com/NaySoftware/go-fcm"
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 )
 
 // SendNotificationForDisturbance sends a FCM notification for this disturbance about the specified status
-func SendNotificationForDisturbance(d *interfaces.Disturbance, s *interfaces.Status) {
+func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.Status) {
 	downtimeStr := "false"
 	if s.IsDowntime {
 		downtimeStr = "true"

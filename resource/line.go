@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
 )
@@ -16,7 +16,7 @@ type apiLine struct {
 	Name        string              `msgpack:"name" json:"name"`
 	Color       string              `msgpack:"color" json:"color"`
 	TypicalCars int                 `msgpack:"typCars" json:"typCars"`
-	Network     *interfaces.Network `msgpack:"-" json:"-"`
+	Network     *dataobjects.Network `msgpack:"-" json:"-"`
 }
 
 type apiLineWrapper struct {
@@ -38,7 +38,7 @@ func (n *Line) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	if c.Param("id") != "" {
-		line, err := interfaces.GetLine(tx, c.Param("id"))
+		line, err := dataobjects.GetLine(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
@@ -58,7 +58,7 @@ func (n *Line) Get(c *yarf.Context) error {
 
 		RenderData(c, data)
 	} else {
-		lines, err := interfaces.GetLines(tx)
+		lines, err := dataobjects.GetLines(tx)
 		if err != nil {
 			return err
 		}

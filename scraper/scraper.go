@@ -5,17 +5,17 @@ import (
 
 	"time"
 
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 )
 
 // Scraper is something that runs in the background retrieving status of lines
 // Scrapers can report duplicate states to the statusReporter
 type Scraper interface {
 	Begin(log *log.Logger,
-		statusReporter func(status *interfaces.Status),
+		statusReporter func(status *dataobjects.Status),
 		topologyChangeCallback func(Scraper))
 	End()
-	Networks() []*interfaces.Network
-	Lines() []*interfaces.Line
+	Networks() []*dataobjects.Network
+	Lines() []*dataobjects.Line
 	LastUpdate() time.Time
 }

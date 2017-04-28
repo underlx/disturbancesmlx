@@ -3,7 +3,7 @@ package resource
 import (
 	"time"
 
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
 )
@@ -18,9 +18,9 @@ type apiDisturbance struct {
 	StartTime   time.Time            `msgpack:"startTime" json:"startTime"`
 	EndTime     time.Time            `msgpack:"endTime" json:"endTime"`
 	Ended       bool                 `msgpack:"ended" json:"ended"`
-	Line        *interfaces.Line     `msgpack:"-" json:"-"`
+	Line        *dataobjects.Line     `msgpack:"-" json:"-"`
 	Description string               `msgpack:"description" json:"description"`
-	Statuses    []*interfaces.Status `msgpack:"-" json:"-"`
+	Statuses    []*dataobjects.Status `msgpack:"-" json:"-"`
 }
 
 type apiDisturbanceWrapper struct {
@@ -33,10 +33,10 @@ type apiDisturbanceWrapper struct {
 type apiStatus struct {
 	ID         string             `msgpack:"id" json:"id"`
 	Time       time.Time          `msgpack:"time" json:"time"`
-	Line       *interfaces.Line   `msgpack:"-" json:"-"`
+	Line       *dataobjects.Line   `msgpack:"-" json:"-"`
 	IsDowntime bool               `msgpack:"downtime" json:"downtime"`
 	Status     string             `msgpack:"status" json:"status"`
-	Source     *interfaces.Source `msgpack:"-" json:"-"`
+	Source     *dataobjects.Source `msgpack:"-" json:"-"`
 }
 
 type apiStatusWrapper struct {
@@ -59,7 +59,7 @@ func (n *Disturbance) Get(c *yarf.Context) error {
 	omitDuplicateStatus := c.Request.URL.Query().Get("omitduplicatestatus") == "true"
 
 	if c.Param("id") != "" {
-		disturbance, err := interfaces.GetDisturbance(tx, c.Param("id"))
+		disturbance, err := dataobjects.GetDisturbance(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
@@ -84,15 +84,15 @@ func (n *Disturbance) Get(c *yarf.Context) error {
 
 		RenderData(c, data)
 	} else {
-		var disturbances []*interfaces.Disturbance
+		var disturbances []*dataobjects.Disturbance
 		var err error
 		start := c.Request.URL.Query().Get("start")
 		if start == "" {
 			switch c.Request.URL.Query().Get("filter") {
 			case "ongoing":
-				disturbances, err = interfaces.GetOngoingDisturbances(tx)
+				disturbances, err = dataobjects.GetOngoingDisturbances(tx)
 			default:
-				disturbances, err = interfaces.GetDisturbances(tx)
+				disturbances, err = dataobjects.GetDisturbances(tx)
 			}
 		} else {
 			startTime, err2 := time.Parse(time.RFC3339, start)
@@ -107,7 +107,7 @@ func (n *Disturbance) Get(c *yarf.Context) error {
 					return err2
 				}
 			}
-			disturbances, err = interfaces.GetDisturbancesBetween(tx, startTime, endTime)
+			disturbances, err = dataobjects.GetDisturbancesBetween(tx, startTime, endTime)
 		}
 
 		if err != nil {

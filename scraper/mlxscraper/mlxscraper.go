@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/gbl08ma/disturbancesmlx/interfaces"
+	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 	"github.com/gbl08ma/disturbancesmlx/scraper"
 	uuid "github.com/satori/go.uuid"
 )
@@ -23,10 +23,10 @@ import (
 type Scraper struct {
 	ticker                 *time.Ticker
 	stopChan               chan struct{}
-	lines                  map[string]*interfaces.Line
+	lines                  map[string]*dataobjects.Line
 	previousResponse       []byte
 	log                    *log.Logger
-	statusCallback         func(status *interfaces.Status)
+	statusCallback         func(status *dataobjects.Status)
 	topologyChangeCallback func(scraper.Scraper)
 	firstUpdate            bool
 	lastUpdate             time.Time
@@ -34,20 +34,20 @@ type Scraper struct {
 	URL         string
 	NetworkID   string
 	NetworkName string
-	Source      *interfaces.Source
+	Source      *dataobjects.Source
 	Period      time.Duration
 }
 
 // Begin starts the scraper
 func (sc *Scraper) Begin(log *log.Logger,
-	statusCallback func(status *interfaces.Status),
+	statusCallback func(status *dataobjects.Status),
 	topologyChangeCallback func(scraper.Scraper)) {
 	sc.stopChan = make(chan struct{})
 	sc.ticker = time.NewTicker(sc.Period)
 	sc.log = log
 	sc.statusCallback = statusCallback
 	sc.topologyChangeCallback = topologyChangeCallback
-	sc.lines = make(map[string]*interfaces.Line)
+	sc.lines = make(map[string]*dataobjects.Line)
 	sc.firstUpdate = true
 
 	sc.log.Println("Scraper starting")
@@ -103,7 +103,7 @@ func (sc *Scraper) update() {
 				sc.previousResponse = content
 			}
 
-			newLines := make(map[string]*interfaces.Line)
+			newLines := make(map[string]*dataobjects.Line)
 
 			css := doc.Find("style").First().Text()
 
@@ -126,7 +126,7 @@ func (sc *Scraper) update() {
 				}
 				lineName := words[1]
 				lineID := fmt.Sprintf("%s-%s", sc.NetworkID, strings.ToLower(lineName))
-				newLines[lineID] = &interfaces.Line{
+				newLines[lineID] = &dataobjects.Line{
 					Name:    lineName,
 					ID:      lineID,
 					Color:   color,
@@ -137,7 +137,7 @@ func (sc *Scraper) update() {
 					sc.lastUpdate = time.Now().UTC()
 					status := line.Next()
 					if len(status.Find(".semperturbacao").Nodes) == 0 {
-						status := &interfaces.Status{
+						status := &dataobjects.Status{
 							ID:         uuid.NewV4().String(),
 							Time:       time.Now().UTC(),
 							Line:       newLines[lineID],
@@ -147,7 +147,7 @@ func (sc *Scraper) update() {
 						}
 						sc.statusCallback(status)
 					} else {
-						status := &interfaces.Status{
+						status := &dataobjects.Status{
 							ID:         uuid.NewV4().String(),
 							Time:       time.Now().UTC(),
 							Line:       newLines[lineID],
@@ -172,16 +172,16 @@ func (sc *Scraper) End() {
 }
 
 // Networks returns the networks monitored by this scraper
-func (sc *Scraper) Networks() []*interfaces.Network {
-	return []*interfaces.Network{{
+func (sc *Scraper) Networks() []*dataobjects.Network {
+	return []*dataobjects.Network{{
 		ID:   sc.NetworkID,
 		Name: sc.NetworkName,
 	}}
 }
 
 // Lines returns the lines monitored by this scraper
-func (sc *Scraper) Lines() []*interfaces.Line {
-	lines := []*interfaces.Line{}
+func (sc *Scraper) Lines() []*dataobjects.Line {
+	lines := []*dataobjects.Line{}
 	for _, v := range sc.lines {
 		lines = append(lines, v)
 	}
