@@ -107,7 +107,7 @@ func (wiFiAP *WiFiAP) Update(node sqalx.Node) error {
 }
 
 // Delete deletes the wiFiAP
-func (wiFiAP *WiFiAP) Delete(node sqalx.Node, wiFiAPID string) error {
+func (wiFiAP *WiFiAP) Delete(node sqalx.Node) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err

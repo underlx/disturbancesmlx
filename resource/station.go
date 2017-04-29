@@ -12,9 +12,10 @@ type Station struct {
 }
 
 type apiStation struct {
-	ID      string              `msgpack:"id" json:"id"`
-	Name    string              `msgpack:"name" json:"name"`
-	Network *dataobjects.Network `msgpack:"-" json:"-"`
+	ID       string                `msgpack:"id" json:"id"`
+	Name     string                `msgpack:"name" json:"name"`
+	Features *dataobjects.Features `msgpack:"-" json:"-"`
+	Network  *dataobjects.Network  `msgpack:"-" json:"-"`
 }
 
 type wifiWrapper struct {
@@ -22,10 +23,21 @@ type wifiWrapper struct {
 	Line  string `msgpack:"line" json:"line"`
 }
 
+type apiFeatures struct {
+	StationID string `msgpack:"-" json:"-"`
+	Lift      bool   `msgpack:"lift" json:"lift"`
+	Bus       bool   `msgpack:"bus" json:"bus"`
+	Boat      bool   `msgpack:"boat" json:"boat"`
+	Train     bool   `msgpack:"train" json:"train"`
+	Airport   bool   `msgpack:"airport" json:"airport"`
+}
+
 type apiStationWrapper struct {
 	apiStation `msgpack:",inline"`
 	NetworkID  string        `msgpack:"network" json:"network"`
 	Lines      []string      `msgpack:"lines" json:"lines"`
+	Features   apiFeatures   `msgpack:"features" json:"features"`
+	Lobbies    []string      `msgpack:"lobbies" json:"lobbies"`
 	WiFiAPs    []wifiWrapper `msgpack:"wiFiAPs" json:"wiFiAPs"`
 }
 
@@ -48,6 +60,7 @@ func (n *Station) Get(c *yarf.Context) error {
 		}
 		data := apiStationWrapper{
 			apiStation: apiStation(*station),
+			Features:   apiFeatures(*station.Features),
 			NetworkID:  station.Network.ID,
 		}
 
@@ -58,6 +71,15 @@ func (n *Station) Get(c *yarf.Context) error {
 		}
 		for _, line := range lines {
 			data.Lines = append(data.Lines, line.ID)
+		}
+
+		data.Lobbies = []string{}
+		lobbies, err := station.Lobbies(tx)
+		if err != nil {
+			return err
+		}
+		for _, lobby := range lobbies {
+			data.Lobbies = append(data.Lobbies, lobby.ID)
 		}
 
 		data.WiFiAPs = []wifiWrapper{}
@@ -82,6 +104,7 @@ func (n *Station) Get(c *yarf.Context) error {
 		for i := range stations {
 			apistations[i] = apiStationWrapper{
 				apiStation: apiStation(*stations[i]),
+				Features:   apiFeatures(*stations[i].Features),
 				NetworkID:  stations[i].Network.ID,
 			}
 
@@ -92,6 +115,15 @@ func (n *Station) Get(c *yarf.Context) error {
 			}
 			for _, line := range lines {
 				apistations[i].Lines = append(apistations[i].Lines, line.ID)
+			}
+
+			apistations[i].Lobbies = []string{}
+			lobbies, err := stations[i].Lobbies(tx)
+			if err != nil {
+				return err
+			}
+			for _, lobby := range lobbies {
+				apistations[i].Lobbies = append(apistations[i].Lobbies, lobby.ID)
 			}
 
 			apistations[i].WiFiAPs = []wifiWrapper{}

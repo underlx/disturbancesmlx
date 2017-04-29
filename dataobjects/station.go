@@ -10,9 +10,10 @@ import (
 
 // Station is a Network station
 type Station struct {
-	ID      string
-	Name    string
-	Network *Network
+	ID       string
+	Name     string
+	Features *Features
+	Network  *Network
 }
 
 // GetStations returns a slice with all registered stations
@@ -48,9 +49,6 @@ func getStationsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Stati
 		if err != nil {
 			return stations, fmt.Errorf("getStationsWithSelect: %s", err)
 		}
-		if err != nil {
-			return stations, fmt.Errorf("getStationsWithSelect: %s", err)
-		}
 		stations = append(stations, &station)
 		networkIDs = append(networkIDs, networkID)
 	}
@@ -59,6 +57,10 @@ func getStationsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Stati
 	}
 	for i := range networkIDs {
 		stations[i].Network, err = GetNetwork(tx, networkIDs[i])
+		if err != nil {
+			return stations, fmt.Errorf("getStationsWithSelect: %s", err)
+		}
+		stations[i].Features, err = GetFeaturesForStation(tx, stations[i].ID)
 		if err != nil {
 			return stations, fmt.Errorf("getStationsWithSelect: %s", err)
 		}
@@ -88,6 +90,10 @@ func GetStation(node sqalx.Node, id string) (*Station, error) {
 	if err != nil {
 		return &station, errors.New("GetStation: " + err.Error())
 	}
+	station.Features, err = GetFeaturesForStation(tx, station.ID)
+	if err != nil {
+		return &station, errors.New("GetStation: " + err.Error())
+	}
 	return &station, nil
 }
 
@@ -105,6 +111,13 @@ func (station *Station) WiFiAPs(node sqalx.Node) ([]*WiFiAP, error) {
 	return getWiFiAPsWithSelect(node, s)
 }
 
+// Lobbies returns the lobbies of this station
+func (station *Station) Lobbies(node sqalx.Node) ([]*Lobby, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"station_id": station.ID})
+	return getLobbiesWithSelect(node, s)
+}
+
 // Update adds or updates the station
 func (station *Station) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
@@ -114,6 +127,11 @@ func (station *Station) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	err = station.Network.Update(tx)
+	if err != nil {
+		return errors.New("AddStation: " + err.Error())
+	}
+
+	err = station.Features.Update(tx)
 	if err != nil {
 		return errors.New("AddStation: " + err.Error())
 	}
@@ -138,6 +156,11 @@ func (station *Station) Delete(node sqalx.Node) error {
 		return err
 	}
 	defer tx.Rollback()
+
+	err = station.Features.Delete(tx)
+	if err != nil {
+		return fmt.Errorf("RemoveStation: %s", err)
+	}
 
 	_, err = sdb.Delete("station").
 		Where(sq.Eq{"id": station.ID}).RunWith(tx).Exec()

@@ -18,6 +18,10 @@ func APIserver() {
 
 	v1.Add("/stations", new(resource.Station).WithNode(rootSqalxNode))
 	v1.Add("/stations/:id", new(resource.Station).WithNode(rootSqalxNode))
+	v1.Add("/stations/:sid/lobbies", new(resource.Lobby).WithNode(rootSqalxNode))
+
+	v1.Add("/lobbies", new(resource.Lobby).WithNode(rootSqalxNode))
+	v1.Add("/lobbies/:id", new(resource.Lobby).WithNode(rootSqalxNode))
 
 	v1.Add("/connections", new(resource.Connection).WithNode(rootSqalxNode))
 	v1.Add("/connections/:from/:to", new(resource.Connection).WithNode(rootSqalxNode))
