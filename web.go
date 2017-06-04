@@ -8,6 +8,8 @@ import (
 
 	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 
+	"encoding/json"
+
 	"github.com/gorilla/mux"
 	"github.com/rickb777/date"
 )
@@ -21,6 +23,8 @@ func WebServer() {
 	webLog.Println("Starting Web server...")
 
 	router.HandleFunc("/", HomePage)
+	router.HandleFunc("/lookingglass", LookingGlass)
+	router.HandleFunc("/lookingglass/heatmap", Heatmap)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
 	WebReloadTemplate()
@@ -184,6 +188,120 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+// LookingGlass serves the looking glass page
+func LookingGlass(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		Lines []struct {
+			*dataobjects.Line
+			Down    bool
+			Minutes int
+		}
+		LastChangeAgoMin  int
+		LastChangeAgoHour int
+		LastUpdateAgoMin  int
+		LastUpdateAgoHour int
+	}{
+		LastChangeAgoMin:  int(time.Now().Sub(lastChange).Minutes()) % 60,
+		LastChangeAgoHour: int(time.Now().Sub(lastChange).Hours()),
+		LastUpdateAgoMin:  int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60,
+		LastUpdateAgoHour: int(time.Now().Sub(mlxscr.LastUpdate()).Hours()),
+	}
+
+	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	lines, err := n.Lines(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.Lines = make([]struct {
+		*dataobjects.Line
+		Down    bool
+		Minutes int
+	}, len(lines))
+
+	for i := range lines {
+		p.Lines[i].Line = lines[i]
+		d, err := lines[i].LastOngoingDisturbance(tx)
+		p.Lines[i].Down = err == nil
+		if err == nil {
+			p.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
+		}
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "lg.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+// Heatmap serves data for the disturbance heatmap
+func Heatmap(w http.ResponseWriter, r *http.Request) {
+	startTime, err := time.Parse(time.RFC3339Nano, r.URL.Query().Get("start"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	endTime, err := time.Parse(time.RFC3339Nano, r.URL.Query().Get("stop"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	network, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+	}
+
+	dayCounts, err := network.CountDisturbancesByHour(tx, startTime, endTime)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+	}
+
+	data := make(map[int64]int)
+
+	for _, count := range dayCounts {
+		data[startTime.Unix()] = count
+		startTime = startTime.Add(1 * time.Hour)
+	}
+
+	json, err := json.Marshal(data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+	}
+	w.Write(json)
 }
 
 // WebReloadTemplate reloads the templates for the website

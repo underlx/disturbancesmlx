@@ -38,6 +38,5 @@ func APIserver() {
 	y.AddGroup(v1)
 
 	y.Logger = webLog
-	y.Silent = true
 	y.Start(":12000")
 }

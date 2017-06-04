@@ -3,6 +3,7 @@ package dataobjects
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"sort"
 
@@ -124,6 +125,44 @@ func (network *Network) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 	return lastDisturbances[len(lastDisturbances)-1], nil
 }
 
+// CountDisturbancesByHour counts disturbances by hour between the specified dates
+func (network *Network) CountDisturbancesByHour(node sqalx.Node, start time.Time, end time.Time) ([]int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return []int{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	rows, err := tx.Query("SELECT curd, COUNT(id) "+
+		"FROM generate_series(date_trunc('hour', $2 at time zone $1), date_trunc('hour', $3 at time zone $1), '1 hour') AS curd "+
+		"LEFT OUTER JOIN line_disturbance ON "+
+		"(curd BETWEEN date_trunc('hour', time_start at time zone $1) AND date_trunc('hour', coalesce(time_end, now()) at time zone $1)) "+
+		"GROUP BY curd ORDER BY curd;",
+		start.Location().String(), start, end)
+	if err != nil {
+		return []int{}, fmt.Errorf("CountDisturbancesByHour: %s", err)
+	}
+	defer rows.Close()
+
+	var counts []int
+	for rows.Next() {
+		var date time.Time
+		var count int
+		err := rows.Scan(&date, &count)
+		if err != nil {
+			return counts, fmt.Errorf("CountDisturbancesByHour: %s", err)
+		}
+		if err != nil {
+			return counts, fmt.Errorf("CountDisturbancesByHour: %s", err)
+		}
+		counts = append(counts, count)
+	}
+	if err := rows.Err(); err != nil {
+		return counts, fmt.Errorf("CountDisturbancesByHour: %s", err)
+	}
+	return counts, nil
+}
+
 // Update adds or updates the network
 func (network *Network) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
@@ -136,7 +175,7 @@ func (network *Network) Update(node sqalx.Node) error {
 		Columns("id", "name", "typ_cars").
 		Values(network.ID, network.Name, network.TypicalCars).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, typ_cars = ?",
-		network.Name, network.TypicalCars).
+			network.Name, network.TypicalCars).
 		RunWith(tx).Exec()
 
 	if err != nil {
