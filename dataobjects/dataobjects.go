@@ -63,8 +63,8 @@ func (t *Time) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (s *Time) EncodeMsgpack(enc *msgpack.Encoder) error {
-	return enc.Encode(int(time.Time(*s).Sub(time.Time{}.AddDate(-1, 0, 0)).Seconds()))
+func (s Time) EncodeMsgpack(enc *msgpack.Encoder) error {
+	return enc.Encode(int(time.Time(s).Sub(time.Time{}.AddDate(-1, 0, 0)).Seconds()))
 }
 
 func (s *Time) DecodeMsgpack(dec *msgpack.Decoder) error {
@@ -103,8 +103,8 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	return err
 }
 
-func (s *Duration) EncodeMsgpack(enc *msgpack.Encoder) error {
-	return enc.Encode(int(time.Duration(*s).Seconds()))
+func (s Duration) EncodeMsgpack(enc *msgpack.Encoder) error {
+	return enc.Encode(int(time.Duration(s).Seconds()))
 }
 
 func (s *Duration) DecodeMsgpack(dec *msgpack.Decoder) error {

@@ -5,6 +5,8 @@ import (
 
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
 
+	"log"
+
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
 )
@@ -44,6 +46,7 @@ func RenderMsgpack(c *yarf.Context, data interface{}) {
 	// Set content
 	encoded, err := msgpack.Marshal(data)
 	if err != nil {
+		log.Println(err)
 		c.Response.Write([]byte(err.Error()))
 	} else {
 		c.Response.Write(encoded)

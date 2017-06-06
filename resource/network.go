@@ -12,9 +12,12 @@ type Network struct {
 }
 
 type apiNetwork struct {
-	ID          string `msgpack:"id" json:"id"`
-	Name        string `msgpack:"name" json:"name"`
-	TypicalCars int    `msgpack:"typCars" json:"typCars"`
+	ID           string               `msgpack:"id" json:"id"`
+	Name         string               `msgpack:"name" json:"name"`
+	TypicalCars  int                  `msgpack:"typCars" json:"typCars"`
+	Holidays     []int64              `msgpack:"holidays" json:"holidays"`
+	OpenTime     dataobjects.Time     `msgpack:"openTime" json:"openTime"`
+	OpenDuration dataobjects.Duration `msgpack:"duration" json:"duration"`
 }
 
 type apiNetworkWrapper struct {

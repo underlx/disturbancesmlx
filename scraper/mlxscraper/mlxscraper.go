@@ -31,11 +31,15 @@ type Scraper struct {
 	firstUpdate            bool
 	lastUpdate             time.Time
 
-	URL         string
-	NetworkID   string
-	NetworkName string
-	Source      *dataobjects.Source
-	Period      time.Duration
+	URL                 string
+	NetworkID           string
+	NetworkName         string
+	NetworkTypCars      int
+	NetworkHolidays     []int64
+	NetworkOpenTime     dataobjects.Time
+	NetworkOpenDuration dataobjects.Duration
+	Source              *dataobjects.Source
+	Period              time.Duration
 }
 
 // Begin starts the scraper
@@ -174,8 +178,12 @@ func (sc *Scraper) End() {
 // Networks returns the networks monitored by this scraper
 func (sc *Scraper) Networks() []*dataobjects.Network {
 	return []*dataobjects.Network{{
-		ID:   sc.NetworkID,
-		Name: sc.NetworkName,
+		ID:           sc.NetworkID,
+		Name:         sc.NetworkName,
+		TypicalCars:  sc.NetworkTypCars,
+		Holidays:     sc.NetworkHolidays,
+		OpenTime:     sc.NetworkOpenTime,
+		OpenDuration: sc.NetworkOpenDuration,
 	}}
 }
 

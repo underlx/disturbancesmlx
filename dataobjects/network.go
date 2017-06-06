@@ -9,13 +9,17 @@ import (
 
 	sq "github.com/gbl08ma/squirrel"
 	"github.com/heetch/sqalx"
+	"github.com/lib/pq"
 )
 
 // Network is a transportation network
 type Network struct {
-	ID          string
-	Name        string
-	TypicalCars int
+	ID           string
+	Name         string
+	TypicalCars  int
+	Holidays     []int64
+	OpenTime     Time
+	OpenDuration Duration
 }
 
 // GetNetworks returns a slice with all registered networks
@@ -28,7 +32,7 @@ func GetNetworks(node sqalx.Node) ([]*Network, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sdb.Select("id", "name", "typ_cars").
+	rows, err := sdb.Select("id", "name", "typ_cars", "holidays", "open_time", "open_duration").
 		From("network").RunWith(tx).Query()
 	if err != nil {
 		return networks, fmt.Errorf("GetNetworks: %s", err)
@@ -37,13 +41,18 @@ func GetNetworks(node sqalx.Node) ([]*Network, error) {
 
 	for rows.Next() {
 		var network Network
+		var holidays pq.Int64Array
 		err := rows.Scan(
 			&network.ID,
 			&network.Name,
-			&network.TypicalCars)
+			&network.TypicalCars,
+			&holidays,
+			&network.OpenTime,
+			&network.OpenDuration)
 		if err != nil {
 			return networks, fmt.Errorf("GetNetworks: %s", err)
 		}
+		network.Holidays = holidays
 		networks = append(networks, &network)
 	}
 	if err := rows.Err(); err != nil {
@@ -61,13 +70,15 @@ func GetNetwork(node sqalx.Node, id string) (*Network, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	err = sdb.Select("id", "name", "typ_cars").
+	var holidays pq.Int64Array
+	err = sdb.Select("id", "name", "typ_cars", "holidays", "open_time", "open_duration").
 		From("network").
 		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().Scan(&network.ID, &network.Name, &network.TypicalCars)
+		RunWith(tx).QueryRow().Scan(&network.ID, &network.Name, &network.TypicalCars, &holidays, &network.OpenTime, &network.OpenDuration)
 	if err != nil {
 		return &network, errors.New("GetNetwork: " + err.Error())
 	}
+	network.Holidays = holidays
 	return &network, nil
 }
 
@@ -172,10 +183,10 @@ func (network *Network) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	_, err = sdb.Insert("network").
-		Columns("id", "name", "typ_cars").
-		Values(network.ID, network.Name, network.TypicalCars).
-		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, typ_cars = ?",
-			network.Name, network.TypicalCars).
+		Columns("id", "name", "typ_cars", "holidays", "open_time", "open_duration").
+		Values(network.ID, network.Name, network.TypicalCars, pq.Int64Array(network.Holidays), network.OpenTime, network.OpenDuration).
+		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, typ_cars = ?, holidays = ?, open_time = ?, open_duration = ?",
+			network.Name, network.TypicalCars, network.Holidays, network.OpenTime, network.OpenDuration).
 		RunWith(tx).Exec()
 
 	if err != nil {
