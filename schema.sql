@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS "network" (
     typ_cars INT NOT NULL,
     holidays INT[] NOT NULL,
     open_time TIME NOT NULL,
-    open_duration INTERVAL NOT NULL
+    open_duration INTERVAL NOT NULL,
+    timezone TEXT NOT NULL,
+    news_url TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "mline" (

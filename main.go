@@ -122,13 +122,17 @@ func main() {
 
 	l := log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime)
 	mlxscr = &mlxscraper.Scraper{
-		URL:                 "http://app.metrolisboa.pt/status/estado_Linhas.php",
-		NetworkID:           MLnetworkID,
-		NetworkName:         "Metro de Lisboa",
-		NetworkTypCars:      6,
-		NetworkHolidays:     []int64{},
-		NetworkOpenTime:     dataobjects.Time(time.Date(0, 0, 0, 6, 30, 0, 0, lisbonLoc)),
-		NetworkOpenDuration: dataobjects.Duration(18*time.Hour + 30*time.Minute),
+		URL: "http://app.metrolisboa.pt/status/estado_Linhas.php",
+		Network: &dataobjects.Network{
+			ID:           MLnetworkID,
+			Name:         "Metro de Lisboa",
+			TypicalCars:  6,
+			Holidays:     []int64{},
+			OpenTime:     dataobjects.Time(time.Date(0, 0, 0, 6, 30, 0, 0, lisbonLoc)),
+			OpenDuration: dataobjects.Duration(18*time.Hour + 30*time.Minute),
+			Timezone:     "Europe/Lisbon",
+			NewsURL:      "http://www.metrolisboa.pt/feed/",
+		},
 		Source: &dataobjects.Source{
 			ID:          "mlxscraper-pt-ml",
 			Name:        "Metro de Lisboa estado_Linhas.php",

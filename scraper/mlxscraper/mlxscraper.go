@@ -31,15 +31,10 @@ type Scraper struct {
 	firstUpdate            bool
 	lastUpdate             time.Time
 
-	URL                 string
-	NetworkID           string
-	NetworkName         string
-	NetworkTypCars      int
-	NetworkHolidays     []int64
-	NetworkOpenTime     dataobjects.Time
-	NetworkOpenDuration dataobjects.Duration
-	Source              *dataobjects.Source
-	Period              time.Duration
+	URL     string
+	Network *dataobjects.Network
+	Source  *dataobjects.Source
+	Period  time.Duration
 }
 
 // Begin starts the scraper
@@ -129,7 +124,7 @@ func (sc *Scraper) update() {
 					return
 				}
 				lineName := words[1]
-				lineID := fmt.Sprintf("%s-%s", sc.NetworkID, strings.ToLower(lineName))
+				lineID := fmt.Sprintf("%s-%s", sc.Network.ID, strings.ToLower(lineName))
 				newLines[lineID] = &dataobjects.Line{
 					Name:    lineName,
 					ID:      lineID,
@@ -166,7 +161,6 @@ func (sc *Scraper) update() {
 			sc.lines = newLines
 		}
 	}
-
 }
 
 // End stops the scraper
@@ -177,14 +171,7 @@ func (sc *Scraper) End() {
 
 // Networks returns the networks monitored by this scraper
 func (sc *Scraper) Networks() []*dataobjects.Network {
-	return []*dataobjects.Network{{
-		ID:           sc.NetworkID,
-		Name:         sc.NetworkName,
-		TypicalCars:  sc.NetworkTypCars,
-		Holidays:     sc.NetworkHolidays,
-		OpenTime:     sc.NetworkOpenTime,
-		OpenDuration: sc.NetworkOpenDuration,
-	}}
+	return []*dataobjects.Network{sc.Network}
 }
 
 // Lines returns the lines monitored by this scraper

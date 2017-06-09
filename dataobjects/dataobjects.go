@@ -44,7 +44,7 @@ var _ msgpack.CustomEncoder = (*Time)(nil)
 var _ msgpack.CustomDecoder = (*Time)(nil)
 
 var timeLayout = "15:04:05"
-var TimeParseError = errors.New(`TimeParseError: should be a string formatted as "15:04:05"`)
+var ErrTimeParse = errors.New(`TimeParseError: should be a string formatted as "15:04:05"`)
 
 func (t Time) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + time.Time(t).Format(timeLayout) + `"`), nil
@@ -53,7 +53,7 @@ func (t Time) MarshalJSON() ([]byte, error) {
 func (t *Time) UnmarshalJSON(b []byte) error {
 	s := string(b)
 	if len(s) != len(timeLayout)+2 {
-		return TimeParseError
+		return ErrTimeParse
 	}
 	ret, err := time.Parse(timeLayout, s[1:len(timeLayout)-1])
 	if err != nil {

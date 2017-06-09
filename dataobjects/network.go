@@ -20,6 +20,8 @@ type Network struct {
 	Holidays     []int64
 	OpenTime     Time
 	OpenDuration Duration
+	Timezone     string
+	NewsURL      string
 }
 
 // GetNetworks returns a slice with all registered networks
@@ -32,7 +34,7 @@ func GetNetworks(node sqalx.Node) ([]*Network, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sdb.Select("id", "name", "typ_cars", "holidays", "open_time", "open_duration").
+	rows, err := sdb.Select("id", "name", "typ_cars", "holidays", "open_time", "open_duration", "timezone", "news_url").
 		From("network").RunWith(tx).Query()
 	if err != nil {
 		return networks, fmt.Errorf("GetNetworks: %s", err)
@@ -48,7 +50,9 @@ func GetNetworks(node sqalx.Node) ([]*Network, error) {
 			&network.TypicalCars,
 			&holidays,
 			&network.OpenTime,
-			&network.OpenDuration)
+			&network.OpenDuration,
+			&network.Timezone,
+			&network.NewsURL)
 		if err != nil {
 			return networks, fmt.Errorf("GetNetworks: %s", err)
 		}
@@ -71,10 +75,18 @@ func GetNetwork(node sqalx.Node, id string) (*Network, error) {
 	defer tx.Commit() // read-only tx
 
 	var holidays pq.Int64Array
-	err = sdb.Select("id", "name", "typ_cars", "holidays", "open_time", "open_duration").
+	err = sdb.Select("id", "name", "typ_cars", "holidays", "open_time", "open_duration", "timezone", "news_url").
 		From("network").
 		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().Scan(&network.ID, &network.Name, &network.TypicalCars, &holidays, &network.OpenTime, &network.OpenDuration)
+		RunWith(tx).QueryRow().Scan(
+		&network.ID,
+		&network.Name,
+		&network.TypicalCars,
+		&holidays,
+		&network.OpenTime,
+		&network.OpenDuration,
+		&network.Timezone,
+		&network.NewsURL)
 	if err != nil {
 		return &network, errors.New("GetNetwork: " + err.Error())
 	}
@@ -183,10 +195,10 @@ func (network *Network) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	_, err = sdb.Insert("network").
-		Columns("id", "name", "typ_cars", "holidays", "open_time", "open_duration").
-		Values(network.ID, network.Name, network.TypicalCars, pq.Int64Array(network.Holidays), network.OpenTime, network.OpenDuration).
-		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, typ_cars = ?, holidays = ?, open_time = ?, open_duration = ?",
-			network.Name, network.TypicalCars, network.Holidays, network.OpenTime, network.OpenDuration).
+		Columns("id", "name", "typ_cars", "holidays", "open_time", "open_duration", "timezone", "news_url").
+		Values(network.ID, network.Name, network.TypicalCars, pq.Int64Array(network.Holidays), network.OpenTime, network.OpenDuration, network.Timezone, network.NewsURL).
+		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, typ_cars = ?, holidays = ?, open_time = ?, open_duration = ?, timezone = ?, news_url = ?",
+			network.Name, network.TypicalCars, network.Holidays, network.OpenTime, network.OpenDuration, network.Timezone, network.NewsURL).
 		RunWith(tx).Exec()
 
 	if err != nil {

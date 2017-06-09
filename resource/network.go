@@ -18,6 +18,8 @@ type apiNetwork struct {
 	Holidays     []int64              `msgpack:"holidays" json:"holidays"`
 	OpenTime     dataobjects.Time     `msgpack:"openTime" json:"openTime"`
 	OpenDuration dataobjects.Duration `msgpack:"duration" json:"duration"`
+	Timezone     string               `msgpack:"timezone" json:"timezone"`
+	NewsURL      string               `msgpack:"newsURL" json:"newsURL"`
 }
 
 type apiNetworkWrapper struct {
