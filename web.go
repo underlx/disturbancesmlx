@@ -10,6 +10,8 @@ import (
 
 	"encoding/json"
 
+	"sort"
+
 	"github.com/gorilla/mux"
 	"github.com/rickb777/date"
 )
@@ -151,6 +153,10 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		sort.Slice(p.Lines[i].LastDisturbance.Statuses, func(j, k int) bool {
+			return p.Lines[i].LastDisturbance.Statuses[j].Time.Before(p.Lines[i].LastDisturbance.Statuses[k].Time)
+		})
 
 		p.Lines[i].DayCounts, err = lines[i].CountDisturbancesByDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc))
 		if err != nil {
