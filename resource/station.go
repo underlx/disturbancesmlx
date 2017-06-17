@@ -34,11 +34,12 @@ type apiFeatures struct {
 
 type apiStationWrapper struct {
 	apiStation `msgpack:",inline"`
-	NetworkID  string        `msgpack:"network" json:"network"`
-	Lines      []string      `msgpack:"lines" json:"lines"`
-	Features   apiFeatures   `msgpack:"features" json:"features"`
-	Lobbies    []string      `msgpack:"lobbies" json:"lobbies"`
-	WiFiAPs    []wifiWrapper `msgpack:"wiFiAPs" json:"wiFiAPs"`
+	NetworkID  string            `msgpack:"network" json:"network"`
+	Lines      []string          `msgpack:"lines" json:"lines"`
+	Features   apiFeatures       `msgpack:"features" json:"features"`
+	Lobbies    []string          `msgpack:"lobbies" json:"lobbies"`
+	WiFiAPs    []wifiWrapper     `msgpack:"wiFiAPs" json:"wiFiAPs"`
+	TriviaURLs map[string]string `msgpack:"triviaURLs" json:"triviaURLs"`
 }
 
 func (r *Station) WithNode(node sqalx.Node) *Station {
@@ -94,6 +95,8 @@ func (n *Station) Get(c *yarf.Context) error {
 			})
 		}
 
+		data.TriviaURLs = ComputeStationTriviaURLs(station)
+
 		RenderData(c, data)
 	} else {
 		stations, err := dataobjects.GetStations(tx)
@@ -137,8 +140,18 @@ func (n *Station) Get(c *yarf.Context) error {
 					Line:  ap.Line,
 				})
 			}
+			apistations[i].TriviaURLs = ComputeStationTriviaURLs(stations[i])
 		}
 		RenderData(c, apistations)
 	}
 	return nil
+}
+
+func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
+	m := make(map[string]string)
+	supportedLocales := []string{"pt", "en"}
+	for _, locale := range supportedLocales {
+		m[locale] = "stationkb/" + locale + "/trivia/" + station.ID + ".html"
+	}
+	return m
 }

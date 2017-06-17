@@ -1,9 +1,31 @@
 package main
 
 import (
+	"net/http"
+
 	"github.com/gbl08ma/disturbancesmlx/resource"
 	"github.com/yarf-framework/yarf"
 )
+
+// Static defines a simple resource
+type Static struct {
+	yarf.Resource
+	path  string // Directory to serve static files from.
+	strip string // Part of path to strip from http file server handler
+}
+
+func (r *Static) WithPath(path string, strip string) *Static {
+	r.path = path
+	r.strip = strip
+	return r
+}
+
+// Get implements the static files handler
+func (r *Static) Get(c *yarf.Context) error {
+	http.StripPrefix(r.strip, http.FileServer(http.Dir(r.path))).ServeHTTP(c.Response, c.Request)
+
+	return nil
+}
 
 func APIserver() {
 	y := yarf.New()
@@ -34,6 +56,8 @@ func APIserver() {
 
 	v1.Add("/datasets", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
 	v1.Add("/datasets/:id", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
+
+	v1.Add("/stationkb/*", new(Static).WithPath("stationkb/", "/v1/stationkb/"))
 
 	y.AddGroup(v1)
 
