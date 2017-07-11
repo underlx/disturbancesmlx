@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"os"
+
 	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
@@ -33,13 +35,14 @@ type apiFeatures struct {
 }
 
 type apiStationWrapper struct {
-	apiStation `msgpack:",inline"`
-	NetworkID  string            `msgpack:"network" json:"network"`
-	Lines      []string          `msgpack:"lines" json:"lines"`
-	Features   apiFeatures       `msgpack:"features" json:"features"`
-	Lobbies    []string          `msgpack:"lobbies" json:"lobbies"`
-	WiFiAPs    []wifiWrapper     `msgpack:"wiFiAPs" json:"wiFiAPs"`
-	TriviaURLs map[string]string `msgpack:"triviaURLs" json:"triviaURLs"`
+	apiStation     `msgpack:",inline"`
+	NetworkID      string                       `msgpack:"network" json:"network"`
+	Lines          []string                     `msgpack:"lines" json:"lines"`
+	Features       apiFeatures                  `msgpack:"features" json:"features"`
+	Lobbies        []string                     `msgpack:"lobbies" json:"lobbies"`
+	WiFiAPs        []wifiWrapper                `msgpack:"wiFiAPs" json:"wiFiAPs"`
+	TriviaURLs     map[string]string            `msgpack:"triviaURLs" json:"triviaURLs"`
+	ConnectionURLs map[string]map[string]string `msgpack:"connURLs" json:"connURLs"`
 }
 
 func (r *Station) WithNode(node sqalx.Node) *Station {
@@ -141,6 +144,7 @@ func (n *Station) Get(c *yarf.Context) error {
 				})
 			}
 			apistations[i].TriviaURLs = ComputeStationTriviaURLs(stations[i])
+			apistations[i].ConnectionURLs = ComputeStationConnectionURLs(stations[i])
 		}
 		RenderData(c, apistations)
 	}
@@ -152,6 +156,24 @@ func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 	supportedLocales := []string{"pt", "en"}
 	for _, locale := range supportedLocales {
 		m[locale] = "stationkb/" + locale + "/trivia/" + station.ID + ".html"
+	}
+	return m
+}
+
+func ComputeStationConnectionURLs(station *dataobjects.Station) map[string]map[string]string {
+	m := make(map[string]map[string]string)
+	locales := []string{"en"}
+	connections := []string{"boat", "bus", "train"}
+	for _, locale := range locales {
+		for _, connection := range connections {
+			path := "stationkb/" + locale + "/connections/" + connection + "/" + station.ID + ".html"
+			if info, err := os.Stat(path); err == nil && !info.IsDir() {
+				if m[connection] == nil {
+					m[connection] = make(map[string]string)
+				}
+				m[connection][locale] = path
+			}
+		}
 	}
 	return m
 }
