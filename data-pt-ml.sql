@@ -298,6 +298,20 @@ INSERT INTO station_has_wifiap VALUES
 -- Wi-Fi APs linha azul
 
 INSERT INTO wifiap VALUES
+('2a:a4:3c:04:1a:37', 'Go Wi-Fi Free & Fast'),
+('2a:a4:3c:04:1a:69', 'Go Wi-Fi Free & Fast'),
+('24:a4:3c:04:1a:69', 'Go Wi-Fi by Super Bock'),
+('24:a4:3c:04:1a:37', 'Go Wi-Fi by Super Bock'),
+('2e:a4:3c:03:1a:37', 'Go Wi-Fi Free & Fast'),
+('2a:a4:3c:03:1a:37', 'Go Wi-Fi by Super Bock'),
+('2a:a4:3c:03:1a:69', 'Go Wi-Fi by Super Bock'),
+('2e:a4:3c:03:1a:69', 'Go Wi-Fi Free & Fast'),
+
+('24:a4:3c:16:f9:80', 'Go Wi-Fi Free & Fast'),
+('24:a4:3c:16:f9:90', 'Go Wi-Fi Free & Fast'),
+('24:a4:3c:16:f2:00', 'Go Wi-Fi Free & Fast'),
+('24:a4:3c:16:f2:10', 'Go Wi-Fi Free & Fast'),
+
 ('82:2a:a8:4a:ac:b4', 'Go Wi-Fi Free & Fast'),
 ('80:2a:a8:4a:ac:b4', 'Go Wi-Fi by Transavia'),
 ('2a:a4:3c:04:1a:1e', 'Go Wi-Fi Free & Fast'),
@@ -407,6 +421,18 @@ INSERT INTO wifiap VALUES
 ('2a:a4:3c:03:1d:28', 'Go Wi-Fi by Transavia');
 
 INSERT INTO station_has_wifiap VALUES
+('pt-ml-af', '2a:a4:3c:04:1a:37', 'pt-ml-azul'),
+('pt-ml-af', '2a:a4:3c:04:1a:69', 'pt-ml-azul'),
+('pt-ml-af', '24:a4:3c:04:1a:69', 'pt-ml-azul'),
+('pt-ml-af', '24:a4:3c:04:1a:37', 'pt-ml-azul'),
+('pt-ml-af', '2e:a4:3c:03:1a:37', 'pt-ml-azul'),
+('pt-ml-af', '2a:a4:3c:03:1a:37', 'pt-ml-azul'),
+('pt-ml-af', '2a:a4:3c:03:1a:69', 'pt-ml-azul'),
+('pt-ml-af', '2e:a4:3c:03:1a:69', 'pt-ml-azul'),
+('pt-ml-po', '24:a4:3c:16:f9:80', 'pt-ml-azul'),
+('pt-ml-po', '24:a4:3c:16:f9:90', 'pt-ml-azul'),
+('pt-ml-po', '24:a4:3c:16:f2:00', 'pt-ml-azul'),
+('pt-ml-po', '24:a4:3c:16:f2:10', 'pt-ml-azul'),
 ('pt-ml-ca', '82:2a:a8:4a:ac:b4', 'pt-ml-azul'),
 ('pt-ml-ca', '80:2a:a8:4a:ac:b4', 'pt-ml-azul'),
 ('pt-ml-ca', '2a:a4:3c:04:1a:1e', 'pt-ml-azul'),
