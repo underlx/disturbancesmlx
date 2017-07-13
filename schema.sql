@@ -1,3 +1,5 @@
+DROP TABLE android_pair_requests;
+DROP TABLE api_pair;
 DROP TABLE dataset_info;
 DROP TABLE station_lobby_schedule;
 DROP TABLE station_lobby_exit;
@@ -142,3 +144,20 @@ CREATE TABLE IF NOT EXISTS "dataset_info" (
     version TIMESTAMP WITH TIME ZONE NOT NULL,
     authors TEXT[] NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS "api_pair" (
+    key VARCHAR(16) PRIMARY KEY,
+    secret VARCHAR(24) NOT NULL,
+    type TEXT NOT NULL,
+    activation TIMESTAMP WITH TIME ZONE NOT NULL,
+);
+
+CREATE TABLE IF NOT EXISTS "android_pair_request" (
+    nonce VARCHAR(36) PRIMARY KEY,
+    request_time TIME NOT NULL,
+    android_id TEXT NOT NULL,
+    ip_address TEXT NOT NULL
+);
+
+CREATE INDEX ON "android_pair_request" (android_id);
+CREATE INDEX ON "android_pair_request" (ip_address);
