@@ -136,65 +136,16 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 
 // GetDisturbance returns the Disturbance with the given ID
 func GetDisturbance(node sqalx.Node, id string) (*Disturbance, error) {
-	var disturbance Disturbance
-	tx, err := node.Beginx()
+	s := sdb.Select().
+		Where(sq.Eq{"id": id})
+	disturbances, err := getDisturbancesWithSelect(node, s)
 	if err != nil {
-		return &disturbance, err
+		return nil, err
 	}
-	defer tx.Commit() // read-only tx
-
-	var lineID string
-	var timeEnd pq.NullTime
-	err = sdb.Select("id", "time_start", "time_end", "mline", "description").
-		From("line_disturbance").
-		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().Scan(
-		&disturbance.ID,
-		&disturbance.StartTime,
-		&timeEnd,
-		&lineID,
-		&disturbance.Description)
-	if err != nil {
-		return &disturbance, errors.New("GetDisturbance: " + err.Error())
+	if len(disturbances) == 0 {
+		return nil, errors.New("Disturbance not found")
 	}
-	disturbance.EndTime = timeEnd.Time
-	disturbance.Ended = timeEnd.Valid
-	disturbance.Line, err = GetLine(tx, lineID)
-	if err != nil {
-		return &disturbance, fmt.Errorf("GetDisturbance: %s", err)
-	}
-
-	rows, err := sdb.Select("status_id").
-		From("line_disturbance_has_status").
-		Where(sq.Eq{"disturbance_id": disturbance.ID}).
-		RunWith(tx).Query()
-	if err != nil {
-		return &disturbance, fmt.Errorf("GetDisturbance: %s", err)
-	}
-	defer rows.Close()
-
-	statusIDs := []string{}
-	for rows.Next() {
-		var statusID string
-		err := rows.Scan(&statusID)
-		if err != nil {
-			return &disturbance, fmt.Errorf("GetDisturbance: %s", err)
-		}
-		statusIDs = append(statusIDs, statusID)
-	}
-	if err := rows.Err(); err != nil {
-		return &disturbance, fmt.Errorf("GetDisturbance: %s", err)
-	}
-
-	for j := range statusIDs {
-		status, err := GetStatus(tx, statusIDs[j])
-		if err != nil {
-			return &disturbance, fmt.Errorf("GetDisturbance: %s", err)
-		}
-		disturbance.Statuses = append(disturbance.Statuses, status)
-	}
-
-	return &disturbance, nil
+	return disturbances[0], nil
 }
 
 // Update adds or updates the disturbance

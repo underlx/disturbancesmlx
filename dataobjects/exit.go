@@ -73,32 +73,16 @@ func getExitsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Exit, er
 
 // GetExit returns the Exit with the given ID
 func GetExit(node sqalx.Node, id int) (*Exit, error) {
-	var exit Exit
-	tx, err := node.Beginx()
+	s := sdb.Select().
+		Where(sq.Eq{"id": id})
+	exits, err := getExitsWithSelect(node, s)
 	if err != nil {
-		return &exit, err
+		return nil, err
 	}
-	defer tx.Commit() // read-only tx
-
-	var lobbyID string
-	var worldCoord pq.Float64Array
-	var streets pq.StringArray
-	err = sdb.Select("id", "lobby_id", "world_coord", "streets").
-		From("station_lobby_exit").
-		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().
-		Scan(&exit.ID, &lobbyID, &worldCoord, &streets)
-	if err != nil {
-		return &exit, errors.New("GetExit: " + err.Error())
+	if len(exits) == 0 {
+		return nil, errors.New("Exit not found")
 	}
-	exit.WorldCoord[0] = worldCoord[0]
-	exit.WorldCoord[1] = worldCoord[1]
-	exit.Streets = streets
-	exit.Lobby, err = GetLobby(tx, lobbyID)
-	if err != nil {
-		return &exit, errors.New("GetExit: " + err.Error())
-	}
-	return &exit, nil
+	return exits[0], nil
 }
 
 // Add adds the exit

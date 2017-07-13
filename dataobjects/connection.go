@@ -75,33 +75,17 @@ func getConnectionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Co
 
 // GetConnection returns the Connection with the given ID
 func GetConnection(node sqalx.Node, from string, to string) (*Connection, error) {
-	var connection Connection
-	tx, err := node.Beginx()
-	if err != nil {
-		return &connection, err
-	}
-	defer tx.Commit() // read-only tx
-
-	var fromID string
-	var toID string
-	err = sdb.Select("from_station", "to_station", "typ_time").
-		From("connection").
+	s := sdb.Select().
 		Where(sq.Eq{"from_station": from}).
-		Where(sq.Eq{"to_station": to}).
-		RunWith(tx).QueryRow().
-		Scan(&fromID, &toID, &connection.TypicalSeconds)
+		Where(sq.Eq{"to_station": to})
+	connections, err := getConnectionsWithSelect(node, s)
 	if err != nil {
-		return &connection, errors.New("GetConnection: " + err.Error())
+		return nil, err
 	}
-	connection.From, err = GetStation(tx, fromID)
-	if err != nil {
-		return &connection, errors.New("GetConnection: " + err.Error())
+	if len(connections) == 0 {
+		return nil, errors.New("Connection not found")
 	}
-	connection.To, err = GetStation(tx, toID)
-	if err != nil {
-		return &connection, errors.New("GetConnection: " + err.Error())
-	}
-	return &connection, nil
+	return connections[0], nil
 }
 
 // Update adds or updates the connection

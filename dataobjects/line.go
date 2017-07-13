@@ -73,27 +73,16 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 
 // GetLine returns the Line with the given ID
 func GetLine(node sqalx.Node, id string) (*Line, error) {
-	var line Line
-	tx, err := node.Beginx()
+	s := sdb.Select().
+		Where(sq.Eq{"id": id})
+	lines, err := getLinesWithSelect(node, s)
 	if err != nil {
-		return &line, err
+		return nil, err
 	}
-	defer tx.Commit() // read-only tx
-
-	var networkID string
-	err = sdb.Select("id", "name", "color", "network", "typ_cars").
-		From("mline").
-		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().
-		Scan(&line.ID, &line.Name, &line.Color, &networkID, &line.TypicalCars)
-	if err != nil {
-		return &line, errors.New("GetLine: " + err.Error())
+	if len(lines) == 0 {
+		return nil, errors.New("Line not found")
 	}
-	line.Network, err = GetNetwork(tx, networkID)
-	if err != nil {
-		return &line, errors.New("GetLine: " + err.Error())
-	}
-	return &line, nil
+	return lines[0], nil
 }
 
 // Stations returns the stations that are served by this line
