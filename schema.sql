@@ -149,12 +149,12 @@ CREATE TABLE IF NOT EXISTS "api_pair" (
     key VARCHAR(16) PRIMARY KEY,
     secret VARCHAR(24) NOT NULL,
     type TEXT NOT NULL,
-    activation TIMESTAMP WITH TIME ZONE NOT NULL,
+    activation TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "android_pair_request" (
     nonce VARCHAR(36) PRIMARY KEY,
-    request_time TIME NOT NULL,
+    request_time TIMESTAMP WITH TIME ZONE NOT NULL,
     android_id TEXT NOT NULL,
     ip_address TEXT NOT NULL
 );

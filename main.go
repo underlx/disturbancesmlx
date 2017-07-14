@@ -247,7 +247,12 @@ func main() {
 	defer mlxscr.End()
 
 	go WebServer()
-	go APIserver()
+
+	certPath := "trusted_client_cert.pem"
+	if len(os.Args) > 1 {
+		certPath = os.Args[1]
+	}
+	go APIserver(certPath)
 
 	fcmServerKey, present := secrets.Get("firebaseServerKey")
 	if !present {
