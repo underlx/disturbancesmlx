@@ -147,7 +147,7 @@ CREATE TABLE IF NOT EXISTS "dataset_info" (
 
 CREATE TABLE IF NOT EXISTS "api_pair" (
     key VARCHAR(16) PRIMARY KEY,
-    secret VARCHAR(24) NOT NULL,
+    secret VARCHAR(64) NOT NULL,
     type TEXT NOT NULL,
     activation TIMESTAMP WITH TIME ZONE NOT NULL
 );

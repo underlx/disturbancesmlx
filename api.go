@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/pem"
 	"net/http"
 
@@ -67,7 +68,10 @@ func APIserver(trustedClientCertPath string) {
 
 	pubkey := getTrustedClientPublicKey(trustedClientCertPath)
 
-	v1.Add("/pair", new(resource.Pair).WithNode(rootSqalxNode).WithPublicKey(pubkey))
+	v1.Add("/pair", new(resource.Pair).
+		WithNode(rootSqalxNode).
+		WithPublicKey(pubkey).
+		WithHashKey(getHashKey()))
 
 	y.AddGroup(v1)
 
@@ -87,4 +91,16 @@ func getTrustedClientPublicKey(trustedClientCertPath string) *ecdsa.PublicKey {
 	}
 
 	return cert.PublicKey.(*ecdsa.PublicKey)
+}
+
+func getHashKey() []byte {
+	hexkey, present := secrets.Get("secretHMACkey")
+	if !present {
+		mainLog.Fatal("API secret HMAC key not present in keybox")
+	}
+	key, err := hex.DecodeString(hexkey)
+	if err != nil {
+		mainLog.Fatal("Invalid API secret HMAC key specified")
+	}
+	return key
 }

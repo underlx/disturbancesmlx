@@ -21,6 +21,7 @@ import (
 type Pair struct {
 	resource
 	trustedClientPublicKey *ecdsa.PublicKey
+	hashKey                []byte
 }
 
 type apiPairRequest struct {
@@ -56,6 +57,11 @@ func (r *Pair) WithNode(node sqalx.Node) *Pair {
 
 func (r *Pair) WithPublicKey(key *ecdsa.PublicKey) *Pair {
 	r.trustedClientPublicKey = key
+	return r
+}
+
+func (r *Pair) WithHashKey(key []byte) *Pair {
+	r.hashKey = key
 	return r
 }
 
@@ -165,7 +171,7 @@ func (n *Pair) Post(c *yarf.Context) error {
 		return err
 	}
 
-	pair, err := dataobjects.NewAPIPair(tx, "android", activation)
+	pair, err := dataobjects.NewAPIPair(tx, "android", activation, n.hashKey)
 	if err != nil {
 		return err
 	}
@@ -175,6 +181,11 @@ func (n *Pair) Post(c *yarf.Context) error {
 		return err
 	}
 
-	RenderData(c, apiPair(*pair))
+	RenderData(c, apiPair{
+		Key:        pair.Key,
+		Secret:     pair.Secret,
+		Type:       pair.Type,
+		Activation: pair.Activation,
+	})
 	return nil
 }
