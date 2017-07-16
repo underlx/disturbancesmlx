@@ -73,6 +73,12 @@ func APIserver(trustedClientCertPath string) {
 		WithPublicKey(pubkey).
 		WithHashKey(getHashKey()))
 
+	if DEBUG {
+		v1.Add("/authtest", new(resource.AuthTest).
+			WithNode(rootSqalxNode).
+			WithHashKey(getHashKey()))
+	}
+
 	y.AddGroup(v1)
 
 	y.Logger = webLog

@@ -2,6 +2,7 @@ package resource
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -10,13 +11,15 @@ import (
 
 	"log"
 
+	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
 	"github.com/yarf-framework/yarf"
 )
 
 type resource struct {
 	yarf.Resource
-	node sqalx.Node
+	node    sqalx.Node
+	hashKey []byte
 }
 
 // Beginx is shorthand for resource.node.Beginx()
@@ -43,7 +46,33 @@ func (r *resource) DecodeRequest(c *yarf.Context, v interface{}) error {
 		}
 	}
 	return nil
+}
 
+func (r *resource) AuthenticateClient(c *yarf.Context) (key string, err error) {
+	tx, err := r.node.Beginx()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Commit() // read-only tx
+
+	key, secret, ok := c.Request.BasicAuth()
+	if !ok {
+		return "", errors.New("Missing authorization header")
+	}
+
+	if dataobjects.CheckAPIPairCorrect(tx, key, secret, r.hashKey) != nil {
+		return "", errors.New("Incorrect authorization")
+	}
+
+	return key, nil
+}
+
+// RenderUnauthorized writes a 401 unauthorized to the response
+// and requests authentication
+func RenderUnauthorized(c *yarf.Context) {
+	c.Response.Header().Set("WWW-Authenticate", `Basic realm="api"`)
+	c.Response.WriteHeader(401)
+	c.Response.Write([]byte("Unauthorized.\n"))
 }
 
 // RenderData takes a interface{} object and writes the encoded representation of it.
