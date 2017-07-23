@@ -42,8 +42,8 @@ func GetPair(node sqalx.Node, key string) (*APIPair, error) {
 	return &pair, nil
 }
 
-// NewAPIPair creates a new API access pair, stores it in the DB and returns it
-func NewAPIPair(node sqalx.Node, pairtype string, activation time.Time, hashKey []byte) (pair *APIPair, err error) {
+// NewPair creates a new API access pair, stores it in the DB and returns it
+func NewPair(node sqalx.Node, pairtype string, activation time.Time, hashKey []byte) (pair *APIPair, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return &APIPair{}, err
@@ -81,17 +81,20 @@ func NewAPIPair(node sqalx.Node, pairtype string, activation time.Time, hashKey 
 	return pair, nil
 }
 
-// CheckAPIPairCorrect returns no errors if the given secret is correct for this
-// API key, and the pair is ready to be used
-func CheckAPIPairCorrect(node sqalx.Node, key string, givenSecret string, hashKey []byte) error {
+// GetPairIfCorrect returns the pair and no errors if the given secret is correct for this
+// API key, and the pair is ready to be used. Otherwise, a nil pointer and a error is returned.
+func GetPairIfCorrect(node sqalx.Node, key string, givenSecret string, hashKey []byte) (*APIPair, error) {
 	pair, err := GetPair(node, key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if !pair.Activated() {
-		return errors.New("Pair is not activated")
+		return nil, errors.New("Pair is not activated")
 	}
-	return pair.CheckSecret(givenSecret, hashKey)
+	if err = pair.CheckSecret(givenSecret, hashKey); err != nil {
+		return nil, err
+	}
+	return pair, nil
 }
 
 // CheckSecret returns no errors if the given secret is correct for this API pair

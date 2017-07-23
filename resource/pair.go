@@ -171,7 +171,7 @@ func (n *Pair) Post(c *yarf.Context) error {
 		return err
 	}
 
-	pair, err := dataobjects.NewAPIPair(tx, "android", activation, n.hashKey)
+	pair, err := dataobjects.NewPair(tx, "android", activation, n.hashKey)
 	if err != nil {
 		return err
 	}

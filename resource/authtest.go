@@ -21,7 +21,7 @@ func (r *AuthTest) WithHashKey(key []byte) *AuthTest {
 }
 
 func (n *AuthTest) Get(c *yarf.Context) error {
-	key, err := n.AuthenticateClient(c)
+	pair, err := n.AuthenticateClient(c)
 	if err != nil {
 		RenderUnauthorized(c)
 		return nil
@@ -32,7 +32,7 @@ func (n *AuthTest) Get(c *yarf.Context) error {
 		Key    string `msgpack:"key" json:"key"`
 	}{
 		Result: "ok",
-		Key:    key,
+		Key:    pair.Key,
 	})
 	return nil
 }

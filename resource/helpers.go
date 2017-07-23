@@ -48,23 +48,24 @@ func (r *resource) DecodeRequest(c *yarf.Context, v interface{}) error {
 	return nil
 }
 
-func (r *resource) AuthenticateClient(c *yarf.Context) (key string, err error) {
+func (r *resource) AuthenticateClient(c *yarf.Context) (pair *dataobjects.APIPair, err error) {
 	tx, err := r.node.Beginx()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer tx.Commit() // read-only tx
 
 	key, secret, ok := c.Request.BasicAuth()
 	if !ok {
-		return "", errors.New("Missing authorization header")
+		return nil, errors.New("Missing authorization header")
 	}
 
-	if dataobjects.CheckAPIPairCorrect(tx, key, secret, r.hashKey) != nil {
-		return "", errors.New("Incorrect authorization")
+	pair, err = dataobjects.GetPairIfCorrect(tx, key, secret, r.hashKey)
+	if err != nil {
+		return nil, errors.New("Incorrect authorization")
 	}
 
-	return key, nil
+	return pair, nil
 }
 
 // RenderUnauthorized writes a 401 unauthorized to the response

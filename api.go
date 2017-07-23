@@ -79,6 +79,9 @@ func APIserver(trustedClientCertPath string) {
 			WithHashKey(getHashKey()))
 	}
 
+	v1.Add("/trips", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
+	v1.Add("/trips/:id", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
+
 	y.AddGroup(v1)
 
 	y.Logger = webLog

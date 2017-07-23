@@ -161,3 +161,32 @@ CREATE TABLE IF NOT EXISTS "android_pair_request" (
 
 CREATE INDEX ON "android_pair_request" (android_id);
 CREATE INDEX ON "android_pair_request" (ip_address);
+
+CREATE TABLE IF NOT EXISTS "trip" (
+    id VARCHAR(36) PRIMARY KEY,
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    submitter VARCHAR(16) NOT NULL REFERENCES api_pair (key),
+    submit_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    edit_time TIMESTAMP WITH TIME ZONE,
+    user_confirmed BOOLEAN NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "station_use_type" (
+    type VARCHAR(20) PRIMARY KEY
+);
+
+INSERT INTO station_use_type (type)
+    VALUES ('NETWORK_ENTRY'), ('NETWORK_EXIT'), ('INTERCHANGE'), ('GONE_THROUGH'), ('VISIT');
+
+CREATE TABLE IF NOT EXISTS "station_use" (
+    trip_id VARCHAR(36) NOT NULL REFERENCES trip (id),
+    station_id VARCHAR(36) NOT NULL REFERENCES station (id),
+    entry_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    leave_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    type VARCHAR(20) NOT NULL REFERENCES station_use_type (type),
+    manual BOOLEAN NOT NULL,
+    source_line REFERENCES mline (id),
+    target_line REFERENCES mline (id),
+    PRIMARY KEY (trip_id, station, entry_time)
+);
