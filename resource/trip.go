@@ -214,6 +214,11 @@ func (r *Trip) Post(c *yarf.Context) error {
 		return err
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
 	c.Response.WriteHeader(http.StatusCreated)
 	c.Response.Header().Set("Location", "/v1/trips/"+trip.ID)
 	return nil
@@ -319,6 +324,11 @@ func (r *Trip) Put(c *yarf.Context) error {
 	}
 
 	err = trip.Update(tx)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return err
 	}

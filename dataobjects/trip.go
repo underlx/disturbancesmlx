@@ -123,7 +123,7 @@ func (trip *Trip) Update(node sqalx.Node) error {
 		return errors.New("AddTrip: invalid trip ID")
 	}
 
-	if len(trip.StationUses) == 1 && trip.StationUses[1].Type != Visit {
+	if len(trip.StationUses) == 1 && trip.StationUses[0].Type != Visit {
 		return errors.New("AddTrip: trip only has one station use, but is not a visit")
 	}
 
@@ -142,7 +142,7 @@ func (trip *Trip) Update(node sqalx.Node) error {
 		Columns("id", "start_time", "end_time", "submitter", "submit_time", "edit_time", "user_confirmed").
 		Values(trip.ID, trip.StartTime, trip.EndTime, trip.Submitter.Key, trip.SubmitTime, timeEdit, trip.UserConfirmed).
 		Suffix("ON CONFLICT (id) DO UPDATE SET start_time = ?, end_time = ?, submitter = ?, submit_time = ?, edit_time = ?, user_confirmed = ?",
-		trip.StartTime, trip.EndTime, trip.Submitter.Key, trip.SubmitTime, timeEdit, trip.UserConfirmed).
+			trip.StartTime, trip.EndTime, trip.Submitter.Key, trip.SubmitTime, timeEdit, trip.UserConfirmed).
 		RunWith(tx).Exec()
 	if err != nil {
 		return errors.New("AddTrip: " + err.Error())
