@@ -221,6 +221,7 @@ func (r *Trip) Post(c *yarf.Context) error {
 
 	c.Response.WriteHeader(http.StatusCreated)
 	c.Response.Header().Set("Location", "/v1/trips/"+trip.ID)
+	r.render(c, &trip)
 	return nil
 }
 
