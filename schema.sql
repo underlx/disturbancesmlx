@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS "station_use" (
     leave_time TIMESTAMP WITH TIME ZONE NOT NULL,
     type VARCHAR(20) NOT NULL REFERENCES station_use_type (type),
     manual BOOLEAN NOT NULL,
-    source_line REFERENCES mline (id),
-    target_line REFERENCES mline (id),
-    PRIMARY KEY (trip_id, station, entry_time)
+    source_line VARCHAR(36) REFERENCES mline (id),
+    target_line VARCHAR(36) REFERENCES mline (id),
+    PRIMARY KEY (trip_id, station_id, entry_time)
 );
