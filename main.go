@@ -36,6 +36,13 @@ var (
 	lastChange    time.Time
 )
 
+// MLcalculator implements resource.StatsCalculator
+type MLcalculator struct{}
+
+func (*MLcalculator) Availability(node sqalx.Node, line *dataobjects.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error) {
+	return MLlineAvailability(node, line, startTime, endTime)
+}
+
 // MLlastDisturbanceTime returns the time of the latest Metro de Lisboa disturbance
 func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
 	tx, err := node.Beginx()
@@ -44,11 +51,11 @@ func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	n, err := dataobjects.GetNetwork(rootSqalxNode, MLnetworkID)
+	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		return time.Now().UTC(), err
 	}
-	d, err := n.LastDisturbance(rootSqalxNode)
+	d, err := n.LastDisturbance(tx)
 	if err != nil {
 		return time.Now().UTC(), err
 	}

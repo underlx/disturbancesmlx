@@ -64,6 +64,9 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/datasets", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
 	v1.Add("/datasets/:id", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
 
+	v1.Add("/stats", new(resource.Stats).WithNode(rootSqalxNode).WithCalculator(new(MLcalculator)))
+	v1.Add("/stats/:id", new(resource.Stats).WithNode(rootSqalxNode).WithCalculator(new(MLcalculator)))
+
 	v1.Add("/stationkb/*", new(Static).WithPath("stationkb/", "/v1/stationkb/"))
 
 	pubkey := getTrustedClientPublicKey(trustedClientCertPath)
