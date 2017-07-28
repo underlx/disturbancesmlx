@@ -190,6 +190,11 @@ func main() {
 				Line: status.Line,
 			}
 		}
+		previousStatus := disturbance.LatestStatus()
+		if previousStatus != nil && status.Status == previousStatus.Status {
+			mainLog.Println("   Repeated status, ignore")
+			return
+		}
 		sendNotification := false
 		if status.IsDowntime && !found {
 			disturbance.StartTime = status.Time

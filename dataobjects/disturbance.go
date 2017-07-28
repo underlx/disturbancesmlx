@@ -148,6 +148,17 @@ func GetDisturbance(node sqalx.Node, id string) (*Disturbance, error) {
 	return disturbances[0], nil
 }
 
+// LatestStatus returns the most recent status of this disturbance
+func (disturbance *Disturbance) LatestStatus() *Status {
+	var latest *Status
+	for _, status := range disturbance.Statuses {
+		if latest == nil || status.Time.After(latest.Time) {
+			latest = status
+		}
+	}
+	return latest
+}
+
 // Update adds or updates the disturbance
 func (disturbance *Disturbance) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
