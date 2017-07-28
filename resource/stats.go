@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/gbl08ma/disturbancesmlx/dataobjects"
@@ -60,6 +61,14 @@ func (r *Stats) Get(c *yarf.Context) error {
 		endTime, err = time.Parse(time.RFC3339, end)
 		if err != nil {
 			return err
+		}
+	}
+
+	if !endTime.After(startTime) {
+		return &yarf.CustomError{
+			HTTPCode:  http.StatusBadRequest,
+			ErrorMsg:  "End time must be after start time",
+			ErrorBody: "End time must be after start time",
 		}
 	}
 
