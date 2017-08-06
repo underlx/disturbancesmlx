@@ -27,6 +27,7 @@ func WebServer() {
 	router.HandleFunc("/", HomePage)
 	router.HandleFunc("/lookingglass", LookingGlass)
 	router.HandleFunc("/lookingglass/heatmap", Heatmap)
+	router.HandleFunc("/d/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", DisturbancePage)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
 	WebReloadTemplate()
@@ -308,6 +309,79 @@ func Heatmap(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 	}
 	w.Write(json)
+}
+
+// DisturbancePage serves the page for a specific disturbance
+func DisturbancePage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		Lines []struct {
+			*dataobjects.Line
+			Down    bool
+			Minutes int
+		}
+		LastChangeAgoMin  int
+		LastChangeAgoHour int
+		LastUpdateAgoMin  int
+		LastUpdateAgoHour int
+		Disturbance       *dataobjects.Disturbance
+	}{
+		LastChangeAgoMin:  int(time.Now().Sub(lastChange).Minutes()) % 60,
+		LastChangeAgoHour: int(time.Now().Sub(lastChange).Hours()),
+		LastUpdateAgoMin:  int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60,
+		LastUpdateAgoHour: int(time.Now().Sub(mlxscr.LastUpdate()).Hours()),
+	}
+
+	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	lines, err := n.Lines(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.Lines = make([]struct {
+		*dataobjects.Line
+		Down    bool
+		Minutes int
+	}, len(lines))
+
+	for i := range lines {
+		p.Lines[i].Line = lines[i]
+		d, err := lines[i].LastOngoingDisturbance(tx)
+		p.Lines[i].Down = err == nil
+		if err == nil {
+			p.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
+		}
+	}
+
+	p.Disturbance, err = dataobjects.GetDisturbance(tx, mux.Vars(r)["id"])
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "disturbance.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 // WebReloadTemplate reloads the templates for the website
