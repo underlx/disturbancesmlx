@@ -663,6 +663,14 @@ INSERT INTO wifiap VALUES
 ('24:a4:3c:17:01:20', 'Go Wi-Fi Free & Fast'),
 ('2a:a4:3c:03:1b:1e', 'Go Wi-Fi Free & Fast'),
 ('24:a4:3c:17:01:30', 'Go Wi-Fi Free & Fast'),
+-- Go Wi-Fi networks for pt-ml-od have been disabled
+-- Using personal home networks as a work-around
+('00:26:5b:52:de:f8', 'ZON-DEF0'),
+('84:94:8c:a3:2f:c8', 'NOS-2FC0'),
+('84:94:8c:a2:85:f8', 'NOS-85F0'),
+('9c:97:26:24:b5:db', 'Vodafone-24B5DB'),
+('00:26:5b:16:d5:a8', 'ZON-D5A0'),
+('9c:97:26:43:12:a7', 'Vodafone-4312A7'),
 
 ('24:a4:3c:16:b2:d0', 'Go Wi-Fi Free & Fast'),
 ('24:a4:3c:16:f6:00', 'Go Wi-Fi Free & Fast'),
@@ -721,6 +729,12 @@ INSERT INTO station_has_wifiap VALUES
 ('pt-ml-od', '24:a4:3c:17:01:20', 'pt-ml-amarela'),
 ('pt-ml-od', '2a:a4:3c:03:1b:1e', 'pt-ml-amarela'),
 ('pt-ml-od', '24:a4:3c:17:01:30', 'pt-ml-amarela'),
+('pt-ml-od', '00:26:5b:52:de:f8', 'pt-ml-amarela'),
+('pt-ml-od', '84:94:8c:a3:2f:c8', 'pt-ml-amarela'),
+('pt-ml-od', '84:94:8c:a2:85:f8', 'pt-ml-amarela'),
+('pt-ml-od', '9c:97:26:24:b5:db', 'pt-ml-amarela'),
+('pt-ml-od', '00:26:5b:16:d5:a8', 'pt-ml-amarela'),
+('pt-ml-od', '9c:97:26:43:12:a7', 'pt-ml-amarela'),
 ('pt-ml-sr', '24:a4:3c:16:b2:d0', 'pt-ml-amarela'),
 ('pt-ml-sr', '24:a4:3c:16:f6:00', 'pt-ml-amarela'),
 ('pt-ml-sr', '24:a4:3c:16:b2:c0', 'pt-ml-amarela'),
