@@ -93,7 +93,8 @@ func getTripsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Trip, er
 		}
 
 		s := sdb.Select().
-			Where(sq.Eq{"trip_id": trips[i].ID})
+			Where(sq.Eq{"trip_id": trips[i].ID}).
+			OrderBy("entry_time ASC")
 
 		trips[i].StationUses, err = getStationUsesWithSelect(tx, s)
 		if err != nil {
@@ -115,6 +116,46 @@ func GetTrip(node sqalx.Node, id string) (*Trip, error) {
 		return nil, errors.New("Trip not found")
 	}
 	return trips[0], nil
+}
+
+// getTripIDsWithSelect returns a slice with the IDs of all trips that match the conditions in sbuilder
+func getTripIDsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]string, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return []string{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	rows, err := sbuilder.Columns("trip.id").
+		From("trip").
+		RunWith(tx).Query()
+	if err != nil {
+		return []string{}, fmt.Errorf("GetTripIDs: %s", err)
+	}
+
+	ids := []string{}
+	for rows.Next() {
+		var id string
+		err := rows.Scan(&id)
+		if err != nil {
+			rows.Close()
+			return ids, fmt.Errorf("GetTripIDs: %s", err)
+		}
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return ids, fmt.Errorf("getTripsWithSelect: %s", err)
+	}
+	rows.Close()
+	return ids, nil
+}
+
+// GetTripIDs returns a slice containing the IDs of all the trips in the database
+func GetTripIDs(node sqalx.Node) ([]string, error) {
+	s := sdb.Select().
+		OrderBy("start_time ASC")
+	return getTripIDsWithSelect(node, s)
 }
 
 // Update adds or updates the trip

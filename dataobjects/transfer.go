@@ -108,7 +108,7 @@ func (transfer *Transfer) Update(node sqalx.Node) error {
 	_, err = sdb.Insert("transfer").
 		Columns("station_id", "from_line", "to_line", "typ_time").
 		Values(transfer.Station.ID, transfer.From.ID, transfer.To.ID, transfer.TypicalSeconds).
-		Suffix("ON CONFLICT (station_id, from_station, to_station) DO UPDATE SET typ_time = ?",
+		Suffix("ON CONFLICT (station_id, from_line, to_line) DO UPDATE SET typ_time = ?",
 			transfer.TypicalSeconds).
 		RunWith(tx).Exec()
 

@@ -272,6 +272,11 @@ func main() {
 	}
 	fcmcl = fcm.NewFcmClient(fcmServerKey)
 
+	err = ComputeTypicalSeconds(rootSqalxNode)
+	if err != nil {
+		mainLog.Fatal(err)
+	}
+
 	for {
 		if DEBUG {
 			printLatestDisturbance(rootSqalxNode)
