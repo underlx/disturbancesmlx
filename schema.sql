@@ -190,3 +190,18 @@ CREATE TABLE IF NOT EXISTS "station_use" (
     target_line VARCHAR(36) REFERENCES mline (id),
     PRIMARY KEY (trip_id, station_id, entry_time)
 );
+
+CREATE TABLE IF NOT EXISTS "feedback_type" (
+    type VARCHAR(50) PRIMARY KEY
+);
+
+INSERT INTO feedback_type (type)
+    VALUES ('s2ls-incorrect-detection');
+
+CREATE TABLE IF NOT EXISTS "feedback" (
+    id VARCHAR(36) PRIMARY KEY,
+    submitter VARCHAR(16) NOT NULL REFERENCES api_pair (key),
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    type VARCHAR(50) NOT NULL REFERENCES feedback_type (type),
+    contents TEXT NOT NULL
+);

@@ -85,6 +85,8 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/trips", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 	v1.Add("/trips/:id", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 
+	v1.Add("/feedback", new(resource.Feedback).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
+
 	y.AddGroup(v1)
 
 	y.Logger = webLog
