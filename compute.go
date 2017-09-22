@@ -71,6 +71,10 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 	// make sure only one instance of each connection is created throughout the execution of this function
 	connectionAvgNumerator := make(map[*dataobjects.Connection]float64)
 	connectionAvgDenominator := make(map[*dataobjects.Connection]float64)
+	connectionStopAvgNumerator := make(map[*dataobjects.Connection]float64)
+	connectionStopAvgDenominator := make(map[*dataobjects.Connection]float64)
+	connectionWaitAvgNumerator := make(map[*dataobjects.Connection]float64)
+	connectionWaitAvgDenominator := make(map[*dataobjects.Connection]float64)
 
 	processTransfer := func(transfer *dataobjects.Transfer, use *dataobjects.StationUse) error {
 		seconds := use.LeaveTime.Sub(use.EntryTime).Seconds()
@@ -83,6 +87,15 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 		seconds := targetUse.EntryTime.Sub(sourceUse.LeaveTime).Seconds()
 		connectionAvgNumerator[connection] += seconds
 		connectionAvgDenominator[connection]++
+
+		waitSeconds := sourceUse.LeaveTime.Sub(sourceUse.EntryTime).Seconds()
+		if sourceUse.Type == dataobjects.NetworkEntry {
+			connectionWaitAvgNumerator[connection] += waitSeconds
+			connectionWaitAvgDenominator[connection]++
+		} else if sourceUse.Type == dataobjects.GoneThrough {
+			connectionStopAvgNumerator[connection] += waitSeconds
+			connectionStopAvgDenominator[connection]++
+		}
 		return nil
 	}
 
@@ -183,6 +196,36 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 		// TODO: add math.Round to int cast once Go 1.10 is released
 		connection.TypicalSeconds = int(average)
 		fmt.Printf("Updating connection from %s to %s with %d (%f)\n", connection.From.ID, connection.To.ID, connection.TypicalSeconds, denominator)
+		err := connection.Update(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	for connection, denominator := range connectionStopAvgDenominator {
+		if denominator < 2 {
+			// data is not significant enough
+			continue
+		}
+		average := connectionStopAvgNumerator[connection] / denominator
+		// TODO: add math.Round to int cast once Go 1.10 is released
+		connection.TypicalStopSeconds = int(average)
+		fmt.Printf("Updating connection from %s to %s with stop %d (%f)\n", connection.From.ID, connection.To.ID, connection.TypicalStopSeconds, denominator)
+		err := connection.Update(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	for connection, denominator := range connectionWaitAvgDenominator {
+		if denominator < 2 {
+			// data is not significant enough
+			continue
+		}
+		average := connectionWaitAvgNumerator[connection] / denominator
+		// TODO: add math.Round to int cast once Go 1.10 is released
+		connection.TypicalWaitingSeconds = int(average)
+		fmt.Printf("Updating connection from %s to %s with wait %d (%f)\n", connection.From.ID, connection.To.ID, connection.TypicalWaitingSeconds, denominator)
 		err := connection.Update(tx)
 		if err != nil {
 			return err

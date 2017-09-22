@@ -75,6 +75,8 @@ CREATE TABLE IF NOT EXISTS "station" (
 CREATE TABLE IF NOT EXISTS "connection" (
     from_station VARCHAR(36) NOT NULL REFERENCES station (id),
     to_station VARCHAR(36) NOT NULL REFERENCES station (id),
+    typ_wait_time INT NOT NULL,
+    typ_stop_time INT NOT NULL,
     typ_time INT NOT NULL,
     PRIMARY KEY (from_station, to_station)
 );
