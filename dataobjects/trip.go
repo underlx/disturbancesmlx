@@ -145,7 +145,7 @@ func getTripIDsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]string,
 	}
 	if err := rows.Err(); err != nil {
 		rows.Close()
-		return ids, fmt.Errorf("getTripsWithSelect: %s", err)
+		return ids, fmt.Errorf("GetTripIDs: %s", err)
 	}
 	rows.Close()
 	return ids, nil
