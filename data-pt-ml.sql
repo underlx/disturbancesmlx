@@ -100,23 +100,23 @@ INSERT INTO line_has_station VALUES
 ('pt-ml-azul', 'pt-ml-sp', 1800);
 
 INSERT INTO connection VALUES
-('pt-ml-rb', 'pt-ml-as', 0), ('pt-ml-as', 'pt-ml-rb', 0),
-('pt-ml-as', 'pt-ml-af', 0), ('pt-ml-af', 'pt-ml-as', 0),
-('pt-ml-af', 'pt-ml-po', 0), ('pt-ml-po', 'pt-ml-af', 0),
-('pt-ml-po', 'pt-ml-ca', 0), ('pt-ml-ca', 'pt-ml-po', 0),
-('pt-ml-ca', 'pt-ml-cm', 0), ('pt-ml-cm', 'pt-ml-ca', 0),
-('pt-ml-cm', 'pt-ml-ah', 0), ('pt-ml-ah', 'pt-ml-cm', 0),
-('pt-ml-ah', 'pt-ml-la', 0), ('pt-ml-la', 'pt-ml-ah', 0),
-('pt-ml-la', 'pt-ml-jz', 0), ('pt-ml-jz', 'pt-ml-la', 0),
-('pt-ml-jz', 'pt-ml-pe', 0), ('pt-ml-pe', 'pt-ml-jz', 0),
-('pt-ml-pe', 'pt-ml-ss', 0), ('pt-ml-ss', 'pt-ml-pe', 0),
-('pt-ml-ss', 'pt-ml-pa', 0), ('pt-ml-pa', 'pt-ml-ss', 0),
-('pt-ml-pa', 'pt-ml-mp', 0), ('pt-ml-mp', 'pt-ml-pa', 0),
-('pt-ml-mp', 'pt-ml-av', 0), ('pt-ml-av', 'pt-ml-mp', 0),
-('pt-ml-av', 'pt-ml-re', 0), ('pt-ml-re', 'pt-ml-av', 0),
-('pt-ml-re', 'pt-ml-bc', 0), ('pt-ml-bc', 'pt-ml-re', 0),
-('pt-ml-bc', 'pt-ml-tp', 0), ('pt-ml-tp', 'pt-ml-bc', 0),
-('pt-ml-tp', 'pt-ml-sp', 0), ('pt-ml-sp', 'pt-ml-tp', 0);
+('pt-ml-rb', 'pt-ml-as', 0, 0, 0), ('pt-ml-as', 'pt-ml-rb', 0, 0, 0),
+('pt-ml-as', 'pt-ml-af', 0, 0, 0), ('pt-ml-af', 'pt-ml-as', 0, 0, 0),
+('pt-ml-af', 'pt-ml-po', 0, 0, 0), ('pt-ml-po', 'pt-ml-af', 0, 0, 0),
+('pt-ml-po', 'pt-ml-ca', 0, 0, 0), ('pt-ml-ca', 'pt-ml-po', 0, 0, 0),
+('pt-ml-ca', 'pt-ml-cm', 0, 0, 0), ('pt-ml-cm', 'pt-ml-ca', 0, 0, 0),
+('pt-ml-cm', 'pt-ml-ah', 0, 0, 0), ('pt-ml-ah', 'pt-ml-cm', 0, 0, 0),
+('pt-ml-ah', 'pt-ml-la', 0, 0, 0), ('pt-ml-la', 'pt-ml-ah', 0, 0, 0),
+('pt-ml-la', 'pt-ml-jz', 0, 0, 0), ('pt-ml-jz', 'pt-ml-la', 0, 0, 0),
+('pt-ml-jz', 'pt-ml-pe', 0, 0, 0), ('pt-ml-pe', 'pt-ml-jz', 0, 0, 0),
+('pt-ml-pe', 'pt-ml-ss', 0, 0, 0), ('pt-ml-ss', 'pt-ml-pe', 0, 0, 0),
+('pt-ml-ss', 'pt-ml-pa', 0, 0, 0), ('pt-ml-pa', 'pt-ml-ss', 0, 0, 0),
+('pt-ml-pa', 'pt-ml-mp', 0, 0, 0), ('pt-ml-mp', 'pt-ml-pa', 0, 0, 0),
+('pt-ml-mp', 'pt-ml-av', 0, 0, 0), ('pt-ml-av', 'pt-ml-mp', 0, 0, 0),
+('pt-ml-av', 'pt-ml-re', 0, 0, 0), ('pt-ml-re', 'pt-ml-av', 0, 0, 0),
+('pt-ml-re', 'pt-ml-bc', 0, 0, 0), ('pt-ml-bc', 'pt-ml-re', 0, 0, 0),
+('pt-ml-bc', 'pt-ml-tp', 0, 0, 0), ('pt-ml-tp', 'pt-ml-bc', 0, 0, 0),
+('pt-ml-tp', 'pt-ml-sp', 0, 0, 0), ('pt-ml-sp', 'pt-ml-tp', 0, 0, 0);
 
 INSERT INTO line_has_station VALUES
 ('pt-ml-verde', 'pt-ml-te', 100),
