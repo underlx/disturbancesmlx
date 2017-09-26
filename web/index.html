@@ -74,6 +74,15 @@
       color: #777;
     }
 
+    .permalink {
+      float: right;
+    }
+
+    .permalink > a {
+      color: #777;
+      font-size: 80%;
+    }
+
     .status {
       font-size: 130%;
       padding: 10px 20px 10px 20px;
@@ -181,6 +190,18 @@
       /* IE */
       animation:blink normal 1.5s infinite ease-in-out;
     }
+
+    .app-promo {
+      background-color: rgb(245, 245, 245);
+      border-top: 1px solid #eee;
+      border-bottom: 1px solid #eee;
+    }
+
+    .app-promo img {
+      max-width: 100%;
+      max-height: 90px;
+      margin-top: 3px;
+    }
   </style>
 </head>
 
@@ -228,6 +249,18 @@
         </div>
         <div class="pure-u-11-24 ubuntu" style="font-size: 8vw;">horas</div>
         <div class="pure-u-1 unitlink"><a href="#" onclick="switchToDays(); return false;">...ver antes em dias</a></div>
+      </div>
+    </div>
+  </div>
+  <div class="app-promo">
+    <div class="pure-g content">
+      <div class="pure-u-1 pure-u-sm-1-3" style="text-align: center;">
+        <a href='https://play.google.com/store/apps/details?id=im.tny.segvault.disturbances&utm_source=perturbacoes.tny.im&utm_campaign=midindex-banner&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Disponível no Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/pt_badge_web_generic.png'/></a>
+      </div>
+      <div class="pure-u-1 pure-u-sm-2-3">
+        <p style="margin-bottom: 3px;">Agora temos uma app para Android! <strong>UnderLX</strong><br>
+        Receba notificações de perturbações, planeie percursos e muito mais! É grátis e sem publicidade.</p>
+        <p style="color: #777; margin: 0; font-size: 60%; text-align: right;">Google Play e o logótipo do Google Play são marcas comerciais da Google Inc.</p>
       </div>
     </div>
   </div>
@@ -310,7 +343,10 @@
         <p style="color: #777;"><small>As perturbações são contabilizadas em cada hora que afectem.</small></p>
         <h1>Últimas <em>perturbações</em> por linha</h1>
         {{ range $line := .Lines }}
-        <h3 style="color: #{{ $line.Color }};">{{ $line.Name }}</h3>
+        <div>
+          <span class="permalink"><a href="/d/{{ $line.LastDisturbance.ID }}">permalink</a></span>
+          <h3 style="color: #{{ $line.Color }};">{{ $line.Name }}</h3>
+        </div>
         <div style="padding-left: 40px;">
           {{ range $index, $s := $line.LastDisturbance.Statuses }}
             {{if (eq $index 0) }}

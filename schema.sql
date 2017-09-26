@@ -1,3 +1,5 @@
+DROP TABLE android_pair_requests;
+DROP TABLE api_pair;
 DROP TABLE dataset_info;
 DROP TABLE station_lobby_schedule;
 DROP TABLE station_lobby_exit;
@@ -73,6 +75,8 @@ CREATE TABLE IF NOT EXISTS "station" (
 CREATE TABLE IF NOT EXISTS "connection" (
     from_station VARCHAR(36) NOT NULL REFERENCES station (id),
     to_station VARCHAR(36) NOT NULL REFERENCES station (id),
+    typ_wait_time INT NOT NULL,
+    typ_stop_time INT NOT NULL,
     typ_time INT NOT NULL,
     PRIMARY KEY (from_station, to_station)
 );
@@ -141,4 +145,65 @@ CREATE TABLE IF NOT EXISTS "dataset_info" (
     network_id VARCHAR(36) NOT NULL REFERENCES network (id) PRIMARY KEY,
     version TIMESTAMP WITH TIME ZONE NOT NULL,
     authors TEXT[] NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "api_pair" (
+    key VARCHAR(16) PRIMARY KEY,
+    secret VARCHAR(64) NOT NULL,
+    type TEXT NOT NULL,
+    activation TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "android_pair_request" (
+    nonce VARCHAR(36) PRIMARY KEY,
+    request_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    android_id TEXT NOT NULL,
+    ip_address TEXT NOT NULL
+);
+
+CREATE INDEX ON "android_pair_request" (android_id);
+CREATE INDEX ON "android_pair_request" (ip_address);
+
+CREATE TABLE IF NOT EXISTS "trip" (
+    id VARCHAR(36) PRIMARY KEY,
+    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    end_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    submitter VARCHAR(16) NOT NULL REFERENCES api_pair (key),
+    submit_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    edit_time TIMESTAMP WITH TIME ZONE,
+    user_confirmed BOOLEAN NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "station_use_type" (
+    type VARCHAR(20) PRIMARY KEY
+);
+
+INSERT INTO station_use_type (type)
+    VALUES ('NETWORK_ENTRY'), ('NETWORK_EXIT'), ('INTERCHANGE'), ('GONE_THROUGH'), ('VISIT');
+
+CREATE TABLE IF NOT EXISTS "station_use" (
+    trip_id VARCHAR(36) NOT NULL REFERENCES trip (id),
+    station_id VARCHAR(36) NOT NULL REFERENCES station (id),
+    entry_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    leave_time TIMESTAMP WITH TIME ZONE NOT NULL,
+    type VARCHAR(20) NOT NULL REFERENCES station_use_type (type),
+    manual BOOLEAN NOT NULL,
+    source_line VARCHAR(36) REFERENCES mline (id),
+    target_line VARCHAR(36) REFERENCES mline (id),
+    PRIMARY KEY (trip_id, station_id, entry_time)
+);
+
+CREATE TABLE IF NOT EXISTS "feedback_type" (
+    type VARCHAR(50) PRIMARY KEY
+);
+
+INSERT INTO feedback_type (type)
+    VALUES ('s2ls-incorrect-detection');
+
+CREATE TABLE IF NOT EXISTS "feedback" (
+    id VARCHAR(36) PRIMARY KEY,
+    submitter VARCHAR(16) NOT NULL REFERENCES api_pair (key),
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    type VARCHAR(50) NOT NULL REFERENCES feedback_type (type),
+    contents TEXT NOT NULL
 );

@@ -84,39 +84,17 @@ func getTransfersWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Tran
 
 // GetTransfer returns the Transfer with the given ID
 func GetTransfer(node sqalx.Node, station string, from string, to string) (*Transfer, error) {
-	var transfer Transfer
-	tx, err := node.Beginx()
-	if err != nil {
-		return &transfer, err
-	}
-	defer tx.Commit() // read-only tx
-
-	var stationID string
-	var fromID string
-	var toID string
-	err = sdb.Select("station_id", "from_line", "to_line", "typ_time").
-		From("transfer").
-		Where(sq.Eq{"station_id": station}).
+	s := sdb.Select().
 		Where(sq.Eq{"from_line": from}).
-		Where(sq.Eq{"to_line": to}).
-		RunWith(tx).QueryRow().
-		Scan(&stationID, &fromID, &toID, &transfer.TypicalSeconds)
+		Where(sq.Eq{"to_line": to})
+	transfers, err := getTransfersWithSelect(node, s)
 	if err != nil {
-		return &transfer, errors.New("GetTransfer: " + err.Error())
+		return nil, err
 	}
-	transfer.Station, err = GetStation(tx, stationID)
-	if err != nil {
-		return &transfer, errors.New("GetTransfer: " + err.Error())
+	if len(transfers) == 0 {
+		return nil, errors.New("Transfer not found")
 	}
-	transfer.From, err = GetLine(tx, fromID)
-	if err != nil {
-		return &transfer, errors.New("GetTransfer: " + err.Error())
-	}
-	transfer.To, err = GetLine(tx, toID)
-	if err != nil {
-		return &transfer, errors.New("GetTransfer: " + err.Error())
-	}
-	return &transfer, nil
+	return transfers[0], nil
 }
 
 // Update adds or updates the transfer
@@ -130,7 +108,7 @@ func (transfer *Transfer) Update(node sqalx.Node) error {
 	_, err = sdb.Insert("transfer").
 		Columns("station_id", "from_line", "to_line", "typ_time").
 		Values(transfer.Station.ID, transfer.From.ID, transfer.To.ID, transfer.TypicalSeconds).
-		Suffix("ON CONFLICT (station_id, from_station, to_station) DO UPDATE SET typ_time = ?",
+		Suffix("ON CONFLICT (station_id, from_line, to_line) DO UPDATE SET typ_time = ?",
 			transfer.TypicalSeconds).
 		RunWith(tx).Exec()
 

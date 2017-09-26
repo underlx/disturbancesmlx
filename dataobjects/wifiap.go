@@ -60,22 +60,16 @@ func getWiFiAPsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*WiFiAP
 
 // GetWiFiAP returns the WiFiAP with the given BSSID
 func GetWiFiAP(node sqalx.Node, bssid string) (*WiFiAP, error) {
-	var wiFiAP WiFiAP
-	tx, err := node.Beginx()
+	s := sdb.Select().
+		Where(sq.Eq{"bssid": bssid})
+	wiFiAPs, err := getWiFiAPsWithSelect(node, s)
 	if err != nil {
-		return &wiFiAP, err
+		return nil, err
 	}
-	defer tx.Commit() // read-only tx
-
-	err = sdb.Select("bssid", "ssid").
-		From("wifiap").
-		Where(sq.Eq{"bssid": bssid}).
-		RunWith(tx).QueryRow().
-		Scan(&wiFiAP.BSSID, &wiFiAP.SSID, &wiFiAP.Line)
-	if err != nil {
-		return &wiFiAP, errors.New("GetWiFiAP: " + err.Error())
+	if len(wiFiAPs) == 0 {
+		return nil, errors.New("WiFiAP not found")
 	}
-	return &wiFiAP, nil
+	return wiFiAPs[0], nil
 }
 
 // Stations returns the stations this wiFiAP belongs to

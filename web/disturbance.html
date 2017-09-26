@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perturbação do Metro de Lisboa</title>
+  <meta name="description" content="Estado das linhas do Metro de Lisboa"/>
+  <meta name="keywords" content="ML, metro, lisboa, perturbações, linhas, estado"/>
+  <meta name="author" content="Segvault"/>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/static/img/favicon-32x32.png" sizes="32x32">
+  <link rel="icon" type="image/png" href="/static/img/favicon-16x16.png" sizes="16x16">
+  <link rel="manifest" href="/static/img/manifest.json">
+  <link rel="mask-icon" href="/static/img/safari-pinned-tab.svg" color="#5bbad5">
+  <link rel="shortcut icon" href="/static/img/favicon.ico">
+  <meta name="msapplication-config" content="/static/img/browserconfig.xml">
+  <meta name="theme-color" content="#efe9e5">
+
+  <!-- Pure CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/purecss@0.6.2/build/pure-min.css" integrity="sha384-UQiGfs9ICog+LwheBSRCt1o5cbyKIHbwjWscjemyBMT9YCUMZffs6UqUTd0hObXD" crossorigin="anonymous">
+  <!--[if lte IE 8]>
+      <link rel="stylesheet" href="https://unpkg.com/purecss@0.6.2/build/grids-responsive-old-ie-min.css">
+  <![endif]-->
+  <!--[if gt IE 8]><!-->
+      <link rel="stylesheet" href="https://unpkg.com/purecss@0.6.2/build/grids-responsive-min.css">
+  <!--<![endif]-->
+
+  <!-- Counter script -->
+  <script type="text/javascript" src="/static/js/flipcounter.js"></script>
+  <script type="text/javascript" src="/static/js/modernizr.custom.21954.js"></script>
+  <!-- Counter styles -->
+  <link rel="stylesheet" type="text/css" href="/static/css/counter.css"/>
+
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Ubuntu:400,500,700">
+  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:400,500,700">
+
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css">
+
+  <style>
+    .header {
+      margin-bottom: 50px;
+    }
+
+    .content {
+      max-width: 650px;
+      padding-left:5px;
+      padding-right: 5px;
+      box-sizing: border-box;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .footer {
+      font-size: 87.5%;
+      border-top: 1px solid #eee;
+      margin-top: 3.4286em;
+      padding: 1.1429em;
+      background: rgb(245, 245, 245);
+      color: #777;
+    }
+    .pure-g [class*=pure-u] {
+      font-family: 'Roboto';
+    }
+    .pure-g [class*=pure-u].ubuntu {
+      font-family: 'Ubuntu', sans-serif;
+    }
+
+    .unitlink {
+      text-transform: none;
+      text-align: right;
+    }
+    .unitlink > a {
+      color: #777;
+    }
+
+    .status {
+      font-size: 130%;
+      padding: 10px 20px 10px 20px;
+      box-sizing: border-box;
+    }
+
+    .line {
+      color: white;
+    }
+
+    .dimmed {
+      background: linear-gradient(90deg,
+        rgba(0, 0, 0, 0), 
+        rgba(0, 0, 0, 0.5)
+      );
+    }
+
+    .status.problem {
+      color: red;
+    }
+    .status.ok {
+      color: limegreen;
+    }
+
+    th.smallhead {
+      font-size: 80%;
+    }
+    th.tinyhead {
+      padding-left: 0;
+      padding-right: 0;
+      text-align: center;
+    }
+    table.tinycells > tbody > tr > td {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .sixStyle {
+      position:relative;
+      display:inline-block;
+      white-space: pre; /* to preserve the spaces from collapsing */
+    }
+    .sixStyle:before {
+      display:block;
+      z-index:1;
+      position:absolute;
+      top:0;
+      left:0;
+      width: 50%;
+      content: attr(data-content); /* dynamic content for the pseudo element */
+      overflow:hidden;
+      color: #e0e0e0;
+    }
+
+    .hideOnLarge {
+      display: block;
+    }
+
+    @media screen and (min-width: 48em) {
+      .hideOnLarge {
+        display: none;
+      }
+    }
+
+    @media screen and (max-width: 35.5em) {
+      .pure-table {
+        font-size: 80%;
+      }
+    }
+
+    @media screen and (max-width: 25em) {
+      .pure-table {
+        font-size: 70%;
+      }
+    }
+
+    @media screen and (max-width: 17.5em) {
+      .pure-table {
+        font-size: 60%;
+      }
+    }
+
+    @keyframes blink {
+      0% { opacity: 1 }
+      50% { opacity: 0.5 }
+      100% { opacity: 1 }
+    }
+    @-webkit-keyframes blink {
+        0% { opacity: 1 }
+        50% { opacity: 0.5 }
+        100% { opacity: 1 }
+    }
+
+    .errorblink {
+      -moz-transition:all 0.5s ease-in-out;
+      -webkit-transition:all 0.5s ease-in-out;
+      -o-transition:all 0.5s ease-in-out;
+      -ms-transition:all 0.5s ease-in-out;
+      transition:all 0.5s ease-in-out;
+      -moz-animation:blink normal 1.5s infinite ease-in-out;
+      /* Firefox */
+      -webkit-animation:blink normal 1.5s infinite ease-in-out;
+      /* Webkit */
+      -ms-animation:blink normal 1.5s infinite ease-in-out;
+      /* IE */
+      animation:blink normal 1.5s infinite ease-in-out;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <div class="pure-g">
+      <div class="pure-u-1" style="text-align: center; background-color: #eee;">
+        <strong>Estado das linhas</strong> <small style="color: #777;">última alteração há {{ if .LastChangeAgoHour }}{{.LastChangeAgoHour}} horas e {{end}}{{ .LastChangeAgoMin }} minutos</small>
+      </div>
+      {{ $numlines := len .Lines }}
+      {{ range $line := .Lines }}
+        <div class="pure-u-1 pure-u-sm-1-{{ $numlines }} line status{{if $line.Down}} dimmed{{end}}" style="background-color: #{{ $line.Color }};">
+          {{ $line.Name }}
+          {{ if $line.Down }}
+          <span style="float: right;">
+            <span style="font-size: 60%;">desde há {{ $line.Minutes }} min</span>
+            <i class="fa fa-times-rectangle errorblink" aria-hidden="true"></i>
+          </span>
+          {{ else }}
+          <span style="float: right;"><i class="fa fa-check-square" aria-hidden="true"></i></span>
+          {{ end }}
+        </div>
+      {{ end }}
+    </div>
+  </div>
+  <div class="content">
+    <div class="pure-g">
+      <div class="pure-u-1">
+        <h1>Perturbação do Metro de Lisboa</h1>
+        <h3 style="color: #{{ .Disturbance.Line.Color }};">Linha {{ .Disturbance.Line.Name }}</h3>
+        <div style="padding-left: 40px;">
+          {{ $statuses := .Disturbance.Statuses }}
+          {{ range $index, $s := .Disturbance.Statuses }}
+            {{if (eq $index 0) }}
+            <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status }}</span>
+            {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
+            {{else}}
+              {{if (ne (index $statuses (minus $index 1)).Status $s.Status)}}
+              <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status }}</span>
+              {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
+              {{end}}
+            {{end}}
+          {{end}}
+          {{ if not .Disturbance.Ended }}
+            <p><em>Por resolver</em> <i style="color: red;" class="fa fa-times" aria-hidden="true"></i></p>
+          {{end}}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="pure-g">
+      <div class="pure-u-1 pure-u-md-1-2">
+        <p>
+            Este <em>website</em> não tem qualquer ligação à <em>Metropolitano de Lisboa, E.P.E.</em><br>
+            Não podemos garantir a correcção da informação fornecida.<br>
+            Só as autoridades competentes poderão fornecer dados oficiais.
+        </p>
+      </div>
+      <div class="pure-u-4-5 pure-u-md-1-2" style="padding-right: 5px; box-sizing: border-box;">
+        <p style="text-align: right;">Código no <a href="https://github.com/gbl08ma/disturbancesmlx">GitHub</a> | <a href="https://gbl08ma.github.io/contact/">Contactos</a></p>
+
+        <p style="text-align: right;">
+            Copyright © 2017 <a href="http://segvault.tny.im" target="_blank"><img src="/static/img/segvault-16.png" alt="Segvault"></a> / <a href="https://gbl08ma.github.io" target="_blank">gbl08ma</a>
+        </p>
+      </div>
+      <div class="pure-u-1-5 hideOnLarge">
+        <div class="addthis_inline_share_toolbox" style="float: right;"></div>
+      </div>
+    </div>
+  </div>
+  <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-4db86d9c0ef1e792"></script> 
+</body>
+</html>

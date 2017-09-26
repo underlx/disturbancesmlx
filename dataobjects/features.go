@@ -62,23 +62,16 @@ func getFeaturesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Featu
 
 // GetFeaturesForStation returns the Features for the station with the given ID
 func GetFeaturesForStation(node sqalx.Node, id string) (*Features, error) {
-	var features Features
-	tx, err := node.Beginx()
+	s := sdb.Select().
+		Where(sq.Eq{"station_id": id})
+	features, err := getFeaturesWithSelect(node, s)
 	if err != nil {
-		return &features, err
+		return nil, err
 	}
-	defer tx.Commit() // read-only tx
-
-	err = sdb.Select("station_id", "lift", "bus", "boat", "train", "airport").
-		From("station_feature").
-		Where(sq.Eq{"station_id": id}).
-		RunWith(tx).QueryRow().
-		Scan(&features.StationID, &features.Lift, &features.Bus, &features.Boat,
-			&features.Train, &features.Airport)
-	if err != nil {
-		return &features, errors.New("GetFeatures: " + err.Error())
+	if len(features) == 0 {
+		return nil, errors.New("Station not found")
 	}
-	return &features, nil
+	return features[0], nil
 }
 
 // Update adds or updates features

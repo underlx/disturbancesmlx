@@ -10,8 +10,13 @@ import (
 
 // Connection connects two stations in a single direction
 type Connection struct {
-	From           *Station
-	To             *Station
+	From *Station
+	To   *Station
+	// TypicalWaitingSeconds: time in seconds it usually takes to catch a train at the From station when moving towards To
+	TypicalWaitingSeconds int
+	// TypicalStopSeconds: time in seconds the train usually stops at the From station when moving towards To
+	TypicalStopSeconds int
+	// TypicalSeconds: the time in seconds it usually takes for the train to move from From to To
 	TypicalSeconds int
 }
 
@@ -29,7 +34,7 @@ func getConnectionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Co
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("from_station", "to_station", "typ_time").
+	rows, err := sbuilder.Columns("from_station", "to_station", "typ_wait_time", "typ_stop_time", "typ_time").
 		From("connection").
 		RunWith(tx).Query()
 	if err != nil {
@@ -46,6 +51,8 @@ func getConnectionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Co
 		err := rows.Scan(
 			&fromID,
 			&toID,
+			&connection.TypicalWaitingSeconds,
+			&connection.TypicalStopSeconds,
 			&connection.TypicalSeconds)
 		if err != nil {
 			return connections, fmt.Errorf("getConnectionsWithSelect: %s", err)
@@ -75,33 +82,17 @@ func getConnectionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Co
 
 // GetConnection returns the Connection with the given ID
 func GetConnection(node sqalx.Node, from string, to string) (*Connection, error) {
-	var connection Connection
-	tx, err := node.Beginx()
-	if err != nil {
-		return &connection, err
-	}
-	defer tx.Commit() // read-only tx
-
-	var fromID string
-	var toID string
-	err = sdb.Select("from_station", "to_station", "typ_time").
-		From("connection").
+	s := sdb.Select().
 		Where(sq.Eq{"from_station": from}).
-		Where(sq.Eq{"to_station": to}).
-		RunWith(tx).QueryRow().
-		Scan(&fromID, &toID, &connection.TypicalSeconds)
+		Where(sq.Eq{"to_station": to})
+	connections, err := getConnectionsWithSelect(node, s)
 	if err != nil {
-		return &connection, errors.New("GetConnection: " + err.Error())
+		return nil, err
 	}
-	connection.From, err = GetStation(tx, fromID)
-	if err != nil {
-		return &connection, errors.New("GetConnection: " + err.Error())
+	if len(connections) == 0 {
+		return nil, errors.New("Connection not found")
 	}
-	connection.To, err = GetStation(tx, toID)
-	if err != nil {
-		return &connection, errors.New("GetConnection: " + err.Error())
-	}
-	return &connection, nil
+	return connections[0], nil
 }
 
 // Update adds or updates the connection
@@ -113,10 +104,10 @@ func (connection *Connection) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	_, err = sdb.Insert("connection").
-		Columns("from_station", "to_station", "typ_time").
-		Values(connection.From.ID, connection.To.ID, connection.TypicalSeconds).
-		Suffix("ON CONFLICT (from_station, to_station) DO UPDATE SET typ_time = ?",
-			connection.TypicalSeconds).
+		Columns("from_station", "to_station", "typ_wait_time", "typ_stop_time", "typ_time").
+		Values(connection.From.ID, connection.To.ID, connection.TypicalWaitingSeconds, connection.TypicalStopSeconds, connection.TypicalSeconds).
+		Suffix("ON CONFLICT (from_station, to_station) DO UPDATE SET typ_wait_time = ?, typ_stop_time = ?, typ_time = ?",
+			connection.TypicalWaitingSeconds, connection.TypicalStopSeconds, connection.TypicalSeconds).
 		RunWith(tx).Exec()
 
 	if err != nil {

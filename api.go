@@ -1,7 +1,14 @@
 package main
 
 import (
+	"encoding/hex"
+	"encoding/pem"
 	"net/http"
+
+	"crypto/x509"
+	"io/ioutil"
+
+	"crypto/ecdsa"
 
 	"github.com/gbl08ma/disturbancesmlx/resource"
 	"github.com/yarf-framework/yarf"
@@ -27,7 +34,7 @@ func (r *Static) Get(c *yarf.Context) error {
 	return nil
 }
 
-func APIserver() {
+func APIserver(trustedClientCertPath string) {
 	y := yarf.New()
 
 	v1 := yarf.RouteGroup("/v1")
@@ -57,10 +64,57 @@ func APIserver() {
 	v1.Add("/datasets", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
 	v1.Add("/datasets/:id", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
 
+	v1.Add("/stats", new(resource.Stats).WithNode(rootSqalxNode).WithCalculator(new(MLcalculator)))
+	v1.Add("/stats/:id", new(resource.Stats).WithNode(rootSqalxNode).WithCalculator(new(MLcalculator)))
+
 	v1.Add("/stationkb/*", new(Static).WithPath("stationkb/", "/v1/stationkb/"))
+
+	pubkey := getTrustedClientPublicKey(trustedClientCertPath)
+
+	v1.Add("/pair", new(resource.Pair).
+		WithNode(rootSqalxNode).
+		WithPublicKey(pubkey).
+		WithHashKey(getHashKey()))
+
+	if DEBUG {
+		v1.Add("/authtest", new(resource.AuthTest).
+			WithNode(rootSqalxNode).
+			WithHashKey(getHashKey()))
+	}
+
+	v1.Add("/trips", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
+	v1.Add("/trips/:id", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
+
+	v1.Add("/feedback", new(resource.Feedback).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 
 	y.AddGroup(v1)
 
 	y.Logger = webLog
 	y.Start(":12000")
+}
+
+func getTrustedClientPublicKey(trustedClientCertPath string) *ecdsa.PublicKey {
+	certBytes, err := ioutil.ReadFile(trustedClientCertPath)
+	if err != nil {
+		panic("Error reading trusted client certificate")
+	}
+	block, _ := pem.Decode([]byte(certBytes))
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		panic("Error parsing client certificate: " + err.Error())
+	}
+
+	return cert.PublicKey.(*ecdsa.PublicKey)
+}
+
+func getHashKey() []byte {
+	hexkey, present := secrets.Get("secretHMACkey")
+	if !present {
+		mainLog.Fatal("API secret HMAC key not present in keybox")
+	}
+	key, err := hex.DecodeString(hexkey)
+	if err != nil {
+		mainLog.Fatal("Invalid API secret HMAC key specified")
+	}
+	return key
 }

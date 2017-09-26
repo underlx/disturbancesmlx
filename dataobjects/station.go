@@ -70,31 +70,16 @@ func getStationsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Stati
 
 // GetStation returns the Station with the given ID
 func GetStation(node sqalx.Node, id string) (*Station, error) {
-	var station Station
-	tx, err := node.Beginx()
+	s := sdb.Select().
+		Where(sq.Eq{"id": id})
+	stations, err := getStationsWithSelect(node, s)
 	if err != nil {
-		return &station, err
+		return nil, err
 	}
-	defer tx.Commit() // read-only tx
-
-	var networkID string
-	err = sdb.Select("id", "name", "network").
-		From("station").
-		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().
-		Scan(&station.ID, &station.Name, &networkID)
-	if err != nil {
-		return &station, errors.New("GetStation: " + err.Error())
+	if len(stations) == 0 {
+		return nil, errors.New("Station not found")
 	}
-	station.Network, err = GetNetwork(tx, networkID)
-	if err != nil {
-		return &station, errors.New("GetStation: " + err.Error())
-	}
-	station.Features, err = GetFeaturesForStation(tx, station.ID)
-	if err != nil {
-		return &station, errors.New("GetStation: " + err.Error())
-	}
-	return &station, nil
+	return stations[0], nil
 }
 
 // Lines returns the lines that serve this station

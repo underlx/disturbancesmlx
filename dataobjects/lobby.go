@@ -73,27 +73,16 @@ func getLobbiesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Lobby,
 
 // GetLobby returns the lobby with the given ID
 func GetLobby(node sqalx.Node, id string) (*Lobby, error) {
-	var lobby Lobby
-	tx, err := node.Beginx()
+	s := sdb.Select().
+		Where(sq.Eq{"id": id})
+	lobbies, err := getLobbiesWithSelect(node, s)
 	if err != nil {
-		return &lobby, err
+		return nil, err
 	}
-	defer tx.Commit() // read-only tx
-
-	var stationID string
-	err = sdb.Select("station_lobby.id", "station_lobby.name", "station_lobby.station_id").
-		From("station_lobby").
-		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().
-		Scan(&lobby.ID, &lobby.Name, &stationID)
-	if err != nil {
-		return &lobby, errors.New("GetLobby: " + err.Error())
+	if len(lobbies) == 0 {
+		return nil, errors.New("Lobby not found")
 	}
-	lobby.Station, err = GetStation(tx, stationID)
-	if err != nil {
-		return &lobby, errors.New("GetLobby: " + err.Error())
-	}
-	return &lobby, nil
+	return lobbies[0], nil
 }
 
 // Exits returns the exits of this lobby

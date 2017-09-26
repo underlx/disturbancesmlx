@@ -1,4 +1,4 @@
-# disturbancesmlx
+# disturbancesmlx [![Discord](https://img.shields.io/discord/334423823552217090.svg)](https://discord.gg/hhuC7fc) [![license](https://img.shields.io/github/license/gbl08ma/disturbancesmlx.svg)](https://github.com/gbl08ma/disturbancesmlx/blob/master/LICENSE)
 Fancy status page and status logger for the [Lisbon Metro](http://www.metrolisboa.pt/), that scrapes the official website for information. Live at https://perturbacoes.tny.im.
 
 The server is written in Go. It is compatible with PostgreSQL only and designed to run behind a reverse proxy.

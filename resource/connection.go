@@ -12,9 +12,11 @@ type Connection struct {
 }
 
 type apiConnection struct {
-	From           *dataobjects.Station `msgpack:"-" json:"-"`
-	To             *dataobjects.Station `msgpack:"-" json:"-"`
-	TypicalSeconds int                 `msgpack:"typS" json:"typS"`
+	From                  *dataobjects.Station `msgpack:"-" json:"-"`
+	To                    *dataobjects.Station `msgpack:"-" json:"-"`
+	TypicalWaitingSeconds int                  `msgpack:"typWaitS" json:"typWaitS"`
+	TypicalStopSeconds    int                  `msgpack:"typStopS" json:"typStopS"`
+	TypicalSeconds        int                  `msgpack:"typS" json:"typS"`
 }
 
 type apiConnectionWrapper struct {
