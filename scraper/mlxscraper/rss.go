@@ -3,7 +3,11 @@ package mlxscraper
 import (
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
 
 	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 	"github.com/mmcdole/gofeed"
@@ -78,23 +82,56 @@ func (sc *RSSScraper) scrape() {
 func (sc *RSSScraper) update() {
 	feed, _ := sc.fp.ParseURL(sc.URL)
 
-	if sc.announcements == nil {
-		sc.announcements = []*dataobjects.Announcement{}
-		for _, item := range feed.Items {
-			fmt.Println(item.Title)
-			fmt.Println(item.Description)
-			fmt.Println(item.PublishedParsed)
-			ann := dataobjects.Announcement{
-				Time:    *item.PublishedParsed,
-				Network: sc.Network,
-				Title:   item.Title,
-				Body:    item.Description,
-				URL:     item.Link,
-				Source:  "pt-ml-rss",
+	announcements := []*dataobjects.Announcement{}
+	for _, item := range feed.Items {
+		ann := dataobjects.Announcement{
+			Time:    *item.PublishedParsed,
+			Network: sc.Network,
+			Title:   item.Title,
+			Body:    sc.adaptPostBody(item.Description),
+			URL:     item.Link,
+			Source:  "pt-ml-rss",
+		}
+		announcements = append(announcements, &ann)
+	}
+
+	sort.SliceStable(announcements, func(i, j int) bool {
+		return announcements[i].Time.Before(announcements[j].Time)
+	})
+
+	for _, ann := range announcements {
+		fmt.Println(ann.Title)
+		fmt.Println(ann.Body)
+		fmt.Println(ann.URL)
+		fmt.Println(ann.Time)
+	}
+
+	if !sc.firstUpdate && len(announcements) > 0 {
+		isNew := false
+		curLast := announcements[len(announcements)-1]
+		if len(sc.announcements) == 0 {
+			isNew = true
+		} else {
+			// decide if an announcement is new by looking only into the published date
+			prevLast := sc.announcements[len(sc.announcements)-1]
+			if curLast.Time.After(prevLast.Time) {
+				isNew = true
 			}
-			sc.announcements = append(sc.announcements, &ann)
+		}
+		if isNew {
+			sc.newAnnCallback(curLast)
 		}
 	}
+	sc.announcements = announcements
+}
+
+func (sc *RSSScraper) adaptPostBody(original string) string {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(original))
+	if err != nil {
+		sc.log.Println(err)
+		return ""
+	}
+	return doc.Find("p").First().Text()
 }
 
 // Networks returns the networks monitored by this scraper
