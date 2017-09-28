@@ -16,14 +16,13 @@ import (
 // RSSScraper is an announcement scraper for the Metro de Lisboa website
 // It reads the RSS feed from the official website
 type RSSScraper struct {
-	ticker              *time.Ticker
-	stopChan            chan struct{}
-	log                 *log.Logger
-	newAnnCallback      func(announcement *dataobjects.Announcement)
-	initialDataCallback func(anns []*dataobjects.Announcement)
-	firstUpdate         bool
-	fp                  *gofeed.Parser
-	announcements       []*dataobjects.Announcement
+	ticker         *time.Ticker
+	stopChan       chan struct{}
+	log            *log.Logger
+	newAnnCallback func(announcement *dataobjects.Announcement)
+	firstUpdate    bool
+	fp             *gofeed.Parser
+	announcements  []*dataobjects.Announcement
 
 	URL     string
 	Network *dataobjects.Network
@@ -32,13 +31,11 @@ type RSSScraper struct {
 
 // Begin starts the scraper
 func (sc *RSSScraper) Begin(log *log.Logger,
-	newAnnCallback func(announcement *dataobjects.Announcement),
-	initialDataCallback func(anns []*dataobjects.Announcement)) {
+	newAnnCallback func(announcement *dataobjects.Announcement)) {
 	sc.stopChan = make(chan struct{})
 	sc.ticker = time.NewTicker(sc.Period)
 	sc.log = log
 	sc.newAnnCallback = newAnnCallback
-	sc.initialDataCallback = initialDataCallback
 	sc.firstUpdate = true
 	sc.fp = gofeed.NewParser()
 
@@ -46,7 +43,6 @@ func (sc *RSSScraper) Begin(log *log.Logger,
 	sc.update()
 	sc.firstUpdate = false
 	sc.log.Println("RSSScraper completed first fetch")
-	initialDataCallback(sc.copyAnnouncements())
 	go sc.scrape()
 }
 
@@ -137,4 +133,14 @@ func (sc *RSSScraper) adaptPostBody(original string) string {
 // Networks returns the networks monitored by this scraper
 func (sc *RSSScraper) Networks() []*dataobjects.Network {
 	return []*dataobjects.Network{sc.Network}
+}
+
+// Sources returns the sources provided by this scraper
+func (sc *RSSScraper) Sources() []string {
+	return []string{"pt-ml-rss"}
+}
+
+// Announcements returns the announcements read by this scraper
+func (sc *RSSScraper) Announcements(source string) []*dataobjects.Announcement {
+	return sc.copyAnnouncements()
 }

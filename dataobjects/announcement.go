@@ -13,3 +13,9 @@ type Announcement struct {
 	URL     string
 	Source  string
 }
+
+// AnnouncementStore manages announcements for one or more networks
+type AnnouncementStore interface {
+	AllAnnouncements() []*Announcement
+	SourceAnnouncements(source string) []*Announcement
+}

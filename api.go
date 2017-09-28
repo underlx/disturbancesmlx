@@ -67,6 +67,9 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/stats", new(resource.Stats).WithNode(rootSqalxNode).WithCalculator(new(MLcalculator)))
 	v1.Add("/stats/:id", new(resource.Stats).WithNode(rootSqalxNode).WithCalculator(new(MLcalculator)))
 
+	v1.Add("/announcements", new(resource.Announcement).WithAnnouncementStore(&annStore))
+	v1.Add("/announcements/:source", new(resource.Announcement).WithAnnouncementStore(&annStore))
+
 	v1.Add("/stationkb/*", new(Static).WithPath("stationkb/", "/v1/stationkb/"))
 
 	pubkey := getTrustedClientPublicKey(trustedClientCertPath)

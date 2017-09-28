@@ -24,8 +24,9 @@ type Scraper interface {
 // network.
 type AnnouncementScraper interface {
 	Begin(log *log.Logger,
-		newAnnouncementReporter func(announcement *dataobjects.Announcement),
-		initialDataCallback func(announcements []*dataobjects.Announcement))
+		newAnnouncementReporter func(announcement *dataobjects.Announcement))
 	End()
 	Networks() []*dataobjects.Network
+	Sources() []string
+	Announcements(source string) []*dataobjects.Announcement
 }

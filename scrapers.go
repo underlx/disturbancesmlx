@@ -167,8 +167,9 @@ func SetUpAnnouncements() {
 			Period:  1 * time.Minute,
 		}
 		rssmlxscr.Begin(rssl,
-			func(announcement *dataobjects.Announcement) {},
-			func(anns []*dataobjects.Announcement) {})
+			func(announcement *dataobjects.Announcement) {})
+
+		annStore.AddScraper(rssmlxscr)
 	}
 }
 
