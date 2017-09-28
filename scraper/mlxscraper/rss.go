@@ -1,7 +1,6 @@
 package mlxscraper
 
 import (
-	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -94,13 +93,6 @@ func (sc *RSSScraper) update() {
 	sort.SliceStable(announcements, func(i, j int) bool {
 		return announcements[i].Time.Before(announcements[j].Time)
 	})
-
-	for _, ann := range announcements {
-		fmt.Println(ann.Title)
-		fmt.Println(ann.Body)
-		fmt.Println(ann.URL)
-		fmt.Println(ann.Time)
-	}
 
 	if !sc.firstUpdate && len(announcements) > 0 {
 		isNew := false
