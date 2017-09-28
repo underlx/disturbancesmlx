@@ -13,9 +13,12 @@ type AnnouncementStore struct {
 }
 
 // AddScraper registers all sources provided by this scraper
-func (as *AnnouncementStore) AddScraper(scraper scraper.AnnouncementScraper) {
-	for _, source := range scraper.Sources() {
-		as.scrapers[source] = scraper
+func (as *AnnouncementStore) AddScraper(s scraper.AnnouncementScraper) {
+	if as.scrapers == nil {
+		as.scrapers = make(map[string]scraper.AnnouncementScraper)
+	}
+	for _, source := range s.Sources() {
+		as.scrapers[source] = s
 	}
 }
 
