@@ -130,7 +130,12 @@ func main() {
 	SetUpScrapers()
 	defer TearDownScrapers()
 
-	SetUpAnnouncements()
+	facebookAccessToken, present := secrets.Get("facebookToken")
+	if !present {
+		mainLog.Fatal("Facebook API access token not present in keybox")
+	}
+
+	SetUpAnnouncements(facebookAccessToken)
 	defer TearDownAnnouncements()
 
 	go WebServer()

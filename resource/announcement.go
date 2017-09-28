@@ -36,8 +36,8 @@ func (r *Announcement) WithAnnouncementStore(store dataobjects.AnnouncementStore
 func (n *Announcement) Get(c *yarf.Context) error {
 	var anns []*dataobjects.Announcement
 
-	if c.Param("store") != "" {
-		anns = n.annStore.SourceAnnouncements(c.Param("store"))
+	if c.Param("source") != "" {
+		anns = n.annStore.SourceAnnouncements(c.Param("source"))
 	} else {
 		anns = n.annStore.AllAnnouncements()
 	}

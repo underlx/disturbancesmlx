@@ -14,6 +14,7 @@ import (
 var (
 	mlxscr    scraper.Scraper
 	rssmlxscr scraper.AnnouncementScraper
+	fbmlxscr  scraper.AnnouncementScraper
 )
 
 func SetUpScrapers() {
@@ -155,9 +156,10 @@ func TearDownScrapers() {
 	mlxscr.End()
 }
 
-func SetUpAnnouncements() {
-	rssl := log.New(os.Stdout, "rssscraper", log.Ldate|log.Ltime)
+func SetUpAnnouncements(facebookAccessToken string) {
 	network, err := dataobjects.GetNetwork(rootSqalxNode, MLnetworkID)
+
+	rssl := log.New(os.Stdout, "rssscraper", log.Ldate|log.Ltime)
 	if err != nil {
 		mainLog.Println(err)
 	} else {
@@ -171,10 +173,28 @@ func SetUpAnnouncements() {
 
 		annStore.AddScraper(rssmlxscr)
 	}
+
+	fbl := log.New(os.Stdout, "fbscraper", log.Ldate|log.Ltime)
+	if err != nil {
+		mainLog.Println(err)
+	} else {
+		fbmlxscr = &mlxscraper.FacebookScraper{
+			AccessToken: facebookAccessToken,
+			Network:     network,
+			Period:      1 * time.Minute,
+		}
+		fbmlxscr.Begin(fbl,
+			func(announcement *dataobjects.Announcement) {})
+
+		annStore.AddScraper(fbmlxscr)
+	}
 }
 
 func TearDownAnnouncements() {
 	if rssmlxscr != nil {
 		rssmlxscr.End()
+	}
+	if fbmlxscr != nil {
+		fbmlxscr.End()
 	}
 }
