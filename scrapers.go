@@ -168,8 +168,7 @@ func SetUpAnnouncements(facebookAccessToken string) {
 			Network: network,
 			Period:  1 * time.Minute,
 		}
-		rssmlxscr.Begin(rssl,
-			func(announcement *dataobjects.Announcement) {})
+		rssmlxscr.Begin(rssl, SendNotificationForAnnouncement)
 
 		annStore.AddScraper(rssmlxscr)
 	}
@@ -183,8 +182,7 @@ func SetUpAnnouncements(facebookAccessToken string) {
 			Network:     network,
 			Period:      1 * time.Minute,
 		}
-		fbmlxscr.Begin(fbl,
-			func(announcement *dataobjects.Announcement) {})
+		fbmlxscr.Begin(fbl, SendNotificationForAnnouncement)
 
 		annStore.AddScraper(fbmlxscr)
 	}
