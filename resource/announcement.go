@@ -20,7 +20,7 @@ type apiAnnouncement struct {
 	Title   string               `msgpack:"title" json:"title"`
 	Body    string               `msgpack:"body" json:"body"`
 	URL     string               `msgpack:"url" json:"url"`
-	Source  string               `msgpack:"title" json:"source"`
+	Source  string               `msgpack:"source" json:"source"`
 }
 
 type apiAnnouncementWrapper struct {
