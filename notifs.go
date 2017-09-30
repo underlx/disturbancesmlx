@@ -19,7 +19,12 @@ func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.S
 		"downtime":    downtimeStr,
 	}
 
-	fcmcl.NewFcmMsgTo("/topics/disturbances", data)
+	if DEBUG {
+		fcmcl.NewFcmMsgTo("/topics/disturbances-debug", data)
+	} else {
+		fcmcl.NewFcmMsgTo("/topics/disturbances", data)
+	}
+
 	fcmcl.SetPriority(fcm.Priority_HIGH)
 	_, err := fcmcl.Send()
 	if err != nil {
@@ -37,7 +42,11 @@ func SendNotificationForAnnouncement(a *dataobjects.Announcement) {
 		"source":  a.Source,
 	}
 
-	fcmcl.NewFcmMsgTo("/topics/announcements-"+a.Source, data)
+	if DEBUG {
+		fcmcl.NewFcmMsgTo("/topics/announcements-debug-"+a.Source, data)
+	} else {
+		fcmcl.NewFcmMsgTo("/topics/announcements-"+a.Source, data)
+	}
 	fcmcl.SetPriority(fcm.Priority_HIGH)
 	_, err := fcmcl.Send()
 	if err != nil {

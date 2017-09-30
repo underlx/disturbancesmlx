@@ -16,11 +16,6 @@ import (
 	"github.com/gbl08ma/keybox"
 )
 
-const (
-	DEBUG       = true
-	MLnetworkID = "pt-ml"
-)
-
 var (
 	rdb           *sqlx.DB
 	sdb           sq.StatementBuilderType
@@ -87,11 +82,7 @@ func MLlineAvailability(node sqalx.Node, line *dataobjects.Line, startTime time.
 func main() {
 	var err error
 	mainLog.Println("Server starting, opening keybox...")
-	if DEBUG {
-		secrets, err = keybox.Open("secrets-debug.json")
-	} else {
-		secrets, err = keybox.Open("secrets.json")
-	}
+	secrets, err = keybox.Open(SecretsPath)
 	if err != nil {
 		mainLog.Fatal(err)
 	}
@@ -140,7 +131,7 @@ func main() {
 
 	go WebServer()
 
-	certPath := "trusted_client_cert.pem"
+	certPath := DefaultClientCertPath
 	if len(os.Args) > 1 {
 		certPath = os.Args[1]
 	}
