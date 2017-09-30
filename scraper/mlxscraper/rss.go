@@ -75,7 +75,11 @@ func (sc *RSSScraper) scrape() {
 }
 
 func (sc *RSSScraper) update() {
-	feed, _ := sc.fp.ParseURL(sc.URL)
+	feed, err := sc.fp.ParseURL(sc.URL)
+	if err != nil {
+		sc.log.Println(err)
+		return
+	}
 
 	announcements := []*dataobjects.Announcement{}
 	for _, item := range feed.Items {
