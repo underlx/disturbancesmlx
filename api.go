@@ -79,11 +79,9 @@ func APIserver(trustedClientCertPath string) {
 		WithPublicKey(pubkey).
 		WithHashKey(getHashKey()))
 
-	if DEBUG {
-		v1.Add("/authtest", new(resource.AuthTest).
-			WithNode(rootSqalxNode).
-			WithHashKey(getHashKey()))
-	}
+	v1.Add("/authtest", new(resource.AuthTest).
+		WithNode(rootSqalxNode).
+		WithHashKey(getHashKey()))
 
 	v1.Add("/trips", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 	v1.Add("/trips/:id", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
