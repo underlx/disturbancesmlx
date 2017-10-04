@@ -69,8 +69,8 @@ CREATE TABLE IF NOT EXISTS "line_disturbance_has_status" (
 CREATE TABLE IF NOT EXISTS "station" (
     id VARCHAR(36) PRIMARY KEY,
     name TEXT NOT NULL,
-    alt_names TEXT[] NOT NULL,
-    network VARCHAR(36) NOT NULL REFERENCES network (id)
+    network VARCHAR(36) NOT NULL REFERENCES network (id),
+    alt_names TEXT[] NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "connection" (
