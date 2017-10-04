@@ -191,8 +191,12 @@ func (trip *Trip) Update(node sqalx.Node) error {
 
 	var nextAdmissibleEntryTime time.Time
 	for i := range trip.StationUses {
+		// fix invalid times produced by old app versions as best as we can
 		if i != 0 && trip.StationUses[i].EntryTime.Before(nextAdmissibleEntryTime) {
-			return errors.New("AddTrip: station uses are not ordered or overlap")
+			trip.StationUses[i].EntryTime = nextAdmissibleEntryTime
+		}
+		if trip.StationUses[i].LeaveTime.Before(trip.StationUses[i].EntryTime) {
+			trip.StationUses[i].LeaveTime = trip.StationUses[i].EntryTime
 		}
 		err = trip.StationUses[i].Update(tx, trip.ID)
 		if err != nil {
