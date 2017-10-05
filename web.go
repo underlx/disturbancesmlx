@@ -59,9 +59,10 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 
 	loc, _ := time.LoadLocation("Europe/Lisbon")
 	p := struct {
-		Hours int
-		Days  int
-		Lines []struct {
+		PageTitle string
+		Hours     int
+		Days      int
+		Lines     []struct {
 			*dataobjects.Line
 			Down            bool
 			Minutes         int
@@ -77,6 +78,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		LastUpdateAgoMin  int
 		LastUpdateAgoHour int
 	}{
+		PageTitle:         "Perturbações do Metro de Lisboa",
 		LastChangeAgoMin:  int(time.Now().Sub(lastChange).Minutes()) % 60,
 		LastChangeAgoHour: int(time.Now().Sub(lastChange).Hours()),
 		LastUpdateAgoMin:  int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60,
@@ -211,7 +213,8 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 	defer tx.Commit()
 
 	p := struct {
-		Lines []struct {
+		PageTitle string
+		Lines     []struct {
 			*dataobjects.Line
 			Down    bool
 			Minutes int
@@ -221,6 +224,7 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 		LastUpdateAgoMin  int
 		LastUpdateAgoHour int
 	}{
+		PageTitle:         "Perturbações do Metro de Lisboa",
 		LastChangeAgoMin:  int(time.Now().Sub(lastChange).Minutes()) % 60,
 		LastChangeAgoHour: int(time.Now().Sub(lastChange).Hours()),
 		LastUpdateAgoMin:  int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60,
@@ -325,7 +329,8 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 	defer tx.Commit()
 
 	p := struct {
-		Lines []struct {
+		PageTitle string
+		Lines     []struct {
 			*dataobjects.Line
 			Down    bool
 			Minutes int
@@ -336,6 +341,7 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 		LastUpdateAgoHour int
 		Disturbance       *dataobjects.Disturbance
 	}{
+		PageTitle:         "Perturbação do Metro de Lisboa",
 		LastChangeAgoMin:  int(time.Now().Sub(lastChange).Minutes()) % 60,
 		LastChangeAgoHour: int(time.Now().Sub(lastChange).Hours()),
 		LastUpdateAgoMin:  int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60,
