@@ -118,16 +118,16 @@
         {{ range $line := .Lines }}
         <div>
           <span class="permalink"><a href="/d/{{ $line.LastDisturbance.ID }}">permalink</a></span>
-          <h3 style="color: #{{ $line.Color }};">{{ $line.Name }}</h3>
+          <h3 style="color: #{{ $line.Color }};">{{ $line.Name | html }}</h3>
         </div>
         <div style="padding-left: 40px;">
           {{ range $index, $s := $line.LastDisturbance.Statuses }}
             {{if (eq $index 0) }}
-            <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status }}</span>
+            <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status | html }}</span>
             {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
             {{else}}
               {{if (ne (index $line.LastDisturbance.Statuses (minus $index 1)).Status $s.Status)}}
-              <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status }}</span>
+              <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status | html }}</span>
               {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
               {{end}}
             {{end}}

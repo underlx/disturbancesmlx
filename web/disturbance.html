@@ -3,16 +3,16 @@
     <div class="pure-g">
       <div class="pure-u-1">
         <h1>Perturbação do Metro de Lisboa</h1>
-        <h3 style="color: #{{ .Disturbance.Line.Color }};">Linha {{ .Disturbance.Line.Name }}</h3>
+        <h3 style="color: #{{ .Disturbance.Line.Color }};">Linha {{ .Disturbance.Line.Name | html }}</h3>
         <div style="padding-left: 40px;">
           {{ $statuses := .Disturbance.Statuses }}
           {{ range $index, $s := .Disturbance.Statuses }}
             {{if (eq $index 0) }}
-            <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status }}</span>
+            <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status | html }}</span>
             {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
             {{else}}
               {{if (ne (index $statuses (minus $index 1)).Status $s.Status)}}
-              <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status }}</span>
+              <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status | html }}</span>
               {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
               {{end}}
             {{end}}
