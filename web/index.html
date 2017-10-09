@@ -1,4 +1,5 @@
 {{template "header.html" . }}
+{{ $top := . }}
     <div class="pure-g ubuntu" style="margin-left: auto; margin-right: auto; width: 60%; text-transform: uppercase;">
       <div class="pure-u-1 ubuntu" style="font-size: 6.2vw; white-space: nowrap;">O Metro de Lisboa</div>
       <div class="pure-u-1 ubuntu" style="font-size: 10.8vw; white-space: nowrap;">opera <span style="color: #f15c2b;">sem</span></div>
@@ -52,10 +53,10 @@
           </thead>
 
           <tbody>
-            {{ range $line := .Lines }}
+            {{ range $index, $line := .Lines }}
             <tr>
               <td class="line" style="background-color: #{{ $line.Color }};">{{ $line.Name }}</td>
-              {{ range $count := $line.DayCounts }}
+              {{ range $count := (index $top.LinesExtra $index).DayCounts }}
                 {{ if eq $count 0 }}
                   <td class="status ok">0 <i class="fa fa-check" aria-hidden="true"></i></td>
                 {{ else }}
@@ -67,8 +68,8 @@
           </tbody>
         </table>
         <h2>Disponibilidade na última semana</h2>
-        {{ range $line := .Lines }}
-        <p><span style="color: #{{ $line.Color }};">{{ $line.Name }}</span>: {{ $line.Availability }}{{ if ne $line.Availability "100.000%" }}<small>, as perturbações duraram em média {{ $line.AvgDuration }} minutos.{{end}}</small></p>
+        {{ range $index, $line := .Lines }}
+        <p><span style="color: #{{ $line.Color }};">{{ $line.Name }}</span>: {{ (index $top.LinesExtra $index).Availability }}{{ if ne (index $top.LinesExtra $index).Availability "100.000%" }}<small>, as perturbações duraram em média {{ (index $top.LinesExtra $index).AvgDuration }} minutos.{{end}}</small></p>
         {{end}}
         <p style="color: #777;"><small>A disponibilidade corresponde ao tempo em que uma linha funciona sem perturbações, como percentagem do tempo de exploração (horas a que o Metro está aberto ao público).</small></p>
         <h2><em>Perturbações</em> por hora do dia, na última semana</h2>
@@ -99,10 +100,10 @@
           </thead>
 
           <tbody>
-            {{ range $line := .Lines }}
+            {{ range $index, $line := .Lines }}
             <tr>
               <td class="line" style="background-color: #{{ $line.Color }};">{{ $line.Name }}</td>
-              {{ range $count := $line.HourCounts }}
+              {{ range $count := (index $top.LinesExtra $index).HourCounts }}
                 {{ if eq $count 0 }}
                   <td class="status ok">0<br><i class="fa fa-check" aria-hidden="true"></i></td>
                 {{ else }}
@@ -115,7 +116,7 @@
         </table>
         <p style="color: #777;"><small>As perturbações são contabilizadas em cada hora que afectem.</small></p>
         <h1>Últimas <em>perturbações</em> por linha</h1>
-        {{ range $line := .Lines }}
+        {{ range $line := .LinesExtra }}
           {{template "component-disturbance.html" $line.LastDisturbance }}
         {{end}}
         <p style="margin-top: 50px;">Serão disponibilizados mais dados, para intervalos de tempo maiores, à medida que estes sejam recolhidos.</p>

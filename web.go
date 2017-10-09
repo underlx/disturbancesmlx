@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/disturbancesmlx/dataobjects"
+	"github.com/heetch/sqalx"
 
 	"encoding/json"
 
@@ -17,6 +18,19 @@ import (
 )
 
 var webtemplate *template.Template
+
+type PageCommons struct {
+	PageTitle string
+	Lines     []struct {
+		*dataobjects.Line
+		Down    bool
+		Minutes int
+	}
+	LastChangeAgoMin  int
+	LastChangeAgoHour int
+	LastUpdateAgoMin  int
+	LastUpdateAgoHour int
+}
 
 // WebServer starts the web server
 func WebServer() {
@@ -44,6 +58,46 @@ func WebServer() {
 	webLog.Println("Web server terminated")
 }
 
+func InitPageCommons(node sqalx.Node, title string) (commons PageCommons, err error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return commons, err
+	}
+	defer tx.Commit() // read-only tx
+
+	commons.PageTitle = "Perturbação do Metro de Lisboa"
+	commons.LastChangeAgoMin = int(time.Now().Sub(lastChange).Minutes()) % 60
+	commons.LastChangeAgoHour = int(time.Now().Sub(lastChange).Hours())
+	commons.LastUpdateAgoMin = int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60
+	commons.LastUpdateAgoHour = int(time.Now().Sub(mlxscr.LastUpdate()).Hours())
+
+	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	if err != nil {
+		return commons, err
+	}
+	lines, err := n.Lines(tx)
+	if err != nil {
+		return commons, err
+	}
+
+	commons.Lines = make([]struct {
+		*dataobjects.Line
+		Down    bool
+		Minutes int
+	}, len(lines))
+
+	for i := range lines {
+		commons.Lines[i].Line = lines[i]
+		d, err := lines[i].LastOngoingDisturbance(tx)
+		commons.Lines[i].Down = err == nil
+		if err == nil {
+			commons.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
+		}
+	}
+
+	return commons, nil
+}
+
 // HomePage serves the home page
 func HomePage(w http.ResponseWriter, r *http.Request) {
 	if DEBUG {
@@ -59,30 +113,25 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 
 	loc, _ := time.LoadLocation("Europe/Lisbon")
 	p := struct {
-		PageTitle string
-		Hours     int
-		Days      int
-		Lines     []struct {
-			*dataobjects.Line
-			Down            bool
-			Minutes         int
+		PageCommons
+		PageTitle  string
+		Hours      int
+		Days       int
+		LinesExtra []struct {
 			DayCounts       []int
 			HourCounts      []int
 			LastDisturbance *dataobjects.Disturbance
 			Availability    string
 			AvgDuration     string
 		}
-		DayNames          []string
-		LastChangeAgoMin  int
-		LastChangeAgoHour int
-		LastUpdateAgoMin  int
-		LastUpdateAgoHour int
-	}{
-		PageTitle:         "Perturbações do Metro de Lisboa",
-		LastChangeAgoMin:  int(time.Now().Sub(lastChange).Minutes()) % 60,
-		LastChangeAgoHour: int(time.Now().Sub(lastChange).Hours()),
-		LastUpdateAgoMin:  int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60,
-		LastUpdateAgoHour: int(time.Now().Sub(mlxscr.LastUpdate()).Hours()),
+		DayNames []string
+	}{}
+
+	p.PageCommons, err = InitPageCommons(tx, "Perturbações do Metro de Lisboa")
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
 	t := time.Now().In(loc).AddDate(0, 0, -6)
@@ -131,10 +180,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.Lines = make([]struct {
-		*dataobjects.Line
-		Down            bool
-		Minutes         int
+	p.LinesExtra = make([]struct {
 		DayCounts       []int
 		HourCounts      []int
 		LastDisturbance *dataobjects.Disturbance
@@ -150,18 +196,18 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 			p.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
 		}
 
-		p.Lines[i].LastDisturbance, err = lines[i].LastDisturbance(tx)
+		p.LinesExtra[i].LastDisturbance, err = lines[i].LastDisturbance(tx)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		sort.Slice(p.Lines[i].LastDisturbance.Statuses, func(j, k int) bool {
-			return p.Lines[i].LastDisturbance.Statuses[j].Time.Before(p.Lines[i].LastDisturbance.Statuses[k].Time)
+		sort.Slice(p.LinesExtra[i].LastDisturbance.Statuses, func(j, k int) bool {
+			return p.LinesExtra[i].LastDisturbance.Statuses[j].Time.Before(p.LinesExtra[i].LastDisturbance.Statuses[k].Time)
 		})
 
-		p.Lines[i].DayCounts, err = lines[i].CountDisturbancesByDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc))
+		p.LinesExtra[i].DayCounts, err = lines[i].CountDisturbancesByDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc))
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -177,9 +223,9 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 
 		// Metro de Lisboa starts operating at 06:30 AM and stops at 01:00 AM
 		for j := 6; j < 24; j++ {
-			p.Lines[i].HourCounts = append(p.Lines[i].HourCounts, hourCounts[j])
+			p.LinesExtra[i].HourCounts = append(p.LinesExtra[i].HourCounts, hourCounts[j])
 		}
-		p.Lines[i].HourCounts = append(p.Lines[i].HourCounts, hourCounts[0])
+		p.LinesExtra[i].HourCounts = append(p.LinesExtra[i].HourCounts, hourCounts[0])
 
 		availability, avgd, err := MLlineAvailability(tx, lines[i], time.Now().In(loc).Add(-24*7*time.Hour), time.Now().In(loc))
 		if err != nil {
@@ -188,8 +234,8 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		p.Lines[i].Availability = fmt.Sprintf("%.03f%%", availability*100)
-		p.Lines[i].AvgDuration = fmt.Sprintf("%.01f", avgd.Minutes())
+		p.LinesExtra[i].Availability = fmt.Sprintf("%.03f%%", availability*100)
+		p.LinesExtra[i].AvgDuration = fmt.Sprintf("%.01f", avgd.Minutes())
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "index.html", p)
@@ -212,51 +258,11 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
-	p := struct {
-		PageTitle string
-		Lines     []struct {
-			*dataobjects.Line
-			Down    bool
-			Minutes int
-		}
-		LastChangeAgoMin  int
-		LastChangeAgoHour int
-		LastUpdateAgoMin  int
-		LastUpdateAgoHour int
-	}{
-		PageTitle:         "Perturbações do Metro de Lisboa",
-		LastChangeAgoMin:  int(time.Now().Sub(lastChange).Minutes()) % 60,
-		LastChangeAgoHour: int(time.Now().Sub(lastChange).Hours()),
-		LastUpdateAgoMin:  int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60,
-		LastUpdateAgoHour: int(time.Now().Sub(mlxscr.LastUpdate()).Hours()),
-	}
-
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	p, err := InitPageCommons(tx, "Perturbações do Metro de Lisboa")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-	lines, err := n.Lines(tx)
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	p.Lines = make([]struct {
-		*dataobjects.Line
-		Down    bool
-		Minutes int
-	}, len(lines))
-
-	for i := range lines {
-		p.Lines[i].Line = lines[i]
-		d, err := lines[i].LastOngoingDisturbance(tx)
-		p.Lines[i].Down = err == nil
-		if err == nil {
-			p.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
-		}
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "lg.html", p)
@@ -292,12 +298,14 @@ func Heatmap(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		webLog.Println(err)
+		return
 	}
 
 	dayCounts, err := network.CountDisturbancesByHour(tx, startTime, endTime)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		webLog.Println(err)
+		return
 	}
 
 	data := make(map[int64]int)
@@ -311,6 +319,7 @@ func Heatmap(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		webLog.Println(err)
+		return
 	}
 	w.Write(json)
 }
@@ -329,51 +338,15 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 	defer tx.Commit()
 
 	p := struct {
-		PageTitle string
-		Lines     []struct {
-			*dataobjects.Line
-			Down    bool
-			Minutes int
-		}
-		LastChangeAgoMin  int
-		LastChangeAgoHour int
-		LastUpdateAgoMin  int
-		LastUpdateAgoHour int
-		Disturbance       *dataobjects.Disturbance
-	}{
-		PageTitle:         "Perturbação do Metro de Lisboa",
-		LastChangeAgoMin:  int(time.Now().Sub(lastChange).Minutes()) % 60,
-		LastChangeAgoHour: int(time.Now().Sub(lastChange).Hours()),
-		LastUpdateAgoMin:  int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60,
-		LastUpdateAgoHour: int(time.Now().Sub(mlxscr.LastUpdate()).Hours()),
-	}
+		PageCommons
+		Disturbance *dataobjects.Disturbance
+	}{}
 
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	p.PageCommons, err = InitPageCommons(tx, "Perturbação do Metro de Lisboa")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
-	}
-	lines, err := n.Lines(tx)
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	p.Lines = make([]struct {
-		*dataobjects.Line
-		Down    bool
-		Minutes int
-	}, len(lines))
-
-	for i := range lines {
-		p.Lines[i].Line = lines[i]
-		d, err := lines[i].LastOngoingDisturbance(tx)
-		p.Lines[i].Down = err == nil
-		if err == nil {
-			p.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
-		}
 	}
 
 	p.Disturbance, err = dataobjects.GetDisturbance(tx, mux.Vars(r)["id"])
