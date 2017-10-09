@@ -1,0 +1,21 @@
+<div>
+    <span class="permalink"><a href="/d/{{ .ID }}">permalink</a></span>
+    <h3 style="color: #{{ .Line.Color }};">Linha {{ .Line.Name | html }}</h3>
+  </div>
+<div style="padding-left: 40px;">
+  {{ $statuses := .Statuses }}
+  {{ range $index, $s := .Statuses }}
+    {{if (eq $index 0) }}
+    <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status | html }}</span>
+    {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
+    {{else}}
+      {{if (ne (index $statuses (minus $index 1)).Status $s.Status)}}
+      <p>{{ formatDisturbanceTime $s.Time }} <span style="color: #777;">- {{ $s.Status | html }}</span>
+      {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
+      {{end}}
+    {{end}}
+  {{end}}
+  {{ if not .Ended }}
+    <p><em>Por resolver</em> <i style="color: red;" class="fa fa-times" aria-hidden="true"></i></p>
+  {{end}}
+</div>
