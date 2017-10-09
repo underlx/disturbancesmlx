@@ -1,0 +1,35 @@
+{{template "header.html" . }}
+{{ $top := . }}
+  <div class="content">
+    <div class="pure-g">
+      <div class="pure-u-1">
+        <h1>{{ .Station.Name }} <small>Estação do {{ .Station.Network.Name }}</small></h1>
+        {{ if gt (len .StationLines) 0 }}
+        <h3>Linha{{ if gt (len .StationLines) 1 }}s{{end}}
+          {{ range $index, $line := .StationLines }}
+            {{if (and (gt (len $top.StationLines) 1) (eq $index (minus (len $top.StationLines) 1)) ) }} e {{else if (gt $index 0)}}, {{end}}
+            <span style="color: #{{ $line.Color }};">{{ $line.Name | html }}</span>
+          {{end}}
+        </h3>
+        {{end}}
+      </div>
+      <div class="pure-u-1">
+          <h2>Ligações</h2>
+          {{ range $data := .Connections }}
+            <h3>
+              {{if eq $data.ID "bus"}}Carreiras urbanas
+              {{else if eq $data.ID "boat"}}Ligações fluviais
+              {{else if eq $data.ID "train"}}Comboios
+              {{end}}
+            </h3>
+            <div class="forceSmallHeaders">{{ $data.HTML }}</div>
+          {{end}}
+        </div>
+      </div>
+      <div class="pure-u-1">
+        <h2>Trívia</h2>
+        {{ .Trivia }}
+      </div>
+    </div>
+  </div>
+{{template "footer.html"}}

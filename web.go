@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
 	"text/template"
 	"time"
 
@@ -32,6 +35,11 @@ type PageCommons struct {
 	LastUpdateAgoHour int
 }
 
+type ConnectionData struct {
+	ID   string
+	HTML string
+}
+
 // WebServer starts the web server
 func WebServer() {
 	router := mux.NewRouter().StrictSlash(true)
@@ -42,6 +50,7 @@ func WebServer() {
 	router.HandleFunc("/lookingglass", LookingGlass)
 	router.HandleFunc("/lookingglass/heatmap", Heatmap)
 	router.HandleFunc("/d/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", DisturbancePage)
+	router.HandleFunc("/s/{id:[-0-9A-Za-z]{1,36}}", StationPage)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
 	WebReloadTemplate()
@@ -65,7 +74,7 @@ func InitPageCommons(node sqalx.Node, title string) (commons PageCommons, err er
 	}
 	defer tx.Commit() // read-only tx
 
-	commons.PageTitle = "Perturbação do Metro de Lisboa"
+	commons.PageTitle = title
 	commons.LastChangeAgoMin = int(time.Now().Sub(lastChange).Minutes()) % 60
 	commons.LastChangeAgoHour = int(time.Now().Sub(lastChange).Hours())
 	commons.LastUpdateAgoMin = int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60
@@ -361,6 +370,95 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+// StationPage serves the page for a specific disturbance
+func StationPage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		PageCommons
+		Station      *dataobjects.Station
+		StationLines []*dataobjects.Line
+		Trivia       string
+		Connections  []ConnectionData
+	}{}
+
+	p.Station, err = dataobjects.GetStation(tx, mux.Vars(r)["id"])
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	p.StationLines, err = p.Station.Lines(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	p.Trivia, err = ReadStationTrivia(p.Station.ID, "pt")
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	p.Connections, err = ReadStationConnections(p.Station.ID)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	p.PageCommons, err = InitPageCommons(tx, p.Station.Name+" - Estação do "+p.Station.Network.Name)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "station.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func ReadStationTrivia(stationID, locale string) (string, error) {
+	buf, err := ioutil.ReadFile("stationkb/" + locale + "/trivia/" + stationID + ".html")
+	if err != nil {
+		return "", err
+	}
+	return string(buf), nil
+}
+
+func ReadStationConnections(stationID string) (data []ConnectionData, err error) {
+	connections := []string{"boat", "bus", "train"}
+	for _, connection := range connections {
+		path := "stationkb/en/connections/" + connection + "/" + stationID + ".html"
+		if info, err := os.Stat(path); err == nil && !info.IsDir() {
+			buf, err := ioutil.ReadFile(path)
+			if err != nil {
+				return data, err
+			}
+			data = append(data, ConnectionData{
+				ID:   connection,
+				HTML: strings.Replace(strings.Replace(string(buf), "</p>", "", -1), "<p>", "", -1),
+			})
+		}
+	}
+	return data, nil
 }
 
 // WebReloadTemplate reloads the templates for the website
