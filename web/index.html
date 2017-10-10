@@ -119,7 +119,7 @@
         {{ range $line := .LinesExtra }}
           {{template "component-disturbance.html" $line.LastDisturbance }}
         {{end}}
-        <p style="margin-top: 50px;">Serão disponibilizados mais dados, para intervalos de tempo maiores, à medida que estes sejam recolhidos.</p>
+        <p style="margin-top: 50px; text-align: center;"><a class="pure-button pure-button-primary" style="font-size: 110%;" href="/disturbances">Ver histórico de <em>perturbações</em></a></p>
       </div>
     </div>
   </div>

@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -50,6 +51,11 @@ func WebServer() {
 	router.HandleFunc("/lookingglass", LookingGlass)
 	router.HandleFunc("/lookingglass/heatmap", Heatmap)
 	router.HandleFunc("/d/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", DisturbancePage)
+	router.HandleFunc("/disturbances/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", DisturbancePage)
+	router.HandleFunc("/d/{year:[0-9]{4}}/{month:[0-9]{2}}", DisturbanceListPage)
+	router.HandleFunc("/disturbances/{year:[0-9]{4}}/{month:[0-9]{2}}", DisturbanceListPage)
+	router.HandleFunc("/d", DisturbanceListPage)
+	router.HandleFunc("/disturbances", DisturbanceListPage)
 	router.HandleFunc("/s/{id:[-0-9A-Za-z]{1,36}}", StationPage)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
@@ -372,6 +378,78 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DisturbanceListPage serves a page with a list of disturbances
+func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		PageCommons
+		Disturbances []*dataobjects.Disturbance
+		CurPageTime  time.Time
+		HasPrevPage  bool
+		PrevPageTime time.Time
+		HasNextPage  bool
+		NextPageTime time.Time
+	}{}
+
+	p.PageCommons, err = InitPageCommons(tx, "Perturbações do Metro de Lisboa")
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	var startDate time.Time
+	loc, _ := time.LoadLocation("Europe/Lisbon")
+	if mux.Vars(r)["month"] == "" {
+		startDate = time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, loc)
+	} else {
+		year, err := strconv.Atoi(mux.Vars(r)["year"])
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		month, err := strconv.Atoi(mux.Vars(r)["month"])
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if month > 12 || month < 1 {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		startDate = time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc)
+	}
+	endDate := startDate.AddDate(0, 1, 0)
+	p.CurPageTime = startDate
+	p.NextPageTime = endDate
+	p.PrevPageTime = startDate.AddDate(0, 0, -1)
+	p.HasPrevPage = p.PrevPageTime.After(time.Date(2017, 3, 1, 0, 0, 0, 0, loc))
+	p.HasNextPage = p.NextPageTime.Before(time.Now())
+
+	p.Disturbances, err = dataobjects.GetDisturbancesBetween(tx, startDate, endDate)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "disturbancelist.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
 // StationPage serves the page for a specific disturbance
 func StationPage(w http.ResponseWriter, r *http.Request) {
 	if DEBUG {
@@ -479,6 +557,36 @@ func WebReloadTemplate() {
 		"formatDisturbanceTime": func(t time.Time) string {
 			loc, _ := time.LoadLocation("Europe/Lisbon")
 			return t.In(loc).Format("02 Jan 2006 15:04")
+		},
+		"formatPortugueseMonth": func(month time.Month) string {
+			switch month {
+			case time.January:
+				return "Janeiro"
+			case time.February:
+				return "Fevereiro"
+			case time.March:
+				return "Março"
+			case time.April:
+				return "Abril"
+			case time.May:
+				return "Maio"
+			case time.June:
+				return "Junho"
+			case time.July:
+				return "Julho"
+			case time.August:
+				return "Agosto"
+			case time.September:
+				return "Setembro"
+			case time.October:
+				return "Outubro"
+			case time.November:
+				return "Novembro"
+			case time.December:
+				return "Dezembro"
+			default:
+				return ""
+			}
 		},
 	}
 
