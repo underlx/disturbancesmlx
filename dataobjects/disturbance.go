@@ -3,6 +3,7 @@ package dataobjects
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	sq "github.com/gbl08ma/squirrel"
@@ -130,6 +131,10 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 			}
 			disturbances[i].Statuses = append(disturbances[i].Statuses, status)
 		}
+
+		sort.SliceStable(disturbances[i].Statuses, func(x, y int) bool {
+			return disturbances[i].Statuses[x].Time.Before(disturbances[i].Statuses[y].Time)
+		})
 	}
 	return disturbances, nil
 }
