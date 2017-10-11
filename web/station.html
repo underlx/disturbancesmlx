@@ -13,6 +13,11 @@
         </h3>
         {{end}}
       </div>
+      {{ if .Closed }}
+      <div class="pure-u-1">
+        <aside><p>Esta estação está encerrada por tempo indeterminado.</p></aside>
+      </div>
+      {{end}}
       <div class="pure-u-1">
           <h2>Ligações</h2>
           {{ range $data := .Connections }}

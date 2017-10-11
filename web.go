@@ -450,7 +450,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// StationPage serves the page for a specific disturbance
+// StationPage serves the page for a specific station
 func StationPage(w http.ResponseWriter, r *http.Request) {
 	if DEBUG {
 		WebReloadTemplate()
@@ -469,6 +469,7 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		StationLines []*dataobjects.Line
 		Trivia       string
 		Connections  []ConnectionData
+		Closed       bool
 	}{}
 
 	p.Station, err = dataobjects.GetStation(tx, mux.Vars(r)["id"])
@@ -477,25 +478,31 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	p.Closed, err = p.Station.Closed(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	p.StationLines, err = p.Station.Lines(tx)
 	if err != nil {
 		webLog.Println(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	p.Trivia, err = ReadStationTrivia(p.Station.ID, "pt")
 	if err != nil {
 		webLog.Println(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	p.Connections, err = ReadStationConnections(p.Station.ID)
 	if err != nil {
 		webLog.Println(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
