@@ -16,6 +16,7 @@ type Station struct {
 type apiStation struct {
 	ID       string                `msgpack:"id" json:"id"`
 	Name     string                `msgpack:"name" json:"name"`
+	AltNames []string              `msgpack:"altNames" json:"altNames"`
 	Features *dataobjects.Features `msgpack:"-" json:"-"`
 	Network  *dataobjects.Network  `msgpack:"-" json:"-"`
 }

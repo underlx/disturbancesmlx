@@ -19,3 +19,14 @@ type Scraper interface {
 	Lines() []*dataobjects.Line
 	LastUpdate() time.Time
 }
+
+// AnnouncementScraper runs in the background retrieving announcements about a
+// network.
+type AnnouncementScraper interface {
+	Begin(log *log.Logger,
+		newAnnouncementReporter func(announcement *dataobjects.Announcement))
+	End()
+	Networks() []*dataobjects.Network
+	Sources() []string
+	Announcements(source string) []*dataobjects.Announcement
+}

@@ -6,12 +6,14 @@ import (
 
 	sq "github.com/gbl08ma/squirrel"
 	"github.com/heetch/sqalx"
+	"github.com/lib/pq"
 )
 
 // Station is a Network station
 type Station struct {
 	ID       string
 	Name     string
+	AltNames []string
 	Features *Features
 	Network  *Network
 }
@@ -30,7 +32,7 @@ func getStationsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Stati
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("id", "name", "network").
+	rows, err := sbuilder.Columns("id", "name", "alt_names", "network").
 		From("station").
 		RunWith(tx).Query()
 	if err != nil {
@@ -41,14 +43,17 @@ func getStationsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Stati
 	var networkIDs []string
 	for rows.Next() {
 		var station Station
+		var altNames pq.StringArray
 		var networkID string
 		err := rows.Scan(
 			&station.ID,
 			&station.Name,
+			&altNames,
 			&networkID)
 		if err != nil {
 			return stations, fmt.Errorf("getStationsWithSelect: %s", err)
 		}
+		station.AltNames = altNames
 		stations = append(stations, &station)
 		networkIDs = append(networkIDs, networkID)
 	}
@@ -122,10 +127,10 @@ func (station *Station) Update(node sqalx.Node) error {
 	}
 
 	_, err = sdb.Insert("station").
-		Columns("id", "name", "network").
-		Values(station.ID, station.Name, station.Network.ID).
-		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, network = ?",
-			station.Name, station.Network.ID).
+		Columns("id", "name", "network", "alt_names").
+		Values(station.ID, station.Name, station.Network.ID, station.AltNames).
+		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, network = ?, alt_names = ?",
+			station.Name, station.Network.ID, station.AltNames).
 		RunWith(tx).Exec()
 
 	if err != nil {
