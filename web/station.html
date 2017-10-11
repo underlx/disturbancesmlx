@@ -12,13 +12,11 @@
           {{end}}
         </h3>
         {{end}}
+        {{ if .Closed }}
+        <aside><p>Esta estação está encerrada por tempo indeterminado.</p></aside>
+        {{ end }}
         <p><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#trivia" class="pure-button">Trívia</a></p>
       </div>
-      {{ if .Closed }}
-      <div class="pure-u-1">
-        <aside><p>Esta estação está encerrada por tempo indeterminado.</p></aside>
-      </div>
-      {{end}}
       <div class="pure-u-1">
           <h2><a id="lobbies">Átrios</a></h2>
           {{ range $index, $lobby := .Lobbies }}
