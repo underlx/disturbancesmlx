@@ -465,11 +465,14 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Station      *dataobjects.Station
-		StationLines []*dataobjects.Line
-		Trivia       string
-		Connections  []ConnectionData
-		Closed       bool
+		Station        *dataobjects.Station
+		StationLines   []*dataobjects.Line
+		Lobbies        []*dataobjects.Lobby
+		LobbySchedules [][]string
+		LobbyExits     [][]*dataobjects.Exit
+		Trivia         string
+		Connections    []ConnectionData
+		Closed         bool
 	}{}
 
 	p.Station, err = dataobjects.GetStation(tx, mux.Vars(r)["id"])
@@ -490,6 +493,32 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	p.Lobbies, err = p.Station.Lobbies(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	for _, lobby := range p.Lobbies {
+		schedules, err := lobby.Schedules(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		p.LobbySchedules = append(p.LobbySchedules, schedulesToLines(schedules))
+
+		exits, err := lobby.Exits(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		p.LobbyExits = append(p.LobbyExits, exits)
 	}
 
 	p.Trivia, err = ReadStationTrivia(p.Station.ID, "pt")
@@ -518,6 +547,59 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+func schedulesToLines(schedules []*dataobjects.Schedule) []string {
+	schedulesByDay := make(map[int]*dataobjects.Schedule)
+	for _, schedule := range schedules {
+		if schedule.Holiday {
+			schedulesByDay[-1] = schedule
+		} else {
+			schedulesByDay[schedule.Day] = schedule
+		}
+	}
+
+	weekdaysAllTheSame := true
+	for i := 2; i < 6; i++ {
+		if !schedulesByDay[1].Compare(schedulesByDay[i]) {
+			weekdaysAllTheSame = false
+		}
+	}
+
+	holidaysAllTheSame := schedulesByDay[-1].Compare(schedulesByDay[0]) && schedulesByDay[6].Compare(schedulesByDay[0])
+	allDaysTheSame := weekdaysAllTheSame && holidaysAllTheSame && schedulesByDay[-1].Compare(schedulesByDay[2])
+
+	if allDaysTheSame {
+		return []string{"Todos os dias: " + scheduleToString(schedulesByDay[0])}
+	} else {
+		scheduleString := []string{}
+		if weekdaysAllTheSame {
+			scheduleString = append(scheduleString, "Dias úteis: "+scheduleToString(schedulesByDay[1]))
+		} else {
+			for i := 2; i < 6; i++ {
+				scheduleString = append(scheduleString, time.Weekday(i).String()+": "+scheduleToString(schedulesByDay[i]))
+			}
+		}
+
+		if holidaysAllTheSame {
+			scheduleString = append(scheduleString, "Fins de semana e feriados: "+scheduleToString(schedulesByDay[0]))
+		} else {
+			scheduleString = append(scheduleString, time.Weekday(0).String()+": "+scheduleToString(schedulesByDay[0]))
+			scheduleString = append(scheduleString, time.Weekday(6).String()+": "+scheduleToString(schedulesByDay[6]))
+			scheduleString = append(scheduleString, "Feriados: "+scheduleToString(schedulesByDay[-1]))
+		}
+
+		return scheduleString
+	}
+}
+func scheduleToString(schedule *dataobjects.Schedule) string {
+	if !schedule.Open {
+		return "encerrado"
+	}
+	openString := time.Time(schedule.OpenTime).Format("15:04")
+	closeString := time.Time(schedule.OpenTime).
+		Add(time.Duration(schedule.OpenDuration)).Format("15:04")
+	return fmt.Sprintf("%s - %s", openString, closeString)
 }
 
 func ReadStationTrivia(stationID, locale string) (string, error) {

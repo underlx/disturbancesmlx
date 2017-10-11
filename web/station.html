@@ -12,6 +12,7 @@
           {{end}}
         </h3>
         {{end}}
+        <p><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#trivia" class="pure-button">Trívia</a></p>
       </div>
       {{ if .Closed }}
       <div class="pure-u-1">
@@ -19,7 +20,30 @@
       </div>
       {{end}}
       <div class="pure-u-1">
-          <h2>Ligações</h2>
+          <h2><a id="lobbies">Átrios</a></h2>
+          {{ range $index, $lobby := .Lobbies }}
+            <h3>Átrio {{ $lobby.Name }}</h3>
+            <h4>Horário</h4>
+            <p>
+            {{ range $timetableLine := (index $top.LobbySchedules $index) }}
+              {{ $timetableLine }}<br>
+            {{end}}
+            </p>
+            <h4>Saídas</h4>
+            <ul>
+            {{ range $exit := (index $top.LobbyExits $index) }}
+              <li>
+                <a target="_blank"
+                   href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $exit.WorldCoord 0) (index $exit.WorldCoord 1)) }}">
+                  {{ range $idx, $street := $exit.Streets}}{{$street}}{{ if not (eq $idx (minus (len $exit.Streets) 1))}}, {{end}}{{end}}
+                </a>
+              </li>
+            {{end}}
+            </ul>
+          {{end}}
+      </div>
+      <div class="pure-u-1">
+          <h2><a id="connections">Ligações</a></h2>
           {{ range $data := .Connections }}
             <h3>
               {{if eq $data.ID "bus"}}Carreiras urbanas
@@ -32,7 +56,7 @@
         </div>
       </div>
       <div class="pure-u-1">
-        <h2>Trívia</h2>
+        <h2><a id="trivia">Trívia</a></h2>
         {{ .Trivia }}
       </div>
     </div>
