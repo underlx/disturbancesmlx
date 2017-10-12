@@ -129,7 +129,6 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	loc, _ := time.LoadLocation("Europe/Lisbon")
 	p := struct {
 		PageCommons
-		PageTitle  string
 		Hours      int
 		Days       int
 		LinesExtra []struct {
