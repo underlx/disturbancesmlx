@@ -448,7 +448,11 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 
 	p.DowntimePerLine = make(map[string]float32)
 	for _, disturbance := range p.Disturbances {
-		p.DowntimePerLine[disturbance.Line.ID] += float32(disturbance.EndTime.Sub(disturbance.StartTime).Hours())
+		endTime := disturbance.EndTime
+		if !disturbance.Ended {
+			endTime = time.Now()
+		}
+		p.DowntimePerLine[disturbance.Line.ID] += float32(endTime.Sub(disturbance.StartTime).Hours())
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "disturbancelist.html", p)
