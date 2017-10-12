@@ -17,11 +17,13 @@
 {{end}}
 
 {{template "header.html" . }}
+{{ $top := . }}
   <div class="content">
     <div class="pure-g">
       <div class="pure-u-1">
         <h1>Perturbações do Metro de Lisboa</h1>
         {{template "PageTimeSelector" . }}
+        <p><div id="chart"></div></p>
         {{ range $disturbance := .Disturbances }}
           {{template "component-disturbance.html" $disturbance }}
         {{else}}
@@ -31,4 +33,34 @@
       </div>
     </div>
   </div>
+  {{ if len .Disturbances }}
+  <script type="text/javascript">
+    var colors = [
+      {{ range $line := .Lines}}
+        '#{{ $line.Color }}',
+      {{end}}
+    ];
+    var chart = c3.generate({
+      data: {
+          x : 'x',
+          columns: [
+              ['x', {{ range $line := .Lines}}'{{ $line.Name }}',{{end}}],
+              ['Horas com perturbações', {{ range $line := .Lines}}{{ index $top.DowntimePerLine $line.ID }},{{end}}],
+          ],
+          groups: [
+              ['Horas com perturbações']
+          ],
+          type: 'bar',
+          color: function (color, d) {
+              return colors[d.index];
+          }
+      },
+      axis: {
+          x: {
+              type: 'category' // this needed to load string x value
+          }
+      },
+    });
+  </script>
+  {{end}}
 {{template "footer.html"}}

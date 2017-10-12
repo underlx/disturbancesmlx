@@ -393,12 +393,13 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Disturbances []*dataobjects.Disturbance
-		CurPageTime  time.Time
-		HasPrevPage  bool
-		PrevPageTime time.Time
-		HasNextPage  bool
-		NextPageTime time.Time
+		Disturbances    []*dataobjects.Disturbance
+		DowntimePerLine map[string]float32
+		CurPageTime     time.Time
+		HasPrevPage     bool
+		PrevPageTime    time.Time
+		HasNextPage     bool
+		NextPageTime    time.Time
 	}{}
 
 	p.PageCommons, err = InitPageCommons(tx, "Perturbações do Metro de Lisboa")
@@ -441,6 +442,11 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusNotFound)
 		return
+	}
+
+	p.DowntimePerLine = make(map[string]float32)
+	for _, disturbance := range p.Disturbances {
+		p.DowntimePerLine[disturbance.Line.ID] += float32(disturbance.EndTime.Sub(disturbance.StartTime).Hours())
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "disturbancelist.html", p)
