@@ -107,9 +107,31 @@ table.tinycells > tbody > tr > td {
   }
 }
 
+.headerLogo {
+  box-sizing: border-box;
+  border-right: 1px #777 solid;
+  padding-right: 1px;
+  height: 44px;
+}
+
+.headerTitle {
+  display: inline-block;
+  font-size: 130%;
+  padding: 10px;
+}
+
 @media screen and (max-width: 35.5em) {
-  .hideOnSmall {
+  .headerTitle {
     display: none;
+    font-size: 130%;
+    padding: 10px;
+  }
+  .headerLogo {
+    box-sizing: border-box;
+    border-right: 1px #777 solid;
+    padding-right: 1px;
+    height: 44px;
+    width: 45px;
   }
 }
 

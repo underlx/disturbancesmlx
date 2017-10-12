@@ -47,10 +47,12 @@
 <body>
   <div class="header">
     <div class="pure-g">
-      <a href="/" class="pure-u-1-8 pure-u-sm-1-3 pure-u-md-1-4 pure-u-lg-1-5" style="color: inherit; height: 44px; box-sizing: border-box; border-right: 1px #777 solid; padding-right: 1px; background-color: #eee;">
-          <img src="/static/img/logo.png" style="height: 44px; float: left;"><span class="hideOnSmall" style="display: inline-block; font-size: 130%; padding: 10px;">Perturbações</span>
+      <a href="/" class="pure-u-1-8 pure-u-sm-3-8 pure-u-md-7-24 pure-u-lg-1-5" style="color: inherit; background-color: #eee;">
+          <div class="headerLogo">
+            <img src="/static/img/logo.png" style="height: 44px; float: left;"><span class="headerTitle">Perturbações</span>
+          </div>
       </a>
-      <div class="pure-u-7-8 pure-u-sm-2-3 pure-u-md-3-4 pure-u-lg-4-5" style="position: relative; text-align: center; background-color: #eee;">
+      <div class="pure-u-7-8 pure-u-sm-5-8 pure-u-md-17-24 pure-u-lg-4-5" style="position: relative; text-align: center; background-color: #eee;">
         <div style="width: 100%; position: absolute; top: 50%; transform: translate(0, -50%);">
           <strong>Estado das linhas</strong> <small style="color: #777;">última alteração há {{ if .LastChangeAgoHour }}{{.LastChangeAgoHour}} horas e {{end}}{{ .LastChangeAgoMin }} minutos</small>
         </div>
