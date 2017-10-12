@@ -57,6 +57,9 @@ func WebServer() {
 	router.HandleFunc("/d", DisturbanceListPage)
 	router.HandleFunc("/disturbances", DisturbanceListPage)
 	router.HandleFunc("/s/{id:[-0-9A-Za-z]{1,36}}", StationPage)
+	router.HandleFunc("/stations/{id:[-0-9A-Za-z]{1,36}}", StationPage)
+	router.HandleFunc("/l/{id:[-0-9A-Za-z]{1,36}}", LinePage)
+	router.HandleFunc("/lines/{id:[-0-9A-Za-z]{1,36}}", LinePage)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
 	WebReloadTemplate()
@@ -631,6 +634,74 @@ func ReadStationConnections(stationID string) (data []ConnectionData, err error)
 		}
 	}
 	return data, nil
+}
+
+// LinePage serves the page for a specific line
+func LinePage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		PageCommons
+		Line              *dataobjects.Line
+		Stations          []*dataobjects.Station
+		WeekAvailability  float64
+		WeekDuration      time.Duration
+		MonthAvailability float64
+		MonthDuration     time.Duration
+	}{}
+
+	p.Line, err = dataobjects.GetLine(tx, mux.Vars(r)["id"])
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	p.Stations, err = p.Line.Stations(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	loc, _ := time.LoadLocation("Europe/Lisbon")
+
+	p.MonthAvailability, p.MonthDuration, err = MLlineAvailability(tx, p.Line, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc))
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	p.MonthAvailability *= 100
+
+	p.WeekAvailability, p.WeekDuration, err = MLlineAvailability(tx, p.Line, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc))
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	p.WeekAvailability *= 100
+
+	p.PageCommons, err = InitPageCommons(tx, p.Line.Name+" - Linha "+p.Line.Network.Name)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "line.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 // WebReloadTemplate reloads the templates for the website

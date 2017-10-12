@@ -3,7 +3,7 @@
   <div class="content">
     <div class="pure-g">
       <div class="pure-u-1">
-        <h1>{{ .Station.Name }} <small>Estação do {{ .Station.Network.Name }}</small></h1>
+        <h1>{{ .Station.Name }} <small style="padding-left: 15px;">Estação do {{ .Station.Network.Name }}</small></h1>
         {{ if gt (len .StationLines) 0 }}
         <h3>Linha{{ if gt (len .StationLines) 1 }}s{{end}}
           {{ range $index, $line := .StationLines }}

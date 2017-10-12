@@ -228,7 +228,6 @@ table.tinycells > tbody > tr > td {
 }
 
 h1 > small {
-  padding-left: 15px;
   font-size: 50%;
   display: inline-block;
 }
@@ -243,4 +242,50 @@ aside {
   border-radius: 3px;
   color: #fff;
   display: block;
+}
+
+ul.pt-ml-line {
+  position: relative;
+  display: block;
+  padding-left: 0;
+  width: 16px;
+  border-radius: 8px;
+  margin-left: 1em;
+}
+
+.pt-ml-line > li {
+  position: relative;
+  display: inline-block;
+  left: 28px;
+  margin-top: 1em;
+  white-space: nowrap;
+}
+
+.pt-ml-line > li:first-of-type {
+  margin-top: 0;
+}
+
+.pt-ml-line > li::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: -25px;
+  display: block;
+  width: 10px;
+  height: 10px;
+  background-color: white;
+  border-radius: 5px;
+}
+
+.pt-ml-line > li > a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.pt-ml-line > li > .station-features > i:first-of-type {
+  border-left: 1px solid #777;
+  padding-left: 4px;
+}
+.pt-ml-line > li > .station-features > i {
+  color: #5091CD;
 }
