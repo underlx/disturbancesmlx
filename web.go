@@ -690,7 +690,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.WeekAvailability *= 100
 
-	p.PageCommons, err = InitPageCommons(tx, p.Line.Name+" - Linha "+p.Line.Network.Name)
+	p.PageCommons, err = InitPageCommons(tx, fmt.Sprintf("Linha %s do %s", p.Line.Name, p.Line.Network.Name))
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

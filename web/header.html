@@ -61,7 +61,7 @@
       </div>
       {{ $numlines := len .Lines }}
       {{ range $line := .Lines }}
-        <div class="pure-u-1 pure-u-sm-1-{{ $numlines }} line status{{if $line.Down}} dimmed{{end}}" style="background-color: #{{ $line.Color }};">
+        <a href="/l/{{ $line.ID }}" class="pure-u-1 pure-u-sm-1-{{ $numlines }} line status{{if $line.Down}} dimmed{{end}}" style="background-color: #{{ $line.Color }};">
           {{ $line.Name }}
           {{ if $line.Down }}
           <span style="float: right;">
@@ -71,7 +71,7 @@
           {{ else }}
           <span style="float: right;"><i class="fa fa-check-square" aria-hidden="true"></i></span>
           {{ end }}
-        </div>
+        </a>
       {{ end }}
     </div>
   </div>

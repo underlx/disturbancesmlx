@@ -1,6 +1,6 @@
 <div>
     <span class="permalink"><a href="/d/{{ .ID }}">permalink</a></span>
-    <h3>Linha <span style="color: #{{ .Line.Color }};">{{ .Line.Name | html }}</span></h3>
+    <h3>Linha <a class="line" href="/l/{{ .Line.ID }}" style="color: #{{ .Line.Color }};">{{ .Line.Name | html }}</a></h3>
   </div>
 <div style="padding-left: 40px;">
   {{ $statuses := .Statuses }}

@@ -8,7 +8,7 @@
         <h3>Linha{{ if gt (len .StationLines) 1 }}s{{end}}
           {{ range $index, $line := .StationLines }}
             {{if (and (gt (len $top.StationLines) 1) (eq $index (minus (len $top.StationLines) 1)) ) }} e {{else if (gt $index 0)}}, {{end}}
-            <span style="color: #{{ $line.Color }};">{{ $line.Name | html }}</span>
+            <a class="line" href="/l/{{ $line.ID }}" style="color: #{{ $line.Color }};">{{ $line.Name | html }}</a>
           {{end}}
         </h3>
         {{end}}
