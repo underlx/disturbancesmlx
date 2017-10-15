@@ -50,6 +50,7 @@ func WebServer() {
 	router.HandleFunc("/", HomePage)
 	router.HandleFunc("/lookingglass", LookingGlass)
 	router.HandleFunc("/lookingglass/heatmap", Heatmap)
+	router.HandleFunc("/internal", InternalPage)
 	router.HandleFunc("/d/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", DisturbancePage)
 	router.HandleFunc("/disturbances/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", DisturbancePage)
 	router.HandleFunc("/d/{year:[0-9]{4}}/{month:[0-9]{2}}", DisturbanceListPage)
@@ -129,7 +130,14 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
-	loc, _ := time.LoadLocation("Europe/Lisbon")
+	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	loc, _ := time.LoadLocation(n.Timezone)
 	p := struct {
 		PageCommons
 		Hours      int
@@ -184,12 +192,6 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	p.Days = int(date.NewAt(time.Now().In(loc)).Sub(date.NewAt(lastDisturbanceTime.In(loc))))
 	p.Hours = int(time.Since(lastDisturbanceTime).Hours())
 
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 	lines, err := n.Lines(tx)
 	if err != nil {
 		webLog.Println(err)
@@ -676,7 +678,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	loc, _ := time.LoadLocation("Europe/Lisbon")
+	loc, _ := time.LoadLocation(p.Line.Network.Timezone)
 
 	p.MonthAvailability, p.MonthDuration, err = MLlineAvailability(tx, p.Line, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc))
 	if err != nil {
@@ -702,6 +704,120 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "line.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+// InternalPage serves a internal page
+func InternalPage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	} else {
+		if !RequestIsTLS(r) {
+			w.WriteHeader(http.StatusUpgradeRequired)
+			return
+		}
+	}
+	internalUsername, usernamePresent := secrets.Get("internalUsername")
+	internalPassword, passwordPresent := secrets.Get("internalPassword")
+	if usernamePresent || passwordPresent {
+		user, pass, _ := r.BasicAuth()
+		if internalUsername != user || internalPassword != pass {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Disturbances"`)
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("401 Unauthorized\n"))
+			return
+		}
+	}
+
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		PageCommons
+		StartTime  time.Time
+		EndTime    time.Time
+		LinesExtra []struct {
+			TotalTime    string
+			TotalHours   float32
+			Availability string
+			AvgDuration  string
+		}
+	}{}
+
+	p.PageCommons, err = InitPageCommons(tx, "Página interna")
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	loc, _ := time.LoadLocation(n.Timezone)
+	now := time.Now().In(loc)
+	daysSinceMonday := now.Weekday() - time.Monday
+	if daysSinceMonday < 0 {
+		// it's Sunday, last Monday was 6 days ago
+		daysSinceMonday = 6
+	}
+	p.EndTime = time.Date(now.Year(), now.Month(), now.Day()-int(daysSinceMonday), 2, 0, 0, 0, loc)
+	if p.EndTime.After(now) {
+		// it's Monday, but it's not 2 AM yet
+		p.EndTime = p.EndTime.AddDate(0, 0, -7)
+	}
+	p.StartTime = p.EndTime.AddDate(0, 0, -7)
+
+	lines, err := n.Lines(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.LinesExtra = make([]struct {
+		TotalTime    string
+		TotalHours   float32
+		Availability string
+		AvgDuration  string
+	}, len(lines))
+
+	for i := range lines {
+		availability, avgd, err := MLlineAvailability(tx, lines[i], p.StartTime, p.EndTime)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		p.LinesExtra[i].Availability = fmt.Sprintf("%.03f%%", availability*100)
+		p.LinesExtra[i].AvgDuration = fmt.Sprintf("%.01f", avgd.Minutes())
+		totalDuration, err := lines[i].DisturbanceDuration(tx, p.StartTime, p.EndTime)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		p.LinesExtra[i].TotalTime = totalDuration.String()
+		p.LinesExtra[i].TotalHours = float32(totalDuration.Hours())
+	}
+
+	// adjust time for display
+	p.EndTime = p.EndTime.AddDate(0, 0, -1)
+
+	err = webtemplate.ExecuteTemplate(w, "internal.html", p)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -760,4 +876,13 @@ func WebReloadTemplate() {
 	}
 
 	webtemplate, _ = template.New("index.html").Funcs(funcMap).ParseGlob("web/*.html")
+}
+
+// RequestIsTLS returns whether a request was made over a HTTPS channel
+// Looks at the appropriate headers if the server is behind a proxy
+func RequestIsTLS(r *http.Request) bool {
+	if r.Header.Get("X-Forwarded-Proto") == "https" || r.Header.Get("X-Forwarded-Proto") == "HTTPS" {
+		return true
+	}
+	return r.TLS != nil
 }

@@ -276,6 +276,30 @@ func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime tim
 	return 1.0 - (downTime.Minutes() / totalTime.Minutes()), avgDuration, nil
 }
 
+// DisturbanceDuration returns the total duration of the disturbances in this line between the specified times
+func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endTime time.Time) (avgDuration time.Duration, err error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	disturbances, err := line.DisturbancesBetween(tx, startTime, endTime)
+	if err != nil {
+		return 0, err
+	}
+
+	var downTime time.Duration
+	for _, d := range disturbances {
+		if d.Ended {
+			downTime += d.EndTime.Sub(d.StartTime)
+		} else {
+			downTime += endTime.Sub(d.StartTime)
+		}
+	}
+	return downTime, nil
+}
+
 // Update adds or updates the line
 func (line *Line) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
