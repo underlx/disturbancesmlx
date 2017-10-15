@@ -3,10 +3,32 @@
 <div class="content">
   <div class="pure-g">
     <div class="pure-u-1">
-      <h1>Última semana (segunda a domingo)</h1>
-      {{ range $index, $line := .Lines }}
-      <p><span style="color: #{{ $line.Color }};">{{ $line.Name }}</span>: {{ (index $top.LinesExtra $index).Availability }}, {{ (index $top.LinesExtra $index).TotalTime }} de perturbações{{ if ne (index $top.LinesExtra $index).Availability "100.000%" }}, duração média {{ (index $top.LinesExtra $index).AvgDuration }} minutos.{{end}}</p>
-      {{end}}
+      <h1>Perturbações na última semana <small>(segunda a domingo)</small></h1>
+      <table class="pure-table" style="width: 100%; text-align: center;">
+        <thead>
+          <tr>
+            <th>Linha</th>
+            <th>Disponibilidade</th>
+            <th>Duração total</th>
+            <th>Duração média</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {{ range $index, $line := .Lines }}
+          <tr>
+            <td class="line" style="background-color: #{{ $line.Color }};">{{ $line.Name }}</td>
+            <td>{{ (index $top.LinesExtra $index).Availability }}</td>
+            <td>{{ (index $top.LinesExtra $index).TotalTime }}</td>
+            <td>{{ if ne (index $top.LinesExtra $index).Availability "100.000%" }}{{ (index $top.LinesExtra $index).AvgDuration }} minutos{{else}}N/A{{end}}</td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+    <div class="pure-u-1" style="margin-top: 1em; border: 1px solid;">
+      <h2 style="text-align: center">Perturbações no Metro de Lisboa</h2>
+      <h3 style="text-align: center">Semana de {{ .StartTime.Format "02/01/2006" }} a {{ .EndTime.Format "02/01/2006" }}</h3>
       <p><div id="chart"></div></p>
     </div>
   </div>

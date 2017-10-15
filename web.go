@@ -742,6 +742,8 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
+		StartTime  time.Time
+		EndTime    time.Time
 		LinesExtra []struct {
 			TotalTime    string
 			TotalHours   float32
@@ -771,12 +773,12 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		// it's Sunday, last Monday was 6 days ago
 		daysSinceMonday = 6
 	}
-	lastWeekEnd := time.Date(now.Year(), now.Month(), now.Day()-int(daysSinceMonday), 2, 0, 0, 0, loc)
-	if lastWeekEnd.After(now) {
+	p.EndTime = time.Date(now.Year(), now.Month(), now.Day()-int(daysSinceMonday), 2, 0, 0, 0, loc)
+	if p.EndTime.After(now) {
 		// it's Monday, but it's not 2 AM yet
-		lastWeekEnd = lastWeekEnd.AddDate(0, 0, -7)
+		p.EndTime = p.EndTime.AddDate(0, 0, -7)
 	}
-	lastWeekStart := lastWeekEnd.AddDate(0, 0, -7)
+	p.StartTime = p.EndTime.AddDate(0, 0, -7)
 
 	lines, err := n.Lines(tx)
 	if err != nil {
@@ -793,7 +795,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	}, len(lines))
 
 	for i := range lines {
-		availability, avgd, err := MLlineAvailability(tx, lines[i], lastWeekStart, lastWeekEnd)
+		availability, avgd, err := MLlineAvailability(tx, lines[i], p.StartTime, p.EndTime)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -802,7 +804,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 
 		p.LinesExtra[i].Availability = fmt.Sprintf("%.03f%%", availability*100)
 		p.LinesExtra[i].AvgDuration = fmt.Sprintf("%.01f", avgd.Minutes())
-		totalDuration, err := lines[i].DisturbanceDuration(tx, lastWeekStart, lastWeekEnd)
+		totalDuration, err := lines[i].DisturbanceDuration(tx, p.StartTime, p.EndTime)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -811,6 +813,9 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		p.LinesExtra[i].TotalTime = totalDuration.String()
 		p.LinesExtra[i].TotalHours = float32(totalDuration.Hours())
 	}
+
+	// adjust time for display
+	p.EndTime = p.EndTime.AddDate(0, 0, -1)
 
 	err = webtemplate.ExecuteTemplate(w, "internal.html", p)
 	if err != nil {
