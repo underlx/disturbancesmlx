@@ -1,0 +1,42 @@
+{{template "header.html" . }}
+{{ $top := . }}
+<div class="content">
+  <div class="pure-g">
+    <div class="pure-u-1">
+      <h1>Última semana (segunda a domingo)</h1>
+      {{ range $index, $line := .Lines }}
+      <p><span style="color: #{{ $line.Color }};">{{ $line.Name }}</span>: {{ (index $top.LinesExtra $index).Availability }}, {{ (index $top.LinesExtra $index).TotalTime }} de perturbações{{ if ne (index $top.LinesExtra $index).Availability "100.000%" }}, duração média {{ (index $top.LinesExtra $index).AvgDuration }} minutos.{{end}}</p>
+      {{end}}
+      <p><div id="chart"></div></p>
+    </div>
+  </div>
+</div>
+<script type="text/javascript">
+var colors = [
+    {{ range $line := .Lines}}
+    '#{{ $line.Color }}',
+    {{end}}
+];
+var chart = c3.generate({
+    data: {
+        x : 'x',
+        columns: [
+            ['x', {{ range $line := .Lines}}'{{ $line.Name }}',{{end}}],
+            ['Horas com perturbações', {{ range $index, $line := .Lines}}{{ (index $top.LinesExtra $index).TotalHours }},{{end}}],
+        ],
+        groups: [
+            ['Horas com perturbações']
+        ],
+        type: 'bar',
+        color: function (color, d) {
+            return colors[d.index];
+        }
+    },
+    axis: {
+        x: {
+            type: 'category' // this needed to load string x value
+        }
+    },
+});
+</script>
+{{template "footer.html"}}
