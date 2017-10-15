@@ -57,6 +57,9 @@ func WebServer() {
 	router.HandleFunc("/d", DisturbanceListPage)
 	router.HandleFunc("/disturbances", DisturbanceListPage)
 	router.HandleFunc("/s/{id:[-0-9A-Za-z]{1,36}}", StationPage)
+	router.HandleFunc("/stations/{id:[-0-9A-Za-z]{1,36}}", StationPage)
+	router.HandleFunc("/l/{id:[-0-9A-Za-z]{1,36}}", LinePage)
+	router.HandleFunc("/lines/{id:[-0-9A-Za-z]{1,36}}", LinePage)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
 	WebReloadTemplate()
@@ -129,7 +132,6 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	loc, _ := time.LoadLocation("Europe/Lisbon")
 	p := struct {
 		PageCommons
-		PageTitle  string
 		Hours      int
 		Days       int
 		LinesExtra []struct {
@@ -393,12 +395,13 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Disturbances []*dataobjects.Disturbance
-		CurPageTime  time.Time
-		HasPrevPage  bool
-		PrevPageTime time.Time
-		HasNextPage  bool
-		NextPageTime time.Time
+		Disturbances    []*dataobjects.Disturbance
+		DowntimePerLine map[string]float32
+		CurPageTime     time.Time
+		HasPrevPage     bool
+		PrevPageTime    time.Time
+		HasNextPage     bool
+		NextPageTime    time.Time
 	}{}
 
 	p.PageCommons, err = InitPageCommons(tx, "Perturbações do Metro de Lisboa")
@@ -443,6 +446,15 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p.DowntimePerLine = make(map[string]float32)
+	for _, disturbance := range p.Disturbances {
+		endTime := disturbance.EndTime
+		if !disturbance.Ended {
+			endTime = time.Now()
+		}
+		p.DowntimePerLine[disturbance.Line.ID] += float32(endTime.Sub(disturbance.StartTime).Hours())
+	}
+
 	err = webtemplate.ExecuteTemplate(w, "disturbancelist.html", p)
 	if err != nil {
 		webLog.Println(err)
@@ -450,7 +462,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// StationPage serves the page for a specific disturbance
+// StationPage serves the page for a specific station
 func StationPage(w http.ResponseWriter, r *http.Request) {
 	if DEBUG {
 		WebReloadTemplate()
@@ -465,10 +477,14 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Station      *dataobjects.Station
-		StationLines []*dataobjects.Line
-		Trivia       string
-		Connections  []ConnectionData
+		Station        *dataobjects.Station
+		StationLines   []*dataobjects.Line
+		Lobbies        []*dataobjects.Lobby
+		LobbySchedules [][]string
+		LobbyExits     [][]*dataobjects.Exit
+		Trivia         string
+		Connections    []ConnectionData
+		Closed         bool
 	}{}
 
 	p.Station, err = dataobjects.GetStation(tx, mux.Vars(r)["id"])
@@ -477,25 +493,57 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
+	p.Closed, err = p.Station.Closed(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	p.StationLines, err = p.Station.Lines(tx)
 	if err != nil {
 		webLog.Println(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	p.Lobbies, err = p.Station.Lobbies(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	for _, lobby := range p.Lobbies {
+		schedules, err := lobby.Schedules(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		p.LobbySchedules = append(p.LobbySchedules, schedulesToLines(schedules))
+
+		exits, err := lobby.Exits(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		p.LobbyExits = append(p.LobbyExits, exits)
 	}
 
 	p.Trivia, err = ReadStationTrivia(p.Station.ID, "pt")
 	if err != nil {
 		webLog.Println(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	p.Connections, err = ReadStationConnections(p.Station.ID)
 	if err != nil {
 		webLog.Println(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -511,6 +559,59 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+func schedulesToLines(schedules []*dataobjects.Schedule) []string {
+	schedulesByDay := make(map[int]*dataobjects.Schedule)
+	for _, schedule := range schedules {
+		if schedule.Holiday {
+			schedulesByDay[-1] = schedule
+		} else {
+			schedulesByDay[schedule.Day] = schedule
+		}
+	}
+
+	weekdaysAllTheSame := true
+	for i := 2; i < 6; i++ {
+		if !schedulesByDay[1].Compare(schedulesByDay[i]) {
+			weekdaysAllTheSame = false
+		}
+	}
+
+	holidaysAllTheSame := schedulesByDay[-1].Compare(schedulesByDay[0]) && schedulesByDay[6].Compare(schedulesByDay[0])
+	allDaysTheSame := weekdaysAllTheSame && holidaysAllTheSame && schedulesByDay[-1].Compare(schedulesByDay[2])
+
+	if allDaysTheSame {
+		return []string{"Todos os dias: " + scheduleToString(schedulesByDay[0])}
+	} else {
+		scheduleString := []string{}
+		if weekdaysAllTheSame {
+			scheduleString = append(scheduleString, "Dias úteis: "+scheduleToString(schedulesByDay[1]))
+		} else {
+			for i := 2; i < 6; i++ {
+				scheduleString = append(scheduleString, time.Weekday(i).String()+": "+scheduleToString(schedulesByDay[i]))
+			}
+		}
+
+		if holidaysAllTheSame {
+			scheduleString = append(scheduleString, "Fins de semana e feriados: "+scheduleToString(schedulesByDay[0]))
+		} else {
+			scheduleString = append(scheduleString, time.Weekday(0).String()+": "+scheduleToString(schedulesByDay[0]))
+			scheduleString = append(scheduleString, time.Weekday(6).String()+": "+scheduleToString(schedulesByDay[6]))
+			scheduleString = append(scheduleString, "Feriados: "+scheduleToString(schedulesByDay[-1]))
+		}
+
+		return scheduleString
+	}
+}
+func scheduleToString(schedule *dataobjects.Schedule) string {
+	if !schedule.Open {
+		return "encerrado"
+	}
+	openString := time.Time(schedule.OpenTime).Format("15:04")
+	closeString := time.Time(schedule.OpenTime).
+		Add(time.Duration(schedule.OpenDuration)).Format("15:04")
+	return fmt.Sprintf("%s - %s", openString, closeString)
 }
 
 func ReadStationTrivia(stationID, locale string) (string, error) {
@@ -537,6 +638,74 @@ func ReadStationConnections(stationID string) (data []ConnectionData, err error)
 		}
 	}
 	return data, nil
+}
+
+// LinePage serves the page for a specific line
+func LinePage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		PageCommons
+		Line              *dataobjects.Line
+		Stations          []*dataobjects.Station
+		WeekAvailability  float64
+		WeekDuration      time.Duration
+		MonthAvailability float64
+		MonthDuration     time.Duration
+	}{}
+
+	p.Line, err = dataobjects.GetLine(tx, mux.Vars(r)["id"])
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	p.Stations, err = p.Line.Stations(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	loc, _ := time.LoadLocation("Europe/Lisbon")
+
+	p.MonthAvailability, p.MonthDuration, err = MLlineAvailability(tx, p.Line, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc))
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	p.MonthAvailability *= 100
+
+	p.WeekAvailability, p.WeekDuration, err = MLlineAvailability(tx, p.Line, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc))
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	p.WeekAvailability *= 100
+
+	p.PageCommons, err = InitPageCommons(tx, fmt.Sprintf("Linha %s do %s", p.Line.Name, p.Line.Network.Name))
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "line.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 // WebReloadTemplate reloads the templates for the website

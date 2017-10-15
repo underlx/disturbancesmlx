@@ -1,0 +1,32 @@
+{{template "header.html" . }}
+{{ $top := . }}
+  <div class="content">
+    <div class="pure-g">
+      <div class="pure-u-1">
+        <h1>Linha <span style="color: #{{ .Line.Color }}">{{ .Line.Name }}</span> <small>do {{ .Line.Network.Name }}</small></h1>
+      </div>
+      <div class="pure-u-1">
+        <h2><a id="stations">Estações</a></h2>
+        <ul class="pt-ml-line" style="background-color: #{{ .Line.Color }}">
+        {{ range $index, $station := .Stations }}
+          <li>
+            <a href="/stations/{{ $station.ID }}">{{ $station.Name }}</a>
+            <span class="station-features">
+              {{ if $station.Features.Lift }}<i class="fa fa-caret-square-o-up" aria-hidden="true"></i>{{end}}
+              {{ if $station.Features.Bus }}<i class="fa fa-bus" aria-hidden="true"></i>{{end}}
+              {{ if $station.Features.Boat }}<i class="fa fa-ship" aria-hidden="true"></i>{{end}}
+              {{ if $station.Features.Train }}<i class="fa fa-train" aria-hidden="true"></i>{{end}}
+              {{ if $station.Features.Airport }}<i class="fa fa-plane" aria-hidden="true"></i>{{end}}
+            </span>
+          </li>
+        {{end}}
+        </ul>
+      </div>
+      <div class="pure-u-1">
+          <h2><a id="availability">Disponibilidade</a></h2>
+          <p>Semana: {{ printf "%.03f%%" .WeekAvailability }}{{ if (ne .WeekAvailability 100.0) }}<small>, as perturbações duraram em média {{ printf "%.01f" .WeekDuration.Minutes }} minutos.{{end}}</small></p>
+          <p>Mês: {{ printf "%.03f%%" .MonthAvailability }}{{ if (ne .MonthAvailability 100.0) }}<small>, as perturbações duraram em média {{ printf "%.01f" .MonthDuration.Minutes }} minutos.{{end}}</small></p>
+      </div>
+    </div>
+  </div>
+{{template "footer.html"}}

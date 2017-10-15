@@ -37,244 +37,31 @@
 
   <link rel="stylesheet" type="text/css" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.min.css">
 
+  <link href="https://unpkg.com/c3@0.4.18/c3.min.css" rel="stylesheet">
   <script src="https://unpkg.com/d3@3.5.17/d3.min.js" charset="utf-8"></script>
   <script src="https://unpkg.com/cal-heatmap@3.6.2/cal-heatmap.min.js" charset="utf-8"></script>
+  <script src="https://unpkg.com/c3@0.4.18/c3.min.js" charset="utf-8"></script>
   <link rel="stylesheet" type="text/css" href="https://unpkg.com/cal-heatmap@3.6.2/cal-heatmap.css"> 
 
-  <style>
-    .header {
-      margin-bottom: 50px;
-    }
-
-    .content {
-      max-width: 650px;
-      padding-left:5px;
-      padding-right: 5px;
-      box-sizing: border-box;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .footer {
-      font-size: 87.5%;
-      border-top: 1px solid #eee;
-      margin-top: 3.4286em;
-      padding: 1.1429em;
-      background: rgb(245, 245, 245);
-      color: #777;
-    }
-    .pure-g [class*=pure-u] {
-      font-family: 'Roboto';
-    }
-    .pure-g [class*=pure-u].ubuntu {
-      font-family: 'Ubuntu', sans-serif;
-    }
-
-    .unitlink {
-      text-transform: none;
-      text-align: right;
-    }
-    .unitlink > a {
-      color: #777;
-    }
-
-    .permalink {
-      float: right;
-    }
-
-    .permalink > a {
-      color: #777;
-      font-size: 80%;
-    }
-
-    .status {
-      font-size: 130%;
-      padding: 10px 20px 10px 20px;
-      box-sizing: border-box;
-    }
-
-    .line {
-      color: white;
-    }
-
-    .dimmed {
-      background: linear-gradient(90deg,
-        rgba(0, 0, 0, 0), 
-        rgba(0, 0, 0, 0.5)
-      );
-    }
-
-    .status.problem {
-      color: red;
-    }
-    .status.ok {
-      color: limegreen;
-    }
-
-    th.smallhead {
-      font-size: 80%;
-    }
-    th.tinyhead {
-      padding-left: 0;
-      padding-right: 0;
-      text-align: center;
-    }
-    table.tinycells > tbody > tr > td {
-      padding-left: 0;
-      padding-right: 0;
-    }
-
-    .sixStyle {
-      position:relative;
-      display:inline-block;
-      white-space: pre; /* to preserve the spaces from collapsing */
-    }
-    .sixStyle:before {
-      display:block;
-      z-index:1;
-      position:absolute;
-      top:0;
-      left:0;
-      width: 50%;
-      content: attr(data-content); /* dynamic content for the pseudo element */
-      overflow:hidden;
-      color: #e0e0e0;
-    }
-
-    .hideOnLarge {
-      display: block;
-    }
-
-    @media screen and (min-width: 48em) {
-      .hideOnLarge {
-        display: none;
-      }
-    }
-
-    @media screen and (max-width: 35.5em) {
-      .hideOnSmall {
-        display: none;
-      }
-    }
-
-    @media screen and (max-width: 35.5em) {
-      .pure-table {
-        font-size: 80%;
-      }
-    }
-
-    @media screen and (max-width: 25em) {
-      .pure-table {
-        font-size: 70%;
-      }
-    }
-
-    @media screen and (max-width: 17.5em) {
-      .pure-table {
-        font-size: 60%;
-      }
-    }
-
-    @keyframes blink {
-      0% { opacity: 1 }
-      50% { opacity: 0.5 }
-      100% { opacity: 1 }
-    }
-    @-webkit-keyframes blink {
-        0% { opacity: 1 }
-        50% { opacity: 0.5 }
-        100% { opacity: 1 }
-    }
-
-    .errorblink {
-      -moz-transition:all 0.5s ease-in-out;
-      -webkit-transition:all 0.5s ease-in-out;
-      -o-transition:all 0.5s ease-in-out;
-      -ms-transition:all 0.5s ease-in-out;
-      transition:all 0.5s ease-in-out;
-      -moz-animation:blink normal 1.5s infinite ease-in-out;
-      /* Firefox */
-      -webkit-animation:blink normal 1.5s infinite ease-in-out;
-      /* Webkit */
-      -ms-animation:blink normal 1.5s infinite ease-in-out;
-      /* IE */
-      animation:blink normal 1.5s infinite ease-in-out;
-    }
-
-    .app-promo {
-      background-color: rgb(245, 245, 245);
-      border-top: 1px solid #eee;
-      border-bottom: 1px solid #eee;
-    }
-
-    .app-promo img {
-      max-width: 100%;
-      max-height: 90px;
-      margin-top: 3px;
-    }
-
-    /* heatmap */
-    .cal-heatmap-container .q0.q1
-    {
-      fill: #ededed;
-    }
-
-    .cal-heatmap-container .q1
-    {
-      background-color: #FFAAAA;
-      fill: #FFAAAA
-    }
-
-    .cal-heatmap-container .q2
-    {
-      background-color: #D46A6A;
-      fill: #D46A6A
-    }
-
-    .cal-heatmap-container .q3
-    {
-      background-color: #AA3939;
-      fill: #AA3939
-    }
-
-    .cal-heatmap-container .q4
-    {
-      background-color: #801515;
-      fill: #801515
-    }
-
-    .cal-heatmap-container .q5
-    {
-      background-color: #550000;
-      fill: #550000
-    }
-
-    h1 > small {
-      padding-left: 15px;
-      font-size: 50%;
-      display: inline-block;
-    }
-
-    .forceSmallHeaders > h2 {
-      font-size: 1em;
-    }
-  </style>
+  <link rel="stylesheet" type="text/css" href="/static/css/custom.css"/>
 </head>
 
 <body>
   <div class="header">
     <div class="pure-g">
-      <a href="/" class="pure-u-1-8 pure-u-sm-1-3 pure-u-md-1-4 pure-u-lg-1-5" style="color: inherit; height: 44px; box-sizing: border-box; border-right: 1px #777 solid; padding-right: 1px; background-color: #eee;">
-          <img src="/static/img/logo.png" style="height: 44px; float: left;"><span class="hideOnSmall" style="display: inline-block; font-size: 130%; padding: 10px;">Perturbações</span>
+      <a href="/" class="pure-u-1-8 pure-u-sm-3-8 pure-u-md-7-24 pure-u-lg-1-5" style="color: inherit; background-color: #eee;">
+          <div class="headerLogo">
+            <img src="/static/img/logo.png" style="height: 44px; float: left;"><span class="headerTitle">Perturbações</span>
+          </div>
       </a>
-      <div class="pure-u-7-8 pure-u-sm-2-3 pure-u-md-3-4 pure-u-lg-4-5" style="position: relative; text-align: center; background-color: #eee;">
+      <div class="pure-u-7-8 pure-u-sm-5-8 pure-u-md-17-24 pure-u-lg-4-5" style="position: relative; text-align: center; background-color: #eee;">
         <div style="width: 100%; position: absolute; top: 50%; transform: translate(0, -50%);">
           <strong>Estado das linhas</strong> <small style="color: #777;">última alteração há {{ if .LastChangeAgoHour }}{{.LastChangeAgoHour}} horas e {{end}}{{ .LastChangeAgoMin }} minutos</small>
         </div>
       </div>
       {{ $numlines := len .Lines }}
       {{ range $line := .Lines }}
-        <div class="pure-u-1 pure-u-sm-1-{{ $numlines }} line status{{if $line.Down}} dimmed{{end}}" style="background-color: #{{ $line.Color }};">
+        <a href="/l/{{ $line.ID }}" class="pure-u-1 pure-u-sm-1-{{ $numlines }} line status{{if $line.Down}} dimmed{{end}}" style="background-color: #{{ $line.Color }};">
           {{ $line.Name }}
           {{ if $line.Down }}
           <span style="float: right;">
@@ -284,7 +71,7 @@
           {{ else }}
           <span style="float: right;"><i class="fa fa-check-square" aria-hidden="true"></i></span>
           {{ end }}
-        </div>
+        </a>
       {{ end }}
     </div>
   </div>

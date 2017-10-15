@@ -108,6 +108,32 @@ func (station *Station) Lobbies(node sqalx.Node) ([]*Lobby, error) {
 	return getLobbiesWithSelect(node, s)
 }
 
+// Closed returns whether this station is closed
+func (station *Station) Closed(node sqalx.Node) (bool, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Commit() // read-only tx
+
+	lobbies, err := station.Lobbies(tx)
+	if err != nil {
+		return false, err
+	}
+	for _, lobby := range lobbies {
+		schedules, err := lobby.Schedules(tx)
+		if err != nil {
+			return false, err
+		}
+		for _, schedule := range schedules {
+			if schedule.Open {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
+}
+
 // Update adds or updates the station
 func (station *Station) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
