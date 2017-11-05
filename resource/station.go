@@ -163,8 +163,8 @@ func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 
 func ComputeStationConnectionURLs(station *dataobjects.Station) map[string]map[string]string {
 	m := make(map[string]map[string]string)
-	locales := []string{"en"}
-	connections := []string{"boat", "bus", "train"}
+	locales := []string{"pt", "en"}
+	connections := []string{"boat", "bus", "train", "park"}
 	for _, locale := range locales {
 		for _, connection := range connections {
 			path := "stationkb/" + locale + "/connections/" + connection + "/" + station.ID + ".html"
