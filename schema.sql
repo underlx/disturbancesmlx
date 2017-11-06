@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS "connection" (
     typ_wait_time INT NOT NULL,
     typ_stop_time INT NOT NULL,
     typ_time INT NOT NULL,
+    world_length INT NOT NULL,
     PRIMARY KEY (from_station, to_station)
 );
 

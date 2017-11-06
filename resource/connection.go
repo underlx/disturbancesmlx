@@ -17,6 +17,7 @@ type apiConnection struct {
 	TypicalWaitingSeconds int                  `msgpack:"typWaitS" json:"typWaitS"`
 	TypicalStopSeconds    int                  `msgpack:"typStopS" json:"typStopS"`
 	TypicalSeconds        int                  `msgpack:"typS" json:"typS"`
+	WorldLength           int                  `msgpack:"worldLength" json:"worldLength"`
 }
 
 type apiConnectionWrapper struct {

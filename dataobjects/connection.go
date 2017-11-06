@@ -18,6 +18,8 @@ type Connection struct {
 	TypicalStopSeconds int
 	// TypicalSeconds: the time in seconds it usually takes for the train to move from From to To
 	TypicalSeconds int
+	// WorldLength: the physical length of this connection in meters
+	WorldLength int
 }
 
 // GetConnections returns a slice with all registered connections
@@ -34,7 +36,8 @@ func getConnectionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Co
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("from_station", "to_station", "typ_wait_time", "typ_stop_time", "typ_time").
+	rows, err := sbuilder.Columns("from_station", "to_station", "typ_wait_time",
+		"typ_stop_time", "typ_time", "world_length").
 		From("connection").
 		RunWith(tx).Query()
 	if err != nil {
@@ -53,7 +56,8 @@ func getConnectionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Co
 			&toID,
 			&connection.TypicalWaitingSeconds,
 			&connection.TypicalStopSeconds,
-			&connection.TypicalSeconds)
+			&connection.TypicalSeconds,
+			&connection.WorldLength)
 		if err != nil {
 			return connections, fmt.Errorf("getConnectionsWithSelect: %s", err)
 		}
@@ -104,10 +108,12 @@ func (connection *Connection) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	_, err = sdb.Insert("connection").
-		Columns("from_station", "to_station", "typ_wait_time", "typ_stop_time", "typ_time").
-		Values(connection.From.ID, connection.To.ID, connection.TypicalWaitingSeconds, connection.TypicalStopSeconds, connection.TypicalSeconds).
-		Suffix("ON CONFLICT (from_station, to_station) DO UPDATE SET typ_wait_time = ?, typ_stop_time = ?, typ_time = ?",
-			connection.TypicalWaitingSeconds, connection.TypicalStopSeconds, connection.TypicalSeconds).
+		Columns("from_station", "to_station", "typ_wait_time",
+			"typ_stop_time", "typ_time", "world_length").
+		Values(connection.From.ID, connection.To.ID, connection.TypicalWaitingSeconds,
+			connection.TypicalStopSeconds, connection.TypicalSeconds, connection.WorldLength).
+		Suffix("ON CONFLICT (from_station, to_station) DO UPDATE SET typ_wait_time = ?, typ_stop_time = ?, typ_time = ?, world_length = ?",
+			connection.TypicalWaitingSeconds, connection.TypicalStopSeconds, connection.TypicalSeconds, connection.WorldLength).
 		RunWith(tx).Exec()
 
 	if err != nil {
