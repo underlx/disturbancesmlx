@@ -42,11 +42,19 @@
       </div>
       <div class="pure-u-1">
           <h2><a id="connections">Ligações</a></h2>
+          <p>{{ range $data := .Connections }}
+              {{if eq $data.ID "bus"}}<a href="#bus" style="font-size: 85%;" class="pure-button">Carreiras urbanas</a> 
+              {{else if eq $data.ID "boat"}}<a href="#boat" style="font-size: 85%;" class="pure-button">Ligações fluviais</a> 
+              {{else if eq $data.ID "train"}}<a href="#train" style="font-size: 85%;" class="pure-button">Comboios</a> 
+              {{else if eq $data.ID "park"}}<a href="#park" style="font-size: 85%;" class="pure-button">Parques de estacionamento</a> 
+              {{end}}
+          {{end}}</p>
           {{ range $data := .Connections }}
             <h3>
-              {{if eq $data.ID "bus"}}Carreiras urbanas
-              {{else if eq $data.ID "boat"}}Ligações fluviais
-              {{else if eq $data.ID "train"}}Comboios
+              {{if eq $data.ID "bus"}}<a id="bus">Carreiras urbanas</a>
+              {{else if eq $data.ID "boat"}}<a id="boat">Ligações fluviais</a>
+              {{else if eq $data.ID "train"}}<a id="train">Comboios</a>
+              {{else if eq $data.ID "park"}}<a id="park">Parques de estacionamento</a>
               {{end}}
             </h3>
             <div class="forceSmallHeaders">{{ $data.HTML }}</div>

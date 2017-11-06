@@ -625,18 +625,39 @@ func ReadStationTrivia(stationID, locale string) (string, error) {
 }
 
 func ReadStationConnections(stationID string) (data []ConnectionData, err error) {
-	connections := []string{"boat", "bus", "train"}
+	connections := []string{"boat", "bus", "train", "park"}
+	// try pt and use en as fallback
 	for _, connection := range connections {
-		path := "stationkb/en/connections/" + connection + "/" + stationID + ".html"
+		path := "stationkb/pt/connections/" + connection + "/" + stationID + ".html"
 		if info, err := os.Stat(path); err == nil && !info.IsDir() {
 			buf, err := ioutil.ReadFile(path)
 			if err != nil {
 				return data, err
 			}
+			html := string(buf)
+			if connection != "park" {
+				html = strings.Replace(strings.Replace(string(buf), "</p>", "", -1), "<p>", "", -1)
+			}
 			data = append(data, ConnectionData{
 				ID:   connection,
-				HTML: strings.Replace(strings.Replace(string(buf), "</p>", "", -1), "<p>", "", -1),
+				HTML: html,
 			})
+		} else {
+			path := "stationkb/en/connections/" + connection + "/" + stationID + ".html"
+			if info, err := os.Stat(path); err == nil && !info.IsDir() {
+				buf, err := ioutil.ReadFile(path)
+				if err != nil {
+					return data, err
+				}
+				html := string(buf)
+				if connection != "park" {
+					html = strings.Replace(strings.Replace(string(buf), "</p>", "", -1), "<p>", "", -1)
+				}
+				data = append(data, ConnectionData{
+					ID:   connection,
+					HTML: html,
+				})
+			}
 		}
 	}
 	return data, nil
