@@ -771,6 +771,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 			Availability string
 			AvgDuration  string
 		}
+		AverageSpeed float64
 	}{}
 
 	p.PageCommons, err = InitPageCommons(tx, "Página interna")
@@ -834,6 +835,8 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		p.LinesExtra[i].TotalTime = totalDuration.String()
 		p.LinesExtra[i].TotalHours = float32(totalDuration.Hours())
 	}
+
+	p.AverageSpeed, err = ComputeAverageSpeed(tx, p.StartTime, p.EndTime)
 
 	// adjust time for display
 	p.EndTime = p.EndTime.AddDate(0, 0, -1)

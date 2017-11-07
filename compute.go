@@ -234,3 +234,115 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 
 	return tx.Commit()
 }
+
+// ComputeAverageSpeed returns the average service speed in km/h
+// based on the trips in the specified time range
+func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time) (float64, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	tripIDs, err := dataobjects.GetTripIDsBetween(tx, fromTime, toTime)
+	if err != nil {
+		return 0, err
+	}
+
+	fmt.Printf("%d trip IDs\n", len(tripIDs))
+
+	type TransferKey struct {
+		Station string
+		From    string
+		To      string
+	}
+
+	type ConnectionKey struct {
+		From string
+		To   string
+	}
+
+	connectionCache := make(map[ConnectionKey]*dataobjects.Connection)
+	getConnection := func(from, to string) (*dataobjects.Connection, error) {
+		connection, cached := connectionCache[ConnectionKey{from, to}]
+		if !cached {
+			var err error
+			connection, err = dataobjects.GetConnection(tx, from, to)
+			if err != nil {
+				return nil, err
+			}
+			connectionCache[ConnectionKey{from, to}] = connection
+		}
+		return connection, nil
+	}
+
+	var totalTime time.Duration
+	var totalDistance int64
+
+	processTrip := func(trip *dataobjects.Trip) error {
+		if len(trip.StationUses) <= 1 {
+			// station visit or invalid trip
+			// can't extract any data about connections
+			return nil
+		}
+
+		var startTime, endTime time.Time
+		for useIdx := 0; useIdx < len(trip.StationUses)-1; useIdx++ {
+			sourceUse := trip.StationUses[useIdx]
+
+			if sourceUse.Manual {
+				// manual path extensions don't contain valid time data
+				// skip
+				continue
+			}
+
+			if sourceUse.Type == dataobjects.Interchange ||
+				sourceUse.Type == dataobjects.Visit {
+				continue
+			}
+
+			targetUse := trip.StationUses[useIdx+1]
+
+			if targetUse.Manual {
+				// manual path extensions don't contain valid time data
+				// skip
+				continue
+			}
+
+			connection, err := getConnection(sourceUse.Station.ID, targetUse.Station.ID)
+			if err != nil {
+				// connection might no longer exist (closed stations, etc.)
+				// move on
+				fmt.Printf("Connection from %s to %s skipped\n", sourceUse.Station.ID, targetUse.Station.ID)
+				return nil
+			}
+
+			totalDistance += int64(connection.WorldLength)
+			if startTime.IsZero() {
+				startTime = sourceUse.LeaveTime
+			}
+			endTime = targetUse.EntryTime
+		}
+		totalTime += endTime.Sub(startTime)
+		return nil
+	}
+
+	// instantiate each trip from DB individually
+	// (instead of using dataobjects.GetTrips)
+	// to reduce memory usage
+	for _, tripID := range tripIDs {
+		trip, err := dataobjects.GetTrip(tx, tripID)
+		if err != nil {
+			return 0, err
+		}
+
+		if err = processTrip(trip); err != nil {
+			return 0, err
+		}
+	}
+
+	km := float64(totalDistance) / 1000
+	hours := totalTime.Hours()
+
+	return km / hours, nil
+}
