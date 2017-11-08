@@ -78,22 +78,22 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 
 	processTransfer := func(transfer *dataobjects.Transfer, use *dataobjects.StationUse) error {
 		seconds := use.LeaveTime.Sub(use.EntryTime).Seconds()
-		transferAvgNumerator[transfer] += seconds
+		transferAvgNumerator[transfer] += seconds - 20
 		transferAvgDenominator[transfer]++
 		return nil
 	}
 
 	processConnection := func(connection *dataobjects.Connection, sourceUse *dataobjects.StationUse, targetUse *dataobjects.StationUse) error {
 		seconds := targetUse.EntryTime.Sub(sourceUse.LeaveTime).Seconds()
-		connectionAvgNumerator[connection] += seconds
+		connectionAvgNumerator[connection] += seconds + 20
 		connectionAvgDenominator[connection]++
 
 		waitSeconds := sourceUse.LeaveTime.Sub(sourceUse.EntryTime).Seconds()
 		if sourceUse.Type == dataobjects.NetworkEntry {
-			connectionWaitAvgNumerator[connection] += waitSeconds
+			connectionWaitAvgNumerator[connection] += waitSeconds - 20
 			connectionWaitAvgDenominator[connection]++
-		} else if sourceUse.Type == dataobjects.GoneThrough {
-			connectionStopAvgNumerator[connection] += waitSeconds
+		} else if sourceUse.Type == dataobjects.GoneThrough && waitSeconds < 60*3 {
+			connectionStopAvgNumerator[connection] += waitSeconds - 20
 			connectionStopAvgDenominator[connection]++
 		}
 		return nil
@@ -143,12 +143,12 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 				// connection might no longer exist (closed stations, etc.)
 				// move on
 				fmt.Printf("Connection from %s to %s skipped\n", sourceUse.Station.ID, targetUse.Station.ID)
-				return nil
+				continue
 			}
 			if useIdx+2 < len(trip.StationUses) && trip.StationUses[useIdx+2].EntryTime.Sub(targetUse.EntryTime) < 1*time.Second {
 				// this station use is certainly a forced extension to make up for a station the client did not capture correct times for
 				// skip
-				return nil
+				continue
 			}
 
 			if err = processConnection(connection, sourceUse, targetUse); err != nil {
