@@ -24,6 +24,9 @@
         <h1>Perturbações do Metro de Lisboa</h1>
         {{template "PageTimeSelector" . }}
         <p><div id="chart"></div></p>
+        {{ if .AverageSpeed }}
+        <p>Velocidade média: {{ printf "%.02f" .AverageSpeed }} km/h</p>
+        {{end}}
         {{ range $disturbance := .Disturbances }}
           {{template "component-disturbance.html" $disturbance }}
         {{else}}

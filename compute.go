@@ -249,7 +249,9 @@ func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time) 
 		return 0, err
 	}
 
-	fmt.Printf("%d trip IDs\n", len(tripIDs))
+	if len(tripIDs) == 0 {
+		return 0, nil
+	}
 
 	type TransferKey struct {
 		Station string
@@ -345,4 +347,30 @@ func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time) 
 	hours := totalTime.Hours()
 
 	return km / hours, nil
+}
+
+// ComputeAverageSpeedCached returns the average service speed in km/h
+// based on the trips in the specified time range, with cache in front
+// to minimize computational cost
+type avgSpeedCacheKey struct {
+	From int64
+	To   int64
+}
+
+var avgSpeedCache map[avgSpeedCacheKey]float64
+
+func ComputeAverageSpeedCached(node sqalx.Node, fromTime time.Time, toTime time.Time) (float64, error) {
+	if val, ok := avgSpeedCache[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}]; ok {
+		return val, nil
+	}
+	val, err := ComputeAverageSpeed(node, fromTime, toTime)
+	if err != nil {
+		return val, err
+	}
+	avgSpeedCache[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}] = val
+	return val, nil
+}
+
+func init() {
+	avgSpeedCache = make(map[avgSpeedCacheKey]float64)
 }

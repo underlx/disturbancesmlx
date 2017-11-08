@@ -399,6 +399,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		PageCommons
 		Disturbances    []*dataobjects.Disturbance
 		DowntimePerLine map[string]float32
+		AverageSpeed    float64
 		CurPageTime     time.Time
 		HasPrevPage     bool
 		PrevPageTime    time.Time
@@ -455,6 +456,13 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 			endTime = time.Now()
 		}
 		p.DowntimePerLine[disturbance.Line.ID] += float32(endTime.Sub(disturbance.StartTime).Hours())
+	}
+
+	p.AverageSpeed, err = ComputeAverageSpeedCached(tx, startDate, endDate.Truncate(24*time.Hour))
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "disturbancelist.html", p)
@@ -836,7 +844,12 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		p.LinesExtra[i].TotalHours = float32(totalDuration.Hours())
 	}
 
-	p.AverageSpeed, err = ComputeAverageSpeed(tx, p.StartTime, p.EndTime)
+	p.AverageSpeed, err = ComputeAverageSpeedCached(tx, p.StartTime, p.EndTime)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	// adjust time for display
 	p.EndTime = p.EndTime.AddDate(0, 0, -1)
