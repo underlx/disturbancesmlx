@@ -78,22 +78,22 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 
 	processTransfer := func(transfer *dataobjects.Transfer, use *dataobjects.StationUse) error {
 		seconds := use.LeaveTime.Sub(use.EntryTime).Seconds()
-		transferAvgNumerator[transfer] += seconds
+		transferAvgNumerator[transfer] += seconds - 20
 		transferAvgDenominator[transfer]++
 		return nil
 	}
 
 	processConnection := func(connection *dataobjects.Connection, sourceUse *dataobjects.StationUse, targetUse *dataobjects.StationUse) error {
 		seconds := targetUse.EntryTime.Sub(sourceUse.LeaveTime).Seconds()
-		connectionAvgNumerator[connection] += seconds
+		connectionAvgNumerator[connection] += seconds + 20
 		connectionAvgDenominator[connection]++
 
 		waitSeconds := sourceUse.LeaveTime.Sub(sourceUse.EntryTime).Seconds()
 		if sourceUse.Type == dataobjects.NetworkEntry {
-			connectionWaitAvgNumerator[connection] += waitSeconds
+			connectionWaitAvgNumerator[connection] += waitSeconds - 20
 			connectionWaitAvgDenominator[connection]++
-		} else if sourceUse.Type == dataobjects.GoneThrough {
-			connectionStopAvgNumerator[connection] += waitSeconds
+		} else if sourceUse.Type == dataobjects.GoneThrough && waitSeconds < 60*3 {
+			connectionStopAvgNumerator[connection] += waitSeconds - 20
 			connectionStopAvgDenominator[connection]++
 		}
 		return nil
@@ -143,12 +143,12 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 				// connection might no longer exist (closed stations, etc.)
 				// move on
 				fmt.Printf("Connection from %s to %s skipped\n", sourceUse.Station.ID, targetUse.Station.ID)
-				return nil
+				continue
 			}
 			if useIdx+2 < len(trip.StationUses) && trip.StationUses[useIdx+2].EntryTime.Sub(targetUse.EntryTime) < 1*time.Second {
 				// this station use is certainly a forced extension to make up for a station the client did not capture correct times for
 				// skip
-				return nil
+				continue
 			}
 
 			if err = processConnection(connection, sourceUse, targetUse); err != nil {
@@ -233,4 +233,144 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 	}
 
 	return tx.Commit()
+}
+
+// ComputeAverageSpeed returns the average service speed in km/h
+// based on the trips in the specified time range
+func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time) (float64, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	tripIDs, err := dataobjects.GetTripIDsBetween(tx, fromTime, toTime)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(tripIDs) == 0 {
+		return 0, nil
+	}
+
+	type TransferKey struct {
+		Station string
+		From    string
+		To      string
+	}
+
+	type ConnectionKey struct {
+		From string
+		To   string
+	}
+
+	connectionCache := make(map[ConnectionKey]*dataobjects.Connection)
+	getConnection := func(from, to string) (*dataobjects.Connection, error) {
+		connection, cached := connectionCache[ConnectionKey{from, to}]
+		if !cached {
+			var err error
+			connection, err = dataobjects.GetConnection(tx, from, to)
+			if err != nil {
+				return nil, err
+			}
+			connectionCache[ConnectionKey{from, to}] = connection
+		}
+		return connection, nil
+	}
+
+	var totalTime time.Duration
+	var totalDistance int64
+
+	processTrip := func(trip *dataobjects.Trip) error {
+		if len(trip.StationUses) <= 1 {
+			// station visit or invalid trip
+			// can't extract any data about connections
+			return nil
+		}
+
+		var startTime, endTime time.Time
+		for useIdx := 0; useIdx < len(trip.StationUses)-1; useIdx++ {
+			sourceUse := trip.StationUses[useIdx]
+
+			if sourceUse.Manual {
+				// manual path extensions don't contain valid time data
+				// skip
+				continue
+			}
+
+			if sourceUse.Type == dataobjects.Interchange ||
+				sourceUse.Type == dataobjects.Visit {
+				continue
+			}
+
+			targetUse := trip.StationUses[useIdx+1]
+
+			if targetUse.Manual {
+				// manual path extensions don't contain valid time data
+				// skip
+				continue
+			}
+
+			connection, err := getConnection(sourceUse.Station.ID, targetUse.Station.ID)
+			if err != nil {
+				// connection might no longer exist (closed stations, etc.)
+				// move on
+				fmt.Printf("Connection from %s to %s skipped\n", sourceUse.Station.ID, targetUse.Station.ID)
+				return nil
+			}
+
+			totalDistance += int64(connection.WorldLength)
+			if startTime.IsZero() {
+				startTime = sourceUse.LeaveTime
+			}
+			endTime = targetUse.EntryTime
+		}
+		totalTime += endTime.Sub(startTime)
+		return nil
+	}
+
+	// instantiate each trip from DB individually
+	// (instead of using dataobjects.GetTrips)
+	// to reduce memory usage
+	for _, tripID := range tripIDs {
+		trip, err := dataobjects.GetTrip(tx, tripID)
+		if err != nil {
+			return 0, err
+		}
+
+		if err = processTrip(trip); err != nil {
+			return 0, err
+		}
+	}
+
+	km := float64(totalDistance) / 1000
+	hours := totalTime.Hours()
+
+	return km / hours, nil
+}
+
+// ComputeAverageSpeedCached returns the average service speed in km/h
+// based on the trips in the specified time range, with cache in front
+// to minimize computational cost
+type avgSpeedCacheKey struct {
+	From int64
+	To   int64
+}
+
+var avgSpeedCache map[avgSpeedCacheKey]float64
+
+func ComputeAverageSpeedCached(node sqalx.Node, fromTime time.Time, toTime time.Time) (float64, error) {
+	if val, ok := avgSpeedCache[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}]; ok {
+		return val, nil
+	}
+	val, err := ComputeAverageSpeed(node, fromTime, toTime)
+	if err != nil {
+		return val, err
+	}
+	avgSpeedCache[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}] = val
+	return val, nil
+}
+
+func init() {
+	avgSpeedCache = make(map[avgSpeedCacheKey]float64)
 }

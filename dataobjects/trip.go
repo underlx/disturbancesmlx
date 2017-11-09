@@ -158,6 +158,19 @@ func GetTripIDs(node sqalx.Node) ([]string, error) {
 	return getTripIDsWithSelect(node, s)
 }
 
+// GetTripIDsBetween returns a slice containing the IDs of the trips in the specified interval
+func GetTripIDsBetween(node sqalx.Node, start time.Time, end time.Time) ([]string, error) {
+	s := sdb.Select().
+		Where(sq.Or{
+			sq.Expr("start_time BETWEEN ? AND ?",
+				start, end),
+			sq.Expr("end_time BETWEEN ? AND ?",
+				start, end),
+		}).
+		OrderBy("start_time ASC")
+	return getTripIDsWithSelect(node, s)
+}
+
 // Update adds or updates the trip
 func (trip *Trip) Update(node sqalx.Node) error {
 	if _, err := uuid.FromString(trip.ID); err != nil || len(trip.ID) != 36 {
