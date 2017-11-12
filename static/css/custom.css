@@ -121,6 +121,17 @@ table.tinycells > tbody > tr > td {
   padding: 10px;
 }
 
+.headerSocial {
+  box-sizing: border-box;
+  border-left: 1px #777 solid;
+  padding-left: 1px;
+  height: 44px;
+}
+
+.headerSmallSocial {
+  display: none;
+}
+
 @media screen and (max-width: 35.5em) {
   .headerTitle {
     display: none;
@@ -133,6 +144,16 @@ table.tinycells > tbody > tr > td {
     padding-right: 1px;
     height: 44px;
     width: 45px;
+  }
+  .headerSocial {
+    display: none;
+  }
+  .headerSmallSocial {
+    display: block;
+    position: relative;
+    padding: 10px 20px 10px 20px;
+    box-sizing: border-box;
+    background-color: #eee;
   }
 }
 

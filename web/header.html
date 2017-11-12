@@ -49,15 +49,20 @@
 <body>
   <div class="header">
     <div class="pure-g">
-      <a href="/" class="pure-u-1-8 pure-u-sm-3-8 pure-u-md-7-24 pure-u-lg-1-5" style="color: inherit; background-color: #eee;">
+      <a href="/" class="pure-u-1-8 pure-u-sm-3-8 pure-u-md-7-24 pure-u-lg-6-24 pure-u-xl-4-24" style="color: inherit; background-color: #eee;">
           <div class="headerLogo">
             <img src="/static/img/logo.png" style="height: 44px; float: left;"><span class="headerTitle">Perturbações<small>.pt</small></span>
           </div>
       </a>
-      <div class="pure-u-7-8 pure-u-sm-5-8 pure-u-md-17-24 pure-u-lg-4-5" style="position: relative; text-align: center; background-color: #eee;">
+      <div class="pure-u-7-8 pure-u-sm-1-2 pure-u-md-14-24 pure-u-lg-15-24 pure-u-xl-18-24" style="position: relative; text-align: center; background-color: #eee;">
         <div style="width: 100%; position: absolute; top: 50%; transform: translate(0, -50%);">
           <strong>Estado das linhas</strong> <small style="color: #777;">última alteração há {{ if .LastChangeAgoHour }}{{.LastChangeAgoHour}} horas e {{end}}{{ .LastChangeAgoMin }} minutos</small>
         </div>
+      </div>
+      <div class="headerSocial pure-u-1-8 pure-u-sm-1-8 pure-u-md-3-24 pure-u-lg-3-24 pure-u-xl-2-24" style="position: relative; text-align: center; background-color: #eee;">
+          <div style="width: 100%; position: absolute; top: 50%; transform: translate(0, -50%);">
+            <small>Siga-nos:</small> <nobr><span style="white-space: nowrap; font-size: 130%; text-decoration: none;"><a style="color: #3b5998;" href="https://facebook.com/underlx" target="_blank"><i class="fa fa-facebook-official" aria-hidden="true"></i></a>&nbsp;<a style="color: #55acee;" href="https://twitter.com/underlx" target="_blank"><i class="fa fa-twitter-square" aria-hidden="true"></i></a></nobr></span>
+          </div>
       </div>
       {{ $numlines := len .Lines }}
       {{ range $line := .Lines }}
@@ -73,5 +78,8 @@
           {{ end }}
         </a>
       {{ end }}
+      <div class="headerSmallSocial pure-u-1">
+        Siga-nos: <nobr><span style="white-space: nowrap; font-size: 130%;"><a style="color: #3b5998; text-decoration: none;" href="https://facebook.com/underlx" target="_blank"><i class="fa fa-facebook-official" aria-hidden="true"></i> Facebook</a>&nbsp;&nbsp;&nbsp;<a style="color: #55acee; text-decoration: none;" href="https://twitter.com/underlx" target="_blank"><i class="fa fa-twitter-square" aria-hidden="true"></i> Twitter</a></nobr></span>
+      </div>
     </div>
   </div>
