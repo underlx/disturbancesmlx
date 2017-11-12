@@ -3,6 +3,15 @@
 <div class="content">
   <div class="pure-g">
     <div class="pure-u-1">
+      {{ if .Message }}
+      <aside><p>{{ .Message }}</p></aside>
+      {{end}}
+      <form class="pure-form" method="POST">
+        <fieldset>
+          <input type="hidden" name="action" value="reloadTemplates">
+          <button type="submit" class="pure-button">Reload templates</button>
+        </fieldset>
+      </form>
       <h1>Perturbações na última semana <small>(segunda a domingo)</small></h1>
       <table class="pure-table" style="width: 100%; text-align: center;">
         <thead>

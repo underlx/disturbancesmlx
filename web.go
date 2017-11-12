@@ -825,6 +825,14 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	message := ""
+	if r.Method == http.MethodPost && r.ParseForm() == nil {
+		if r.Form.Get("action") == "reloadTemplates" {
+			WebReloadTemplate()
+			message = "Templates reloaded"
+		}
+	}
+
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -844,7 +852,10 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 			AvgDuration  string
 		}
 		AverageSpeed float64
-	}{}
+		Message      string
+	}{
+		Message: message,
+	}
 
 	p.PageCommons, err = InitPageCommons(tx, "Página interna")
 	if err != nil {
