@@ -61,6 +61,8 @@ func WebServer() {
 	router.HandleFunc("/stations/{id:[-0-9A-Za-z]{1,36}}", StationPage)
 	router.HandleFunc("/l/{id:[-0-9A-Za-z]{1,36}}", LinePage)
 	router.HandleFunc("/lines/{id:[-0-9A-Za-z]{1,36}}", LinePage)
+	router.HandleFunc("/privacy", PrivacyPolicyPage)
+	router.HandleFunc("/terms", TermsPage)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
 	WebReloadTemplate()
@@ -84,7 +86,7 @@ func InitPageCommons(node sqalx.Node, title string) (commons PageCommons, err er
 	}
 	defer tx.Commit() // read-only tx
 
-	commons.PageTitle = title
+	commons.PageTitle = title + " | Perturbações.pt"
 	commons.LastChangeAgoMin = int(time.Now().Sub(lastChange).Minutes()) % 60
 	commons.LastChangeAgoHour = int(time.Now().Sub(lastChange).Hours())
 	commons.LastUpdateAgoMin = int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60
@@ -733,6 +735,68 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "line.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+// PrivacyPolicyPage serves the privacy policy page
+func PrivacyPolicyPage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		PageCommons
+	}{}
+
+	p.PageCommons, err = InitPageCommons(tx, "Política de privacidade")
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "privacy.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+// TermsPage serves the terms and conditions page
+func TermsPage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		PageCommons
+	}{}
+
+	p.PageCommons, err = InitPageCommons(tx, "Termos e Condições")
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "terms.html", p)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
