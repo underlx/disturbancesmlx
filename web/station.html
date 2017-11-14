@@ -1,5 +1,6 @@
 {{template "header.html" . }}
 {{ $top := . }}
+<a name="top"></a>
   <div class="content">
     <div class="pure-g">
       <div class="pure-u-1">
@@ -18,7 +19,7 @@
         <p><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#trivia" class="pure-button">Trívia</a></p>
       </div>
       <div class="pure-u-1">
-          <h2><a id="lobbies">Átrios</a></h2>
+          <h2><a id="lobbies">Átrios</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
           {{ range $index, $lobby := .Lobbies }}
             <h3>Átrio {{ $lobby.Name }}</h3>
             <h4>Horário</h4>
@@ -41,7 +42,7 @@
           {{end}}
       </div>
       <div class="pure-u-1">
-          <h2><a id="connections">Ligações</a></h2>
+          <h2><a id="connections">Ligações</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
           <p>{{ range $data := .Connections }}
               {{if eq $data.ID "bus"}}<a href="#bus" style="font-size: 85%;" class="pure-button">Carreiras urbanas</a> 
               {{else if eq $data.ID "boat"}}<a href="#boat" style="font-size: 85%;" class="pure-button">Ligações fluviais</a> 
@@ -58,13 +59,14 @@
               {{else if eq $data.ID "park"}}<a id="park">Parques de estacionamento</a>
               {{else if eq $data.ID "bike"}}<a id="bike">Bicicletas partilhadas</a>
               {{end}}
+              <a class="top-link" href="#connections">voltar a Ligações</a>
             </h3>
             <div class="forceSmallHeaders">{{ $data.HTML }}</div>
           {{end}}
         </div>
       </div>
       <div class="pure-u-1">
-        <h2><a id="trivia">Trívia</a></h2>
+        <h2><a id="trivia">Trívia</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
         {{ .Trivia }}
       </div>
     </div>

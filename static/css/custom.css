@@ -310,3 +310,16 @@ ul.pt-ml-line {
 .pt-ml-line > li > .station-features > i {
   color: #5091CD;
 }
+
+.top-link {
+  color: #777;
+  font-size: 12px;
+}
+
+.top-link:after {
+  font-family: FontAwesome;
+  content: "\f176";
+  padding-left: 5px;
+  display: inline-block;
+  text-decoration: none;
+}
