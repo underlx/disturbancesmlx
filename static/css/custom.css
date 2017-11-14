@@ -124,7 +124,6 @@ table.tinycells > tbody > tr > td {
 .headerSocial {
   box-sizing: border-box;
   border-left: 1px #777 solid;
-  padding-left: 1px;
   height: 44px;
 }
 
