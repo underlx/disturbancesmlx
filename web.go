@@ -635,7 +635,7 @@ func ReadStationTrivia(stationID, locale string) (string, error) {
 }
 
 func ReadStationConnections(stationID string) (data []ConnectionData, err error) {
-	connections := []string{"boat", "bus", "train", "park"}
+	connections := []string{"boat", "bus", "train", "park", "bike"}
 	// try pt and use en as fallback
 	for _, connection := range connections {
 		path := "stationkb/pt/connections/" + connection + "/" + stationID + ".html"
@@ -645,7 +645,7 @@ func ReadStationConnections(stationID string) (data []ConnectionData, err error)
 				return data, err
 			}
 			html := string(buf)
-			if connection != "park" {
+			if connection != "park" && connection != "bike" {
 				html = strings.Replace(strings.Replace(string(buf), "</p>", "", -1), "<p>", "", -1)
 			}
 			data = append(data, ConnectionData{

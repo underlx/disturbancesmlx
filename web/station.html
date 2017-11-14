@@ -47,6 +47,7 @@
               {{else if eq $data.ID "boat"}}<a href="#boat" style="font-size: 85%;" class="pure-button">Ligações fluviais</a> 
               {{else if eq $data.ID "train"}}<a href="#train" style="font-size: 85%;" class="pure-button">Comboios</a> 
               {{else if eq $data.ID "park"}}<a href="#park" style="font-size: 85%;" class="pure-button">Parques de estacionamento</a> 
+              {{else if eq $data.ID "bike"}}<a href="#bike" style="font-size: 85%;" class="pure-button">Bicicletas partilhadas</a> 
               {{end}}
           {{end}}</p>
           {{ range $data := .Connections }}
@@ -55,6 +56,7 @@
               {{else if eq $data.ID "boat"}}<a id="boat">Ligações fluviais</a>
               {{else if eq $data.ID "train"}}<a id="train">Comboios</a>
               {{else if eq $data.ID "park"}}<a id="park">Parques de estacionamento</a>
+              {{else if eq $data.ID "bike"}}<a id="bike">Bicicletas partilhadas</a>
               {{end}}
             </h3>
             <div class="forceSmallHeaders">{{ $data.HTML }}</div>
