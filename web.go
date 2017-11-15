@@ -62,7 +62,9 @@ func WebServer() {
 	router.HandleFunc("/l/{id:[-0-9A-Za-z]{1,36}}", LinePage)
 	router.HandleFunc("/lines/{id:[-0-9A-Za-z]{1,36}}", LinePage)
 	router.HandleFunc("/privacy", PrivacyPolicyPage)
+	router.HandleFunc("/privacy/{lang:[a-z]{2}}", PrivacyPolicyPage)
 	router.HandleFunc("/terms", TermsPage)
+	router.HandleFunc("/terms/{lang:[a-z]{2}}", TermsPage)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
 	WebReloadTemplate()
@@ -758,14 +760,22 @@ func PrivacyPolicyPage(w http.ResponseWriter, r *http.Request) {
 		PageCommons
 	}{}
 
-	p.PageCommons, err = InitPageCommons(tx, "Política de privacidade")
+	if mux.Vars(r)["lang"] != "en" {
+		p.PageCommons, err = InitPageCommons(tx, "Política de privacidade")
+	} else {
+		p.PageCommons, err = InitPageCommons(tx, "Privacy Policy")
+	}
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = webtemplate.ExecuteTemplate(w, "privacy.html", p)
+	if mux.Vars(r)["lang"] != "en" {
+		err = webtemplate.ExecuteTemplate(w, "privacy.html", p)
+	} else {
+		err = webtemplate.ExecuteTemplate(w, "privacy-en.html", p)
+	}
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -789,14 +799,22 @@ func TermsPage(w http.ResponseWriter, r *http.Request) {
 		PageCommons
 	}{}
 
-	p.PageCommons, err = InitPageCommons(tx, "Termos e Condições")
+	if mux.Vars(r)["lang"] != "en" {
+		p.PageCommons, err = InitPageCommons(tx, "Termos e Condições")
+	} else {
+		p.PageCommons, err = InitPageCommons(tx, "Terms")
+	}
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = webtemplate.ExecuteTemplate(w, "terms.html", p)
+	if mux.Vars(r)["lang"] != "en" {
+		err = webtemplate.ExecuteTemplate(w, "terms.html", p)
+	} else {
+		err = webtemplate.ExecuteTemplate(w, "terms-en.html", p)
+	}
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
