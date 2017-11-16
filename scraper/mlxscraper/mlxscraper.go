@@ -51,7 +51,6 @@ func (sc *Scraper) Begin(log *log.Logger,
 
 	sc.log.Println("Scraper starting")
 	sc.update()
-	sc.firstUpdate = false
 	sc.log.Println("Scraper completed first fetch")
 	topologyChangeCallback(sc)
 	go sc.scrape()
@@ -160,6 +159,7 @@ func (sc *Scraper) update() {
 			})
 			sc.lines = newLines
 		}
+		sc.firstUpdate = false
 	}
 }
 

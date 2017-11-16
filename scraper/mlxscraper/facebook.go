@@ -37,7 +37,6 @@ func (sc *FacebookScraper) Begin(log *log.Logger,
 
 	sc.log.Println("FacebookScraper starting")
 	sc.update()
-	sc.firstUpdate = false
 	sc.log.Println("FacebookScraper completed first fetch")
 	go sc.scrape()
 }
@@ -135,6 +134,7 @@ func (sc *FacebookScraper) update() {
 		}
 	}
 	sc.announcements = announcements
+	sc.firstUpdate = false
 }
 
 // Networks returns the networks monitored by this scraper
