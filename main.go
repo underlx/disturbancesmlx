@@ -137,10 +137,15 @@ func main() {
 	}
 	go APIserver(certPath)
 
-	/*err = ComputeTypicalSeconds(rootSqalxNode)
-	if err != nil {
-		mainLog.Fatal(err)
-	}*/
+	go func() {
+		for {
+			err := ComputeTypicalSeconds(rootSqalxNode)
+			if err != nil {
+				mainLog.Println(err)
+			}
+			time.Sleep(12 * time.Hour)
+		}
+	}()
 
 	for {
 		if DEBUG {
