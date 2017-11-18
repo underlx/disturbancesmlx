@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/hex"
 	"encoding/pem"
+	"math/rand"
 	"net/http"
+	"time"
 
 	"crypto/x509"
 	"io/ioutil"
@@ -89,9 +91,21 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/feedback", new(resource.Feedback).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 
 	y.AddGroup(v1)
+	if DEBUG {
+		y.Insert(new(DelayMiddleware))
+	}
 
 	y.Logger = webLog
 	y.Start(":12000")
+}
+
+type DelayMiddleware struct {
+	yarf.Middleware
+}
+
+func (m *DelayMiddleware) PreDispatch(c *yarf.Context) error {
+	time.Sleep(500*time.Millisecond + time.Duration(rand.Intn(500))*time.Millisecond)
+	return nil
 }
 
 func getTrustedClientPublicKey(trustedClientCertPath string) *ecdsa.PublicKey {
