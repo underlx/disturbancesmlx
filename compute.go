@@ -89,7 +89,7 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 		connectionAvgDenominator[connection]++
 
 		waitSeconds := sourceUse.LeaveTime.Sub(sourceUse.EntryTime).Seconds()
-		if sourceUse.Type == dataobjects.NetworkEntry {
+		if sourceUse.Type == dataobjects.NetworkEntry && waitSeconds < 60*3 {
 			connectionWaitAvgNumerator[connection] += waitSeconds - 20
 			connectionWaitAvgDenominator[connection]++
 		} else if sourceUse.Type == dataobjects.GoneThrough && waitSeconds < 60*3 {
@@ -172,21 +172,6 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 		}
 	}
 
-	for transfer, denominator := range transferAvgDenominator {
-		if denominator < 2 {
-			// data is not significant enough
-			continue
-		}
-		average := transferAvgNumerator[transfer] / denominator
-		// TODO: add math.Round to int cast once Go 1.10 is released
-		transfer.TypicalSeconds = int(average)
-		fmt.Printf("Updating transfer from %s to %s with %d (%f)\n", transfer.From.ID, transfer.To.ID, transfer.TypicalSeconds, denominator)
-		err := transfer.Update(tx)
-		if err != nil {
-			return err
-		}
-	}
-
 	for connection, denominator := range connectionAvgDenominator {
 		if denominator < 2 {
 			// data is not significant enough
@@ -227,6 +212,55 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 		connection.TypicalWaitingSeconds = int(average)
 		fmt.Printf("Updating connection from %s to %s with wait %d (%f)\n", connection.From.ID, connection.To.ID, connection.TypicalWaitingSeconds, denominator)
 		err := connection.Update(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	for transfer, denominator := range transferAvgDenominator {
+		if denominator < 2 {
+			// data is not significant enough
+			continue
+		}
+		average := transferAvgNumerator[transfer] / denominator
+
+		// subtract average of stop times, because the pathfinding algos can't
+		// deal with edges that have different weights depending on where one
+		// "comes from"
+
+		outgoingConnections := []*dataobjects.Connection{}
+		for connection := range connectionStopAvgDenominator {
+			if connection.From.ID == transfer.Station.ID {
+				outgoingConnections = append(outgoingConnections, connection)
+			}
+		}
+
+		outgoingDestConnections := []*dataobjects.Connection{}
+		for _, connection := range outgoingConnections {
+			lines, err := connection.To.Lines(tx)
+			if err != nil {
+				return err
+			}
+			for _, line := range lines {
+				if line.ID == transfer.To.ID {
+					outgoingDestConnections = append(outgoingDestConnections, connection)
+					break
+				}
+			}
+		}
+
+		avgStopTime := 0
+		for _, connection := range outgoingDestConnections {
+			avgStopTime += connection.TypicalStopSeconds
+		}
+		if len(outgoingDestConnections) > 0 {
+			average -= float64(avgStopTime) / float64(len(outgoingDestConnections))
+		}
+
+		// TODO: add math.Round to int cast once Go 1.10 is released
+		transfer.TypicalSeconds = int(average)
+		fmt.Printf("Updating transfer from %s to %s with %d (%f)\n", transfer.From.ID, transfer.To.ID, transfer.TypicalSeconds, denominator)
+		err := transfer.Update(tx)
 		if err != nil {
 			return err
 		}
