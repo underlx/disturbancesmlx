@@ -94,7 +94,7 @@ func getTripsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Trip, er
 
 		s := sdb.Select().
 			Where(sq.Eq{"trip_id": trips[i].ID}).
-			OrderBy("entry_time ASC")
+			OrderBy("entry_time, leave_time ASC")
 
 		trips[i].StationUses, err = getStationUsesWithSelect(tx, s)
 		if err != nil {

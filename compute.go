@@ -121,7 +121,7 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 				if err != nil {
 					// transfer might no longer exist (closed stations, etc.)
 					// move on
-					fmt.Printf("Transfer on %s from %s to %s skipped\n", sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
+					fmt.Printf("%s: Transfer on %s from %s to %s skipped\n", trip.ID, sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
 					return nil
 				}
 
@@ -142,7 +142,7 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 			if err != nil {
 				// connection might no longer exist (closed stations, etc.)
 				// move on
-				fmt.Printf("Connection from %s to %s skipped\n", sourceUse.Station.ID, targetUse.Station.ID)
+				fmt.Printf("%s: Connection from %s to %s skipped\n", trip.ID, sourceUse.Station.ID, targetUse.Station.ID)
 				continue
 			}
 			if useIdx+2 < len(trip.StationUses) && trip.StationUses[useIdx+2].EntryTime.Sub(targetUse.EntryTime) < 1*time.Second {
