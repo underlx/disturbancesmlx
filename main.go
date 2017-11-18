@@ -138,12 +138,13 @@ func main() {
 	go APIserver(certPath)
 
 	go func() {
+		time.Sleep(5 * time.Second)
 		for {
 			err := ComputeTypicalSeconds(rootSqalxNode)
 			if err != nil {
 				mainLog.Println(err)
 			}
-			time.Sleep(12 * time.Hour)
+			time.Sleep(10 * time.Hour)
 		}
 	}()
 
