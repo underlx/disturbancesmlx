@@ -93,6 +93,49 @@ func (line *Line) Stations(node sqalx.Node) ([]*Station, error) {
 	return getStationsWithSelect(node, s)
 }
 
+// GetDirectionForConnection returns the station that is the terminus for this
+// line in the direction of the provided connection. If the connection is not
+// part of this line, an error is returned
+func (line *Line) GetDirectionForConnection(node sqalx.Node, connection *Connection) (*Station, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit() // read-only tx
+
+	stations, err := line.Stations(tx)
+	if err != nil {
+		return nil, err
+	}
+	numStations := len(stations)
+	for index, station := range stations {
+		if index+1 <= numStations-1 && station.ID == connection.From.ID && stations[index+1].ID == connection.To.ID {
+			// connection is in the "positive" direction
+			return stations[numStations-1], nil
+		}
+		// deal with a single closed station...
+		if index+2 <= numStations-1 && station.ID == connection.From.ID && stations[index+2].ID == connection.To.ID {
+			if closed, err := stations[index+1].Closed(tx); err == nil && closed {
+				// connection is in the "positive" direction
+				return stations[numStations-1], nil
+			}
+		}
+
+		if index-1 >= 0 && station.ID == connection.From.ID && stations[index-1].ID == connection.To.ID {
+			// connection is in the "negative" direction
+			return stations[0], nil
+		}
+		// deal with a single closed station...
+		if index-2 >= 0 && station.ID == connection.From.ID && stations[index-2].ID == connection.To.ID {
+			if closed, err := stations[index-1].Closed(tx); err == nil && closed {
+				// connection is in the "negative" direction
+				return stations[0], nil
+			}
+		}
+	}
+	return nil, errors.New("GetDirectionForConnection: specified connection is not part of this line")
+}
+
 // OngoingDisturbances returns a slice with all ongoing disturbances on this line
 func (line *Line) OngoingDisturbances(node sqalx.Node) ([]*Disturbance, error) {
 	s := sdb.Select().

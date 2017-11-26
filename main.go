@@ -148,6 +148,20 @@ func main() {
 		}
 	}()
 
+	if DEBUG {
+		f, err := os.Create("realTimeSimulationData.txt")
+		if err == nil {
+			toTime := time.Now()
+			fromTime := toTime.AddDate(0, 0, -30)
+			err = ComputeSimulatedRealtime(rootSqalxNode, fromTime, toTime, f)
+			if err != nil {
+				mainLog.Println(err)
+			}
+			f.Close()
+			mainLog.Println("Real-time simulation data written")
+		}
+	}
+
 	for {
 		if DEBUG {
 			printLatestDisturbance(rootSqalxNode)
