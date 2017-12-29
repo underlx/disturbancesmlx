@@ -575,8 +575,8 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func schedulesToLines(schedules []*dataobjects.Schedule) []string {
-	schedulesByDay := make(map[int]*dataobjects.Schedule)
+func schedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
+	schedulesByDay := make(map[int]*dataobjects.LobbySchedule)
 	for _, schedule := range schedules {
 		if schedule.Holiday {
 			schedulesByDay[-1] = schedule
@@ -618,7 +618,7 @@ func schedulesToLines(schedules []*dataobjects.Schedule) []string {
 		return scheduleString
 	}
 }
-func scheduleToString(schedule *dataobjects.Schedule) string {
+func scheduleToString(schedule *dataobjects.LobbySchedule) string {
 	if !schedule.Open {
 		return "encerrado"
 	}

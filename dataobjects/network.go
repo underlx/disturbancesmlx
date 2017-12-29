@@ -108,6 +108,13 @@ func (network *Network) Stations(node sqalx.Node) ([]*Station, error) {
 	return getStationsWithSelect(node, s)
 }
 
+// Schedules returns the schedules of this network
+func (network *Network) Schedules(node sqalx.Node) ([]*NetworkSchedule, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"network_id": network.ID})
+	return getNetworkSchedulesWithSelect(node, s)
+}
+
 // LastDisturbance returns the latest disturbance affecting this network
 func (network *Network) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 	tx, err := node.Beginx()

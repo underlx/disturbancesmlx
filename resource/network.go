@@ -22,10 +22,20 @@ type apiNetwork struct {
 	NewsURL      string               `msgpack:"newsURL" json:"newsURL"`
 }
 
+type apiNetworkSchedule struct {
+	Network      *dataobjects.Network `msgpack:"-" json:"-"`
+	Holiday      bool                 `msgpack:"holiday" json:"holiday"`
+	Day          int                  `msgpack:"day" json:"day"`
+	Open         bool                 `msgpack:"open" json:"open"`
+	OpenTime     dataobjects.Time     `msgpack:"openTime" json:"openTime"`
+	OpenDuration dataobjects.Duration `msgpack:"duration" json:"duration"`
+}
+
 type apiNetworkWrapper struct {
 	apiNetwork `msgpack:",inline"`
-	Lines      []string `msgpack:"lines" json:"lines"`
-	Stations   []string `msgpack:"stations" json:"stations"`
+	Lines      []string             `msgpack:"lines" json:"lines"`
+	Stations   []string             `msgpack:"stations" json:"stations"`
+	Schedule   []apiNetworkSchedule `msgpack:"schedule" json:"schedule"`
 }
 
 func (r *Network) WithNode(node sqalx.Node) *Network {
@@ -65,6 +75,15 @@ func (n *Network) Get(c *yarf.Context) error {
 		for _, station := range stations {
 			data.Stations = append(data.Stations, station.ID)
 		}
+
+		data.Schedule = []apiNetworkSchedule{}
+		schedules, err := network.Schedules(tx)
+		if err != nil {
+			return err
+		}
+		for _, s := range schedules {
+			data.Schedule = append(data.Schedule, apiNetworkSchedule(*s))
+		}
 		RenderData(c, data)
 	} else {
 		networks, err := dataobjects.GetNetworks(tx)
@@ -92,6 +111,15 @@ func (n *Network) Get(c *yarf.Context) error {
 			}
 			for _, station := range stations {
 				apinetworks[i].Stations = append(apinetworks[i].Stations, station.ID)
+			}
+
+			apinetworks[i].Schedule = []apiNetworkSchedule{}
+			schedules, err := networks[i].Schedules(tx)
+			if err != nil {
+				return err
+			}
+			for _, s := range schedules {
+				apinetworks[i].Schedule = append(apinetworks[i].Schedule, apiNetworkSchedule(*s))
 			}
 		}
 		RenderData(c, apinetworks)

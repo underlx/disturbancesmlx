@@ -8,8 +8,8 @@ import (
 	"github.com/heetch/sqalx"
 )
 
-// Schedule is a Lobby schedule
-type Schedule struct {
+// LobbySchedule is a Lobby schedule
+type LobbySchedule struct {
 	Lobby        *Lobby
 	Holiday      bool
 	Day          int
@@ -18,13 +18,13 @@ type Schedule struct {
 	OpenDuration Duration
 }
 
-// GetSchedules returns a slice with all registered schedules
-func GetSchedules(node sqalx.Node) ([]*Schedule, error) {
-	return getSchedulesWithSelect(node, sdb.Select())
+// GetLobbySchedules returns a slice with all registered schedules
+func GetLobbySchedules(node sqalx.Node) ([]*LobbySchedule, error) {
+	return getLobbySchedulesWithSelect(node, sdb.Select())
 }
 
-func getSchedulesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Schedule, error) {
-	schedules := []*Schedule{}
+func getLobbySchedulesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*LobbySchedule, error) {
+	schedules := []*LobbySchedule{}
 
 	tx, err := node.Beginx()
 	if err != nil {
@@ -36,13 +36,13 @@ func getSchedulesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Sche
 		From("station_lobby_schedule").
 		RunWith(tx).Query()
 	if err != nil {
-		return schedules, fmt.Errorf("getSchedulesWithSelect: %s", err)
+		return schedules, fmt.Errorf("getLobbySchedulesWithSelect: %s", err)
 	}
 	defer rows.Close()
 
 	var lobbyIDs []string
 	for rows.Next() {
-		var schedule Schedule
+		var schedule LobbySchedule
 		var lobbyID string
 		err := rows.Scan(
 			&lobbyID,
@@ -52,25 +52,25 @@ func getSchedulesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Sche
 			&schedule.OpenTime,
 			&schedule.OpenDuration)
 		if err != nil {
-			return schedules, fmt.Errorf("getSchedulesWithSelect: %s", err)
+			return schedules, fmt.Errorf("getLobbySchedulesWithSelect: %s", err)
 		}
 		schedules = append(schedules, &schedule)
 		lobbyIDs = append(lobbyIDs, lobbyID)
 	}
 	if err := rows.Err(); err != nil {
-		return schedules, fmt.Errorf("getSchedulesWithSelect: %s", err)
+		return schedules, fmt.Errorf("getLobbySchedulesWithSelect: %s", err)
 	}
 	for i := range lobbyIDs {
 		schedules[i].Lobby, err = GetLobby(tx, lobbyIDs[i])
 		if err != nil {
-			return schedules, fmt.Errorf("getSchedulesWithSelect: %s", err)
+			return schedules, fmt.Errorf("getLobbySchedulesWithSelect: %s", err)
 		}
 	}
 	return schedules, nil
 }
 
 // Compare checks if two schedules are the same regardless of their day
-func (schedule *Schedule) Compare(s2 *Schedule) bool {
+func (schedule *LobbySchedule) Compare(s2 *LobbySchedule) bool {
 	return (schedule.Open == false && s2.Open == false) ||
 		(schedule.Open == s2.Open &&
 			schedule.OpenTime == s2.OpenTime &&
@@ -78,7 +78,7 @@ func (schedule *Schedule) Compare(s2 *Schedule) bool {
 }
 
 // Update adds or updates the schedule
-func (schedule *Schedule) Update(node sqalx.Node) error {
+func (schedule *LobbySchedule) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err
@@ -98,13 +98,13 @@ func (schedule *Schedule) Update(node sqalx.Node) error {
 		RunWith(tx).Exec()
 
 	if err != nil {
-		return errors.New("AddSchedule: " + err.Error())
+		return errors.New("AddLobbySchedule: " + err.Error())
 	}
 	return tx.Commit()
 }
 
 // Delete deletes the schedule
-func (schedule *Schedule) Delete(node sqalx.Node) error {
+func (schedule *LobbySchedule) Delete(node sqalx.Node) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func (schedule *Schedule) Delete(node sqalx.Node) error {
 			sq.Eq{"day": schedule.Day}).
 		RunWith(tx).Exec()
 	if err != nil {
-		return fmt.Errorf("RemoveSchedule: %s", err)
+		return fmt.Errorf("RemoveLobbySchedule: %s", err)
 	}
 	return tx.Commit()
 }

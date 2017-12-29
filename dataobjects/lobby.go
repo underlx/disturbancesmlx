@@ -93,10 +93,10 @@ func (lobby *Lobby) Exits(node sqalx.Node) ([]*Exit, error) {
 }
 
 // Schedules returns the schedules of this lobby
-func (lobby *Lobby) Schedules(node sqalx.Node) ([]*Schedule, error) {
+func (lobby *Lobby) Schedules(node sqalx.Node) ([]*LobbySchedule, error) {
 	s := sdb.Select().
 		Where(sq.Eq{"lobby_id": lobby.ID})
-	return getSchedulesWithSelect(node, s)
+	return getLobbySchedulesWithSelect(node, s)
 }
 
 // Update adds or updates the Lobby

@@ -343,6 +343,13 @@ func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endT
 	return downTime, nil
 }
 
+// Schedules returns the schedules of this line
+func (line *Line) Schedules(node sqalx.Node) ([]*LineSchedule, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"line_id": line.ID})
+	return getLineSchedulesWithSelect(node, s)
+}
+
 // Update adds or updates the line
 func (line *Line) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()

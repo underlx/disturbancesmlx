@@ -12,17 +12,27 @@ type Line struct {
 }
 
 type apiLine struct {
-	ID          string              `msgpack:"id" json:"id"`
-	Name        string              `msgpack:"name" json:"name"`
-	Color       string              `msgpack:"color" json:"color"`
-	TypicalCars int                 `msgpack:"typCars" json:"typCars"`
+	ID          string               `msgpack:"id" json:"id"`
+	Name        string               `msgpack:"name" json:"name"`
+	Color       string               `msgpack:"color" json:"color"`
+	TypicalCars int                  `msgpack:"typCars" json:"typCars"`
 	Network     *dataobjects.Network `msgpack:"-" json:"-"`
+}
+
+type apiLineSchedule struct {
+	Line         *dataobjects.Line    `msgpack:"-" json:"-"`
+	Holiday      bool                 `msgpack:"holiday" json:"holiday"`
+	Day          int                  `msgpack:"day" json:"day"`
+	Open         bool                 `msgpack:"open" json:"open"`
+	OpenTime     dataobjects.Time     `msgpack:"openTime" json:"openTime"`
+	OpenDuration dataobjects.Duration `msgpack:"duration" json:"duration"`
 }
 
 type apiLineWrapper struct {
 	apiLine   `msgpack:",inline"`
-	NetworkID string   `msgpack:"network" json:"network"`
-	Stations  []string `msgpack:"stations" json:"stations"`
+	NetworkID string            `msgpack:"network" json:"network"`
+	Stations  []string          `msgpack:"stations" json:"stations"`
+	Schedule  []apiLineSchedule `msgpack:"schedule" json:"schedule"`
 }
 
 func (r *Line) WithNode(node sqalx.Node) *Line {
@@ -56,6 +66,15 @@ func (n *Line) Get(c *yarf.Context) error {
 			data.Stations = append(data.Stations, station.ID)
 		}
 
+		data.Schedule = []apiLineSchedule{}
+		schedules, err := line.Schedules(tx)
+		if err != nil {
+			return err
+		}
+		for _, s := range schedules {
+			data.Schedule = append(data.Schedule, apiLineSchedule(*s))
+		}
+
 		RenderData(c, data)
 	} else {
 		lines, err := dataobjects.GetLines(tx)
@@ -76,6 +95,15 @@ func (n *Line) Get(c *yarf.Context) error {
 			}
 			for _, station := range stations {
 				apilines[i].Stations = append(apilines[i].Stations, station.ID)
+			}
+
+			apilines[i].Schedule = []apiLineSchedule{}
+			schedules, err := lines[i].Schedules(tx)
+			if err != nil {
+				return err
+			}
+			for _, s := range schedules {
+				apilines[i].Schedule = append(apilines[i].Schedule, apiLineSchedule(*s))
 			}
 		}
 		RenderData(c, apilines)

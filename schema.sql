@@ -35,6 +35,16 @@ CREATE TABLE IF NOT EXISTS "network" (
     news_url TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS "network_schedule" (
+    network_id VARCHAR(36) NOT NULL REFERENCES network (id),
+    holiday BOOLEAN NOT NULL,
+    day INT NOT NULL,
+    open BOOLEAN NOT NULL,
+    open_time TIME NOT NULL,
+    open_duration INTERVAL NOT NULL,
+    PRIMARY KEY (network_id, holiday, day)
+);
+
 CREATE TABLE IF NOT EXISTS "mline" (
     id VARCHAR(36) PRIMARY KEY,
     name TEXT NOT NULL,
@@ -64,6 +74,16 @@ CREATE TABLE IF NOT EXISTS "line_disturbance_has_status" (
     disturbance_id VARCHAR(36) NOT NULL REFERENCES line_disturbance(id),
     status_id VARCHAR(36) NOT NULL REFERENCES line_status (id),
     PRIMARY KEY (disturbance_id, status_id)
+);
+
+CREATE TABLE IF NOT EXISTS "line_schedule" (
+    line_id VARCHAR(36) NOT NULL REFERENCES mline (id),
+    holiday BOOLEAN NOT NULL,
+    day INT NOT NULL,
+    open BOOLEAN NOT NULL,
+    open_time TIME NOT NULL,
+    open_duration INTERVAL NOT NULL,
+    PRIMARY KEY (line_id, holiday, day)
 );
 
 CREATE TABLE IF NOT EXISTS "station" (
