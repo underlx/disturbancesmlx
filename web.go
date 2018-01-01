@@ -459,7 +459,14 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		if !disturbance.Ended {
 			endTime = time.Now()
 		}
-		p.DowntimePerLine[disturbance.Line.ID] += float32(endTime.Sub(disturbance.StartTime).Hours())
+		if endTime.After(endDate) {
+			endTime = endDate
+		}
+		startTime := disturbance.StartTime
+		if startTime.Before(startDate) {
+			startTime = startDate
+		}
+		p.DowntimePerLine[disturbance.Line.ID] += float32(endTime.Sub(startTime).Hours())
 	}
 
 	p.AverageSpeed, err = ComputeAverageSpeedCached(tx, startDate, endDate.Truncate(24*time.Hour))

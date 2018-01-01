@@ -334,11 +334,18 @@ func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endT
 
 	var downTime time.Duration
 	for _, d := range disturbances {
-		if d.Ended {
-			downTime += d.EndTime.Sub(d.StartTime)
-		} else {
-			downTime += endTime.Sub(d.StartTime)
+		thisEnd := d.EndTime
+		if !d.Ended {
+			thisEnd = time.Now()
 		}
+		if thisEnd.After(endTime) {
+			thisEnd = endTime
+		}
+		thisStart := d.StartTime
+		if thisStart.Before(startTime) {
+			thisStart = startTime
+		}
+		downTime += thisEnd.Sub(thisStart)
 	}
 	return downTime, nil
 }
