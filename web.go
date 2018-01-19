@@ -11,17 +11,23 @@ import (
 	"time"
 
 	"github.com/gbl08ma/disturbancesmlx/dataobjects"
+	"github.com/gbl08ma/ssoclient"
 	"github.com/heetch/sqalx"
+	uuid "github.com/satori/go.uuid"
 
 	"encoding/json"
 
 	"sort"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 	"github.com/rickb777/date"
 )
 
 var webtemplate *template.Template
+var sessionStore *sessions.CookieStore
+var daClient *ssoclient.SSOClient
+var websiteURL string
 
 type PageCommons struct {
 	PageTitle string
@@ -43,6 +49,41 @@ type ConnectionData struct {
 
 // WebServer starts the web server
 func WebServer() {
+	authKey, present := secrets.Get("cookieAuthKey")
+	cipherKey, present2 := secrets.Get("cookieCipherKey")
+	if !present || !present2 {
+		mainLog.Fatal("Cookie auth/cipher keys not present in keybox")
+	}
+
+	websiteURL, present = secrets.Get("websiteURL")
+	if !present {
+		mainLog.Fatal("Website URL not present in keybox")
+	}
+
+	sessionStore = sessions.NewCookieStore(
+		[]byte(authKey),
+		[]byte(cipherKey))
+
+	ssoEndpointURL, present := secrets.Get("ssoEndpoint")
+	if !present {
+		mainLog.Fatal("SSO Endpoint URL not present in keybox")
+	}
+	ssoAPIkey, present := secrets.Get("ssoAPIkey")
+	if !present {
+		mainLog.Fatal("SSO API key not present in keybox")
+	}
+
+	ssoAPIsecret, present := secrets.Get("ssoAPIsecret")
+	if !present {
+		mainLog.Fatal("SSO API secret not present in keybox")
+	}
+
+	var err error
+	daClient, err = ssoclient.NewSSOClient(ssoEndpointURL, ssoAPIkey, ssoAPIsecret)
+	if err != nil {
+		mainLog.Fatalf("Failed to create SSO client: %s\n", err)
+	}
+
 	router := mux.NewRouter().StrictSlash(true)
 
 	webLog.Println("Starting Web server...")
@@ -67,6 +108,9 @@ func WebServer() {
 	router.HandleFunc("/terms/{lang:[a-z]{2}}", TermsPage)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
+	router.HandleFunc("/auth", AuthHandler)
+	router.HandleFunc("/auth/logout", AuthLogoutHandler)
+
 	WebReloadTemplate()
 
 	server := http.Server{
@@ -74,7 +118,7 @@ func WebServer() {
 		Handler: router,
 	}
 
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
 		webLog.Println(err)
 	}
@@ -838,16 +882,30 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	internalUsername, usernamePresent := secrets.Get("internalUsername")
-	internalPassword, passwordPresent := secrets.Get("internalPassword")
-	if usernamePresent || passwordPresent {
-		user, pass, _ := r.BasicAuth()
-		if internalUsername != user || internalPassword != pass {
-			w.Header().Set("WWW-Authenticate", `Basic realm="Disturbances"`)
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("401 Unauthorized\n"))
+
+	session, _ := sessionStore.Get(r, "internal")
+	if session.IsNew || session.Values["authenticated"] == nil || session.Values["authenticated"].(int64) < time.Now().UTC().AddDate(0, 0, -7).Unix() {
+		session.Values["id"] = uuid.NewV4().String()
+		session.Values["original_url"] = r.URL.String()
+
+		url, rid, err := daClient.InitLogin(websiteURL+"/auth", false, "", nil, session.Values["id"].(string), websiteURL)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			webLog.Println(err)
 			return
 		}
+
+		session.Values["rid"] = rid
+		err = session.Save(r, w)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			webLog.Println(err)
+			return
+		}
+
+		http.Redirect(w, r, url, http.StatusFound)
+		return
 	}
 
 	message := ""
@@ -878,8 +936,12 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		}
 		AverageSpeed float64
 		Message      string
+		UserID       string
+		Username     string
 	}{
-		Message: message,
+		Message:  message,
+		UserID:   session.Values["userid"].(string),
+		Username: session.Values["displayname"].(string),
 	}
 
 	p.PageCommons, err = InitPageCommons(tx, "Página interna")
@@ -959,6 +1021,71 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+// AuthHandler serves requests from users that come from the SSO login page
+func AuthHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("from_sso_server") != "1" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	session, _ := sessionStore.Get(r, "internal")
+	if session.IsNew || session.Values["id"] == nil || session.Values["rid"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	ssoID := r.URL.Query().Get("sso_id")
+	ssoID2 := r.URL.Query().Get("sso_id2")
+	rid := session.Values["rid"].(string)
+	login, err := daClient.GetLogin(ssoID, 7*24*60*60, nil, ssoID2, rid)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if login.RecoveredInfo != session.Values["id"].(string) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	// restrict access to users that are global dotAccount admins or UnderLX admins
+	if !login.Admin && !login.TagMap["sso_admin"] && !login.TagMap["underlx_admin"] {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	session.Values["ssoid"] = login.SSOID
+	session.Values["userid"] = login.UserID
+	session.Values["displayname"] = login.FieldMap["displayname"]
+	session.Values["authenticated"] = time.Now().UTC().Unix()
+	err = session.Save(r, w)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, session.Values["original_url"].(string), http.StatusFound)
+}
+
+// AuthLogoutHandler serves requests from users that come from the SSO login page
+func AuthLogoutHandler(w http.ResponseWriter, r *http.Request) {
+	session, _ := sessionStore.Get(r, "internal")
+	if !session.IsNew && session.Values["ssoid"] != nil {
+		daClient.Logout(session.Values["ssoid"].(string))
+	}
+	session.Values["id"] = nil
+	session.Values["authenticated"] = int64(0)
+	err := session.Save(r, w)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, websiteURL, http.StatusFound)
 }
 
 // WebReloadTemplate reloads the templates for the website

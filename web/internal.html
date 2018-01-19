@@ -6,6 +6,7 @@
       {{ if .Message }}
       <aside><p>{{ .Message }}</p></aside>
       {{end}}
+      <h3>Olá, {{ .Username }} <small>(uid {{ .UserID }}) | <a href="/auth/logout">Terminar sessão</a></small></h3>
       <form class="pure-form" method="POST">
         <fieldset>
           <input type="hidden" name="action" value="reloadTemplates">
