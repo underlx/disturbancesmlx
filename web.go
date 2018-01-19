@@ -110,6 +110,9 @@ func WebServer() {
 
 	router.HandleFunc("/auth", AuthHandler)
 	router.HandleFunc("/auth/logout", AuthLogoutHandler)
+	router.HandleFunc("/dotAccount64Logo.png", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/img/logo.png")
+	})
 
 	WebReloadTemplate()
 
