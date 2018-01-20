@@ -216,17 +216,17 @@ INSERT INTO line_has_station VALUES
 ('pt-ml-vermelha', 'pt-ml-ap', 1200);
 
 INSERT INTO connection VALUES
-('pt-ml-ss', 'pt-ml-sa', 0, 0, 0, 769), ('pt-ml-sa', 'pt-ml-ss', 0, 0, 0, 769),
-('pt-ml-sa', 'pt-ml-am', 0, 0, 0, 1141), ('pt-ml-am', 'pt-ml-sa', 0, 0, 0, 1141),
-('pt-ml-am', 'pt-ml-ol', 0, 0, 0, 936), ('pt-ml-ol', 'pt-ml-am', 0, 0, 0, 936),
-('pt-ml-ol', 'pt-ml-bv', 0, 0, 0, 979), ('pt-ml-bv', 'pt-ml-ol', 0, 0, 0, 979),
-('pt-ml-bv', 'pt-ml-ch', 0, 0, 0, 864), ('pt-ml-ch', 'pt-ml-bv', 0, 0, 0, 864),
-('pt-ml-ch', 'pt-ml-os', 0, 0, 0, 737), ('pt-ml-os', 'pt-ml-ch', 0, 0, 0, 737),
-('pt-ml-os', 'pt-ml-cr', 0, 0, 0, 720), ('pt-ml-cr', 'pt-ml-os', 0, 0, 0, 720),
-('pt-ml-cr', 'pt-ml-or', 0, 0, 0, 805), ('pt-ml-or', 'pt-ml-cr', 0, 0, 0, 805),
-('pt-ml-or', 'pt-ml-mo', 0, 0, 0, 1017), ('pt-ml-mo', 'pt-ml-or', 0, 0, 0, 1017),
-('pt-ml-mo', 'pt-ml-en', 0, 0, 0, 1050), ('pt-ml-en', 'pt-ml-mo', 0, 0, 0, 1050),
-('pt-ml-en', 'pt-ml-ap', 0, 0, 0, 1286), ('pt-ml-ap', 'pt-ml-en', 0, 0, 0, 1286);
+('pt-ml-ss', 'pt-ml-sa', 0, 0, 0, 763), ('pt-ml-sa', 'pt-ml-ss', 0, 0, 0, 763),
+('pt-ml-sa', 'pt-ml-am', 0, 0, 0, 1067), ('pt-ml-am', 'pt-ml-sa', 0, 0, 0, 1067),
+('pt-ml-am', 'pt-ml-ol', 0, 0, 0, 909), ('pt-ml-ol', 'pt-ml-am', 0, 0, 0, 909),
+('pt-ml-ol', 'pt-ml-bv', 0, 0, 0, 964), ('pt-ml-bv', 'pt-ml-ol', 0, 0, 0, 964),
+('pt-ml-bv', 'pt-ml-ch', 0, 0, 0, 917), ('pt-ml-ch', 'pt-ml-bv', 0, 0, 0, 917),
+('pt-ml-ch', 'pt-ml-os', 0, 0, 0, 711), ('pt-ml-os', 'pt-ml-ch', 0, 0, 0, 711),
+('pt-ml-os', 'pt-ml-cr', 0, 0, 0, 693), ('pt-ml-cr', 'pt-ml-os', 0, 0, 0, 693),
+('pt-ml-cr', 'pt-ml-or', 0, 0, 0, 823), ('pt-ml-or', 'pt-ml-cr', 0, 0, 0, 823),
+('pt-ml-or', 'pt-ml-mo', 0, 0, 0, 1380), ('pt-ml-mo', 'pt-ml-or', 0, 0, 0, 1380),
+('pt-ml-mo', 'pt-ml-en', 0, 0, 0, 1179), ('pt-ml-en', 'pt-ml-mo', 0, 0, 0, 1179),
+('pt-ml-en', 'pt-ml-ap', 0, 0, 0, 1026), ('pt-ml-ap', 'pt-ml-en', 0, 0, 0, 1026);
 
 -- Line transfers
 
