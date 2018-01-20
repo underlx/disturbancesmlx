@@ -13,7 +13,6 @@ import (
 	"github.com/gbl08ma/disturbancesmlx/dataobjects"
 	"github.com/gbl08ma/ssoclient"
 	"github.com/heetch/sqalx"
-	uuid "github.com/satori/go.uuid"
 
 	"encoding/json"
 
@@ -879,35 +878,20 @@ func TermsPage(w http.ResponseWriter, r *http.Request) {
 func InternalPage(w http.ResponseWriter, r *http.Request) {
 	if DEBUG {
 		WebReloadTemplate()
-	} else {
-		if !RequestIsTLS(r) {
-			w.WriteHeader(http.StatusUpgradeRequired)
-			return
-		}
+	} else if !RequestIsTLS(r) {
+		w.WriteHeader(http.StatusUpgradeRequired)
+		return
 	}
 
-	session, _ := sessionStore.Get(r, "internal")
-	if session.IsNew || session.Values["authenticated"] == nil || session.Values["authenticated"].(int64) < time.Now().UTC().AddDate(0, 0, -7).Unix() {
-		session.Values["id"] = uuid.NewV4().String()
-		session.Values["original_url"] = r.URL.String()
-
-		url, rid, err := daClient.InitLogin(websiteURL+"/auth", false, "", nil, session.Values["id"].(string), websiteURL)
-
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			webLog.Println(err)
-			return
-		}
-
-		session.Values["rid"] = rid
-		err = session.Save(r, w)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			webLog.Println(err)
-			return
-		}
-
-		http.Redirect(w, r, url, http.StatusFound)
+	hasSession, session, err := AuthGetSession(w, r)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else if !hasSession {
+		return
+	} else if !session.IsAdmin {
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
@@ -943,8 +927,8 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		Username     string
 	}{
 		Message:  message,
-		UserID:   session.Values["userid"].(string),
-		Username: session.Values["displayname"].(string),
+		UserID:   session.UserID,
+		Username: session.DisplayName,
 	}
 
 	p.PageCommons, err = InitPageCommons(tx, "Página interna")
@@ -1024,71 +1008,6 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-}
-
-// AuthHandler serves requests from users that come from the SSO login page
-func AuthHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Query().Get("from_sso_server") != "1" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	session, _ := sessionStore.Get(r, "internal")
-	if session.IsNew || session.Values["id"] == nil || session.Values["rid"] == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	ssoID := r.URL.Query().Get("sso_id")
-	ssoID2 := r.URL.Query().Get("sso_id2")
-	rid := session.Values["rid"].(string)
-	login, err := daClient.GetLogin(ssoID, 7*24*60*60, nil, ssoID2, rid)
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	if login.RecoveredInfo != session.Values["id"].(string) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	// restrict access to users that are global dotAccount admins or UnderLX admins
-	if !login.Admin && !login.TagMap["sso_admin"] && !login.TagMap["underlx_admin"] {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	session.Values["ssoid"] = login.SSOID
-	session.Values["userid"] = login.UserID
-	session.Values["displayname"] = login.FieldMap["displayname"]
-	session.Values["authenticated"] = time.Now().UTC().Unix()
-	err = session.Save(r, w)
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	http.Redirect(w, r, session.Values["original_url"].(string), http.StatusFound)
-}
-
-// AuthLogoutHandler serves requests from users that come from the SSO login page
-func AuthLogoutHandler(w http.ResponseWriter, r *http.Request) {
-	session, _ := sessionStore.Get(r, "internal")
-	if !session.IsNew && session.Values["ssoid"] != nil {
-		daClient.Logout(session.Values["ssoid"].(string))
-	}
-	session.Values["id"] = nil
-	session.Values["authenticated"] = int64(0)
-	err := session.Save(r, w)
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	http.Redirect(w, r, websiteURL, http.StatusFound)
 }
 
 // WebReloadTemplate reloads the templates for the website
