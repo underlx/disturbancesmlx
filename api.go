@@ -66,8 +66,8 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/datasets", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
 	v1.Add("/datasets/:id", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
 
-	v1.Add("/stats", new(resource.Stats).WithNode(rootSqalxNode).WithCalculator(new(MLcalculator)))
-	v1.Add("/stats/:id", new(resource.Stats).WithNode(rootSqalxNode).WithCalculator(new(MLcalculator)))
+	v1.Add("/stats", new(resource.Stats).WithNode(rootSqalxNode).WithStats(statsHandler))
+	v1.Add("/stats/:id", new(resource.Stats).WithNode(rootSqalxNode).WithStats(statsHandler))
 
 	v1.Add("/announcements", new(resource.Announcement).WithAnnouncementStore(&annStore))
 	v1.Add("/announcements/:source", new(resource.Announcement).WithAnnouncementStore(&annStore))
@@ -87,6 +87,8 @@ func APIserver(trustedClientCertPath string) {
 
 	v1.Add("/trips", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 	v1.Add("/trips/:id", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
+
+	v1.Add("/rt", new(resource.Realtime).WithNode(rootSqalxNode).WithHashKey(getHashKey()).WithStatsHandler(statsHandler))
 
 	v1.Add("/feedback", new(resource.Feedback).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 

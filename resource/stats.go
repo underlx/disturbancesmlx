@@ -9,6 +9,12 @@ import (
 	"github.com/yarf-framework/yarf"
 )
 
+// StatsCalculator calculates general statistics about a network or part of a network
+type StatsCalculator interface {
+	Availability(node sqalx.Node, line *dataobjects.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error)
+	CurrentlyOnlineInTransit(network *dataobjects.Network, approximateTo int) int
+}
+
 // Stats composites resource
 type Stats struct {
 	resource
@@ -16,8 +22,9 @@ type Stats struct {
 }
 
 type apiStats struct {
-	LineStats       map[string]apiLineStats `msgpack:"lineStats" json:"lineStats"`
-	LastDisturbance time.Time               `msgpack:"lastDisturbance" json:"lastDisturbance"`
+	LineStats                map[string]apiLineStats `msgpack:"lineStats" json:"lineStats"`
+	LastDisturbance          time.Time               `msgpack:"lastDisturbance" json:"lastDisturbance"`
+	CurrentlyOnlineInTransit int                     `msgpack:"curOnInTransit" json:"curOnInTransit"`
 }
 
 type apiLineStats struct {
@@ -25,16 +32,12 @@ type apiLineStats struct {
 	AverageDisturbanceDuration dataobjects.Duration `msgpack:"avgDistDuration" json:"avgDistDuration"`
 }
 
-type StatsCalculator interface {
-	Availability(node sqalx.Node, line *dataobjects.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error)
-}
-
 func (r *Stats) WithNode(node sqalx.Node) *Stats {
 	r.node = node
 	return r
 }
 
-func (r *Stats) WithCalculator(calculator StatsCalculator) *Stats {
+func (r *Stats) WithStats(calculator StatsCalculator) *Stats {
 	r.calculator = calculator
 	return r
 }
@@ -113,8 +116,9 @@ func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network
 	lastDist, err := r.getLastDisturbanceTimeForNetwork(tx, network)
 
 	stats := apiStats{
-		LastDisturbance: lastDist,
-		LineStats:       make(map[string]apiLineStats),
+		LastDisturbance:          lastDist,
+		LineStats:                make(map[string]apiLineStats),
+		CurrentlyOnlineInTransit: r.calculator.CurrentlyOnlineInTransit(network, 5),
 	}
 
 	lines, err := network.Lines(tx)
