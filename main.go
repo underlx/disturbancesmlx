@@ -27,13 +27,6 @@ var (
 	lastChange    time.Time
 )
 
-// MLcalculator implements resource.StatsCalculator
-type MLcalculator struct{}
-
-func (*MLcalculator) Availability(node sqalx.Node, line *dataobjects.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error) {
-	return MLlineAvailability(node, line, startTime, endTime)
-}
-
 // MLlastDisturbanceTime returns the time of the latest Metro de Lisboa disturbance
 func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
 	tx, err := node.Beginx()
