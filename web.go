@@ -911,6 +911,13 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
+	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	p := struct {
 		PageCommons
 		StartTime  time.Time
@@ -921,26 +928,21 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 			Availability string
 			AvgDuration  string
 		}
-		AverageSpeed      float64
-		Message           string
-		UserID            string
-		Username          string
-		PassengerReadings []PassengerReading
+		AverageSpeed         float64
+		Message              string
+		UserID               string
+		Username             string
+		PassengerReadings    []PassengerReading
+		UsersOnlineInNetwork int
 	}{
-		Message:           message,
-		UserID:            session.UserID,
-		Username:          session.DisplayName,
-		PassengerReadings: vehicleHandler.GetReadings(),
+		Message:              message,
+		UserID:               session.UserID,
+		Username:             session.DisplayName,
+		PassengerReadings:    vehicleHandler.GetReadings(),
+		UsersOnlineInNetwork: statsHandler.CurrentlyOnlineInTransit(n, 0),
 	}
 
 	p.PageCommons, err = InitPageCommons(tx, "Página interna")
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
