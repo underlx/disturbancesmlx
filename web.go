@@ -921,14 +921,16 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 			Availability string
 			AvgDuration  string
 		}
-		AverageSpeed float64
-		Message      string
-		UserID       string
-		Username     string
+		AverageSpeed      float64
+		Message           string
+		UserID            string
+		Username          string
+		PassengerReadings []PassengerReading
 	}{
-		Message:  message,
-		UserID:   session.UserID,
-		Username: session.DisplayName,
+		Message:           message,
+		UserID:            session.UserID,
+		Username:          session.DisplayName,
+		PassengerReadings: vehicleHandler.GetReadings(),
 	}
 
 	p.PageCommons, err = InitPageCommons(tx, "Página interna")

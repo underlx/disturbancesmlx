@@ -42,6 +42,14 @@
       <h3 style="text-align: center">Semana de {{ .StartTime.Format "02/01/2006" }} a {{ .EndTime.Format "02/01/2006" }}</h3>
       <p><div id="chart"></div></p>
     </div>
+    <div class="pure-u-1">
+        <h1>100 últimas leituras dos utilizadores</h1>
+        <code>
+          {{ range $reading := .PassengerReadings}}
+            {{ $reading.Time.UTC.Format "02 Jan 06 15:04:05 MST" }}: entrada em {{ $reading.StationID }} direcção {{ $reading.DirectionID }}<br>
+          {{end}}
+        </code>
+    </div>
   </div>
 </div>
 <script type="text/javascript">

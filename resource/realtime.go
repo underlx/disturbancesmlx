@@ -12,10 +12,15 @@ type RealtimeStatsHandler interface {
 	RegisterActivity(network *dataobjects.Network, user *dataobjects.APIPair, expectedDuration time.Duration)
 }
 
+type RealtimeVehicleHandler interface {
+	RegisterTrainPassenger(currentStation *dataobjects.Station, direction *dataobjects.Station)
+}
+
 // Realtime composites resource, handles real-time location submissions
 type Realtime struct {
 	resource
-	statsHandler RealtimeStatsHandler
+	statsHandler   RealtimeStatsHandler
+	vehicleHandler RealtimeVehicleHandler
 }
 
 func (r *Realtime) WithNode(node sqalx.Node) *Realtime {
@@ -30,6 +35,11 @@ func (r *Realtime) WithHashKey(key []byte) *Realtime {
 
 func (r *Realtime) WithStatsHandler(handler RealtimeStatsHandler) *Realtime {
 	r.statsHandler = handler
+	return r
+}
+
+func (r *Realtime) WithVehicleHandler(handler RealtimeVehicleHandler) *Realtime {
+	r.vehicleHandler = handler
 	return r
 }
 
@@ -68,14 +78,27 @@ func (r *Realtime) Post(c *yarf.Context) error {
 		return err
 	}
 
-	if request.DirectionID == "" {
-		// user just entered the network, is going to wait for a vehicle
-		r.statsHandler.RegisterActivity(station.Network, request.Submitter, 8*time.Minute)
-	} else if lines, err := station.Lines(tx); err != nil && len(lines) > 1 {
-		// user might change lines and will need to wait for a vehicle
-		r.statsHandler.RegisterActivity(station.Network, request.Submitter, 8*time.Minute)
-	} else {
-		r.statsHandler.RegisterActivity(station.Network, request.Submitter, 4*time.Minute)
+	if r.statsHandler != nil {
+		if request.DirectionID == "" {
+			// user just entered the network, is going to wait for a vehicle
+			r.statsHandler.RegisterActivity(station.Network, request.Submitter, 8*time.Minute)
+		} else if lines, err := station.Lines(tx); err != nil && len(lines) > 1 {
+			// user might change lines and will need to wait for a vehicle
+			r.statsHandler.RegisterActivity(station.Network, request.Submitter, 8*time.Minute)
+		} else {
+			r.statsHandler.RegisterActivity(station.Network, request.Submitter, 4*time.Minute)
+		}
+	}
+
+	if r.vehicleHandler != nil {
+		if request.DirectionID != "" {
+			direction, err := dataobjects.GetStation(tx, request.DirectionID)
+			if err != nil {
+				return err
+			}
+
+			r.vehicleHandler.RegisterTrainPassenger(station, direction)
+		}
 	}
 
 	return nil

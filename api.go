@@ -88,7 +88,11 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/trips", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 	v1.Add("/trips/:id", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 
-	v1.Add("/rt", new(resource.Realtime).WithNode(rootSqalxNode).WithHashKey(getHashKey()).WithStatsHandler(statsHandler))
+	v1.Add("/rt", new(resource.Realtime).
+		WithNode(rootSqalxNode).
+		WithHashKey(getHashKey()).
+		WithStatsHandler(statsHandler).
+		WithVehicleHandler(vehicleHandler))
 
 	v1.Add("/feedback", new(resource.Feedback).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 
