@@ -154,7 +154,7 @@ func (n *Station) Get(c *yarf.Context) error {
 
 func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 	m := make(map[string]string)
-	supportedLocales := []string{"pt", "en", "fr"}
+	supportedLocales := []string{"pt", "en", "es", "fr"}
 	for _, locale := range supportedLocales {
 		m[locale] = "stationkb/" + locale + "/trivia/" + station.ID + ".html"
 	}
@@ -163,7 +163,7 @@ func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 
 func ComputeStationConnectionURLs(station *dataobjects.Station) map[string]map[string]string {
 	m := make(map[string]map[string]string)
-	locales := []string{"pt", "en", "fr"}
+	locales := []string{"pt", "en", "es", "fr"}
 	connections := []string{"boat", "bus", "train", "park", "bike"}
 	for _, locale := range locales {
 		for _, connection := range connections {
