@@ -82,7 +82,7 @@ func (r *Realtime) Post(c *yarf.Context) error {
 		if request.DirectionID == "" {
 			// user just entered the network, is going to wait for a vehicle
 			r.statsHandler.RegisterActivity(station.Network, request.Submitter, 8*time.Minute)
-		} else if lines, err := station.Lines(tx); err != nil && len(lines) > 1 {
+		} else if lines, err := station.Lines(tx); err == nil && len(lines) > 1 {
 			// user might change lines and will need to wait for a vehicle
 			r.statsHandler.RegisterActivity(station.Network, request.Submitter, 8*time.Minute)
 		} else {
