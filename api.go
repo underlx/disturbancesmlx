@@ -101,6 +101,8 @@ func APIserver(trustedClientCertPath string) {
 		y.Insert(new(DelayMiddleware))
 	}
 
+	y.Insert(new(TelemetryMiddleware))
+
 	y.Logger = webLog
 	y.Start(":12000")
 }
@@ -111,6 +113,15 @@ type DelayMiddleware struct {
 
 func (m *DelayMiddleware) PreDispatch(c *yarf.Context) error {
 	time.Sleep(500*time.Millisecond + time.Duration(rand.Intn(500))*time.Millisecond)
+	return nil
+}
+
+type TelemetryMiddleware struct {
+	yarf.Middleware
+}
+
+func (m *TelemetryMiddleware) PostDispatch(c *yarf.Context) error {
+	APIrequestTelemetry <- true
 	return nil
 }
 
