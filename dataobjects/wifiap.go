@@ -47,9 +47,6 @@ func getWiFiAPsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*WiFiAP
 		if err != nil {
 			return wiFiAPs, fmt.Errorf("getWiFiAPsWithSelect: %s", err)
 		}
-		if err != nil {
-			return wiFiAPs, fmt.Errorf("getWiFiAPsWithSelect: %s", err)
-		}
 		wiFiAPs = append(wiFiAPs, &wiFiAP)
 	}
 	if err := rows.Err(); err != nil {
@@ -73,10 +70,10 @@ func GetWiFiAP(node sqalx.Node, bssid string) (*WiFiAP, error) {
 }
 
 // Stations returns the stations this wiFiAP belongs to
-func (wiFiAP *WiFiAP) Stations(node sqalx.Node) ([]*Line, error) {
+func (wiFiAP *WiFiAP) Stations(node sqalx.Node) ([]*Station, error) {
 	s := sdb.Select().
 		Join("station_has_wifiap ON bssid = ? AND station_id = id", wiFiAP.BSSID)
-	return getLinesWithSelect(node, s)
+	return getStationsWithSelect(node, s)
 }
 
 // Update adds or updates the wiFiAP

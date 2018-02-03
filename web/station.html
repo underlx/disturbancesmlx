@@ -16,7 +16,7 @@
         {{ if .Closed }}
         <aside><p>Esta estação está encerrada por tempo indeterminado.</p></aside>
         {{ end }}
-        <p><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#trivia" class="pure-button">Trívia</a></p>
+        <p><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#pois" class="pure-button">Pontos de Interesse</a> <a href="#trivia" class="pure-button">Trívia</a></p>
       </div>
       <div class="pure-u-1">
           <h2><a id="lobbies">Átrios</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
@@ -64,6 +64,21 @@
             <div class="forceSmallHeaders">{{ $data.HTML }}</div>
           {{end}}
         </div>
+      </div>
+      <div class="pure-u-1">
+          <h2><a id="pois">Pontos de Interesse</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+          <ul>
+          {{ range $index, $poi := .POIs }}
+            <li style="margin-bottom: 15px">
+              {{ index $poi.Names $poi.MainLocale }}<br>
+              <a target="_blank" class="pure-button" style="font-size: 75%"
+                  href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $poi.WorldCoord 0) (index $poi.WorldCoord 1)) }}">🗺️Mapa</a>
+              {{ if not (eq $poi.URL "") }}
+              <a target="_blank" class="pure-button" style="font-size: 75%" href="{{ $poi.URL }} ">🌐Site</a>
+              {{end}}
+            </li>
+          {{end}}
+          </ul>
       </div>
       <div class="pure-u-1">
         <h2><a id="trivia">Trívia</a> <a class="top-link" href="#top">voltar ao topo</a></h2>

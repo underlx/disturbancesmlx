@@ -54,6 +54,9 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/lobbies", new(resource.Lobby).WithNode(rootSqalxNode))
 	v1.Add("/lobbies/:id", new(resource.Lobby).WithNode(rootSqalxNode))
 
+	v1.Add("/pois", new(resource.POI).WithNode(rootSqalxNode))
+	v1.Add("/pois/:id", new(resource.POI).WithNode(rootSqalxNode))
+
 	v1.Add("/connections", new(resource.Connection).WithNode(rootSqalxNode))
 	v1.Add("/connections/:from/:to", new(resource.Connection).WithNode(rootSqalxNode))
 

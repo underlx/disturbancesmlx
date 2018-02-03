@@ -42,6 +42,7 @@ type apiStationWrapper struct {
 	Features       apiFeatures                  `msgpack:"features" json:"features"`
 	Lobbies        []string                     `msgpack:"lobbies" json:"lobbies"`
 	WiFiAPs        []wifiWrapper                `msgpack:"wiFiAPs" json:"wiFiAPs"`
+	POIs           []string                     `msgpack:"pois" json:"pois"`
 	TriviaURLs     map[string]string            `msgpack:"triviaURLs" json:"triviaURLs"`
 	ConnectionURLs map[string]map[string]string `msgpack:"connURLs" json:"connURLs"`
 }
@@ -99,6 +100,15 @@ func (n *Station) Get(c *yarf.Context) error {
 			})
 		}
 
+		data.POIs = []string{}
+		pois, err := station.POIs(tx)
+		if err != nil {
+			return err
+		}
+		for _, poi := range pois {
+			data.POIs = append(data.POIs, poi.ID)
+		}
+
 		data.TriviaURLs = ComputeStationTriviaURLs(station)
 
 		RenderData(c, data)
@@ -143,6 +153,15 @@ func (n *Station) Get(c *yarf.Context) error {
 					BSSID: ap.BSSID,
 					Line:  ap.Line,
 				})
+			}
+
+			apistations[i].POIs = []string{}
+			pois, err := stations[i].POIs(tx)
+			if err != nil {
+				return err
+			}
+			for _, poi := range pois {
+				apistations[i].POIs = append(apistations[i].POIs, poi.ID)
 			}
 			apistations[i].TriviaURLs = ComputeStationTriviaURLs(stations[i])
 			apistations[i].ConnectionURLs = ComputeStationConnectionURLs(stations[i])
