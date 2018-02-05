@@ -108,6 +108,13 @@ func (station *Station) Lobbies(node sqalx.Node) ([]*Lobby, error) {
 	return getLobbiesWithSelect(node, s)
 }
 
+// POIs returns the POIs associated with this station
+func (station *Station) POIs(node sqalx.Node) ([]*POI, error) {
+	s := sdb.Select().
+		Join("station_has_poi ON station_has_poi.station_id = ? AND station_has_poi.poi_id = poi.id", station.ID)
+	return getPOIsWithSelect(node, s)
+}
+
 // Closed returns whether this station is closed
 func (station *Station) Closed(node sqalx.Node) (bool, error) {
 	tx, err := node.Beginx()

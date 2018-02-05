@@ -551,6 +551,7 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		LobbyExits     [][]*dataobjects.Exit
 		Trivia         string
 		Connections    []ConnectionData
+		POIs           []*dataobjects.POI
 		Closed         bool
 	}{}
 
@@ -568,6 +569,13 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.StationLines, err = p.Station.Lines(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.POIs, err = p.Station.POIs(tx)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

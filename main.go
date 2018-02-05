@@ -122,6 +122,7 @@ func main() {
 	SetUpAnnouncements(facebookAccessToken)
 	defer TearDownAnnouncements()
 
+	go StatsSender()
 	go WebServer()
 
 	certPath := DefaultClientCertPath

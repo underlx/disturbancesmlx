@@ -229,3 +229,23 @@ CREATE TABLE IF NOT EXISTS "feedback" (
     type VARCHAR(50) NOT NULL REFERENCES feedback_type (type),
     contents TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS "poi" (
+    id VARCHAR(36) PRIMARY KEY,
+    type VARCHAR(20) NOT NULL,
+    world_coord POINT NOT NULL,
+    web_url TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "poi_name" (
+    id VARCHAR(36) REFERENCES poi (id),
+    main BOOLEAN NOT NULL,
+    lang VARCHAR(5) NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY (id, lang)
+);
+
+CREATE TABLE IF NOT EXISTS "station_has_poi" (
+    station_id VARCHAR(36) NOT NULL REFERENCES station (id),
+    poi_id VARCHAR(36) NOT NULL REFERENCES poi (id)
+);

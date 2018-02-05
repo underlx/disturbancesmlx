@@ -54,6 +54,9 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/lobbies", new(resource.Lobby).WithNode(rootSqalxNode))
 	v1.Add("/lobbies/:id", new(resource.Lobby).WithNode(rootSqalxNode))
 
+	v1.Add("/pois", new(resource.POI).WithNode(rootSqalxNode))
+	v1.Add("/pois/:id", new(resource.POI).WithNode(rootSqalxNode))
+
 	v1.Add("/connections", new(resource.Connection).WithNode(rootSqalxNode))
 	v1.Add("/connections/:from/:to", new(resource.Connection).WithNode(rootSqalxNode))
 
@@ -101,6 +104,8 @@ func APIserver(trustedClientCertPath string) {
 		y.Insert(new(DelayMiddleware))
 	}
 
+	y.Insert(new(TelemetryMiddleware))
+
 	y.Logger = webLog
 	y.Start(":12000")
 }
@@ -111,6 +116,15 @@ type DelayMiddleware struct {
 
 func (m *DelayMiddleware) PreDispatch(c *yarf.Context) error {
 	time.Sleep(500*time.Millisecond + time.Duration(rand.Intn(500))*time.Millisecond)
+	return nil
+}
+
+type TelemetryMiddleware struct {
+	yarf.Middleware
+}
+
+func (m *TelemetryMiddleware) PostDispatch(c *yarf.Context) error {
+	APIrequestTelemetry <- true
 	return nil
 }
 
