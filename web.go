@@ -639,9 +639,9 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 func schedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 	schedulesByDay := make(map[int]*dataobjects.LobbySchedule)
 	for _, schedule := range schedules {
-		if schedule.Holiday {
+		if schedule.Holiday && schedule.Day == 0 {
 			schedulesByDay[-1] = schedule
-		} else {
+		} else if !schedule.Holiday {
 			schedulesByDay[schedule.Day] = schedule
 		}
 	}
