@@ -7,7 +7,7 @@ INSERT INTO poi (id, type, world_coord, web_url) VALUES
 ('7970628e-8a70-41c8-aaba-317f3543024f', 'public-services', '(38.7415357, -9.1379847)', 'https://www.portugal.gov.pt'),
 ('cc499665-54bf-4976-9125-cb12904ac9e8', 'sports', '(38.7428649, -9.1287852)', 'http://www.cm-lisboa.pt/en/equipments/equipment/info/pavilhao-desportivo-do-complexo-desportivo-municipal-casal-vistoso'),
 ('7f83f97a-e4ee-4740-a088-6c2307400619', 'public-services', '(38.7413253, -9.133978)', 'http://www.seg-social.pt/inicio'),
-('cb073caf-87fd-409f-97b5-22092416aaf8', 'school', '(38.75934, -9.2168121)', 'http://aealfornelos.ccems.pt/agrup_esc_alfornelos/agrup_esc_alfornelos.html'),
+('cb073caf-87fd-409f-97b5-22092416aaf8', 'school', '(38.760148, -9.208901)', 'http://aealfornelos.ccems.pt/agrup_esc_alfornelos/agrup_esc_alfornelos.html'),
 ('1b048159-0055-4f08-a05d-14e9050c1489', 'health-center', '(38.763573, -9.2085562)', 'https://www.sns.gov.pt/'),
 ('e887c2af-da73-424a-acd9-f269a0873895', 'school', '(38.7652171, -9.1998549)', 'http://escolaeb1mellofalcao.webnode.pt/'),
 ('36c60585-6925-43be-a9ad-2e45ff224fd7', 'church', '(38.7632947, -9.2059698)', 'http://www.paroquiadealfornelos.com/'),
