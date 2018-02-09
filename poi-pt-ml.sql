@@ -289,7 +289,7 @@ INSERT INTO poi (id, type, world_coord, web_url) VALUES
 ('06fbac1d-294e-48fd-a557-0fd8e4d4db07', 'park', '(38.739651, -9.179025)', 'http://www.cm-lisboa.pt/equipamentos/equipamento/info/parque-recreativo-do-calhau'),
 ('45b82090-b409-4ac6-88dc-5e8278cb524e', 'public-services', '(38.743464, -9.176243)', 'http://www.irn.mj.pt/IRN/sections/inicio'),
 ('916bf0d4-6bd1-4dff-9523-38415e1192a7', 'transportation-hub', '(38.7419068, -9.1651763)', 'http://www.rede-expressos.pt/'),
-('aa129ade-f739-4d5c-9838-6199ad8b351c', 'organization', '(8.740586, -9.171390)', 'http://www.uniaozoofila.org/'),
+('aa129ade-f739-4d5c-9838-6199ad8b351c', 'organization', '(38.740586, -9.171390)', 'http://www.uniaozoofila.org/'),
 ('499fb89a-3adb-4bf7-95d6-21bee75c71d9', 'university', '(38.747232, -9.167257)', 'http://www.aese.pt/'),
 ('17e5274f-997d-4997-8a90-52c986f854aa', 'government', '(38.750246, -9.171219)', 'https://www.ama.gov.pt/'),
 ('f4c4cb07-b81d-4ef7-93fb-32814a1eb100', 'church', '(38.750251, -9.169950)', 'https://the.ismaili/ismailicentres/lisbon'),
