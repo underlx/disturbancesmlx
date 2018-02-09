@@ -49,7 +49,7 @@ INSERT INTO poi (id, type, world_coord, web_url) VALUES
 ('199bc767-d2cb-40f5-8450-2012bad98c13', 'monument', '(38.737319, -9.1326156)', 'http://www.cm-lisboa.pt/equipamentos/equipamento/info/fonte-monumental-da-alameda'),
 ('0ff72d6f-d394-460a-a010-73ed6c86367d', 'sports', '(38.734627, -9.128840)', 'https://www.facebook.com/ginasioaltopina/'),
 ('5a1de34e-6b4f-41e8-a6b4-e2b7939819cc', 'church', '(38.736497, -9.134235)', 'https://igrejauniversal.pt/'),
-('75b8b62d-1a38-45ec-bafa-ffed9519e2b9', 'institute', '(38.7365654, -9.1353235)', 'http://www.ine.pt'),
+('75b8b62d-1a38-45ec-bafa-ffed9519e2b9', 'institute', '(38.738528, -9.137671)', 'http://www.ine.pt'),
 ('4207b53c-9295-432c-a662-a488bce00051', 'university', '(38.7368192, -9.138705)', 'https://tecnico.ulisboa.pt/pt/'),
 ('cd2ed494-8653-49a9-9f07-3b1b35d5f2dc', 'market', '(38.7367819, -9.1330066)', 'http://www.cm-lisboa.pt/equipamentos/equipamento/info/mercado-de-arroios'),
 ('d4f5fc94-9251-4618-b6aa-1574d69b2a85', 'government', '(38.7265008, -9.136261)', 'https://www.portaldocidadao.pt/web/alto-comissariado-para-as-migracoes/centros-nacionais-de-apoio-ao-imigrante-cnai-'),
