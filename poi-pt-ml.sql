@@ -142,7 +142,7 @@ INSERT INTO poi (id, type, world_coord, web_url) VALUES
 ('db5fb527-221c-4740-adff-04fd44b976b7', 'public-space', '(38.756830, -9.154117)', 'https://www.ulisboa.pt/info/caleidoscopio'),
 ('d8dd777b-663d-4d27-b524-91ceba543cfc', 'school', '(38.760295, -9.154148)', 'http://www.csdoroteia.edu.pt/'),
 ('65b3521b-ca74-4d23-8351-f6a932381c25', 'university', '(38.762804, -9.1649251)', 'http://www.ensp.unl.pt/'),
-('123baa89-96b5-454e-84d8-c3b56a44489f', 'sports', '(38.7614667, -9.1645268)', 'http://www.sporting.pt/pt/'),
+('123baa89-96b5-454e-84d8-c3b56a44489f', 'sports', '(38.761159, -9.160523)', 'http://www.sporting.pt/pt/'),
 ('2a1b8203-d4ab-4852-9d45-27aa62a66603', 'school', '(38.759908, -9.151781)', 'http://www.externatoasvp.pt/pagina-inicial'),
 ('2bf08a5e-14f5-4804-8407-3b08073e6e0e', 'university', '(38.757145, -9.157641)', 'https://ciencias.ulisboa.pt/pt'),
 ('b9362a84-d19b-46f4-bd1d-e5eae0e097fc', 'organization', '(38.7585727, -9.1537621)', 'www.fundacaocidadedelisboa.pt/'),
