@@ -635,6 +635,7 @@ INSERT INTO poi_name (id, main, lang, name) VALUES
 ('d6f6eeb4-6dfc-4e58-a3e0-f4bac85efa9e', true,  'pt', 'Igreja Paroquial de São João de Deus'),
 ('d6f6eeb4-6dfc-4e58-a3e0-f4bac85efa9e', false, 'en', 'São João de Deus Parish Church'),
 ('d6f6eeb4-6dfc-4e58-a3e0-f4bac85efa9e', false, 'fr', 'Église Paroissiale de São João de Deus'),
+('d6f6eeb4-6dfc-4e58-a3e0-f4bac85efa9e', false, 'es', 'Iglesia Parroquial de São João de Deus'),
 ('826afa93-76d0-421b-8fdb-33d3c8593662', true,  'pt', 'Instituto dos Registos e do Notariado'),
 ('826afa93-76d0-421b-8fdb-33d3c8593662', false, 'en', 'Institute of Registries and Notaries'),
 ('826afa93-76d0-421b-8fdb-33d3c8593662', false, 'fr', 'Institut des Registres et du Notariat'),
