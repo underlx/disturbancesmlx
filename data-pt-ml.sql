@@ -887,7 +887,7 @@ INSERT INTO station_feature VALUES
 ('pt-ml-ra', true, false, false, false, false),
 ('pt-ml-rb', true, true, false, true, false),
 ('pt-ml-re', true, false, false, true, false),
-('pt-ml-rm', false, false, false, true, false),
+('pt-ml-rm', true, false, false, true, false),
 ('pt-ml-ro', true, false, false, false, false),
 ('pt-ml-sa', true, false, false, false, false),
 ('pt-ml-sp', true, false, false, true, false),
