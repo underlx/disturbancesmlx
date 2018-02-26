@@ -1,0 +1,3 @@
+[submodule "stationkb"]
+	path = stationkb
+	url = git@github.com:underlx/data.git
