@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/gbl08ma/disturbancesmlx/dataobjects"
-	"github.com/gbl08ma/disturbancesmlx/scraper"
+	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/scraper"
 	uuid "github.com/satori/go.uuid"
 )
 

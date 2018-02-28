@@ -2,7 +2,7 @@ package main
 
 import (
 	fcm "github.com/NaySoftware/go-fcm"
-	"github.com/gbl08ma/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
 // SendNotificationForDisturbance sends a FCM notification for this disturbance about the specified status

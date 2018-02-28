@@ -12,7 +12,7 @@ import (
 
 	"crypto/ecdsa"
 
-	"github.com/gbl08ma/disturbancesmlx/resource"
+	"github.com/underlx/disturbancesmlx/resource"
 	"github.com/yarf-framework/yarf"
 )
 

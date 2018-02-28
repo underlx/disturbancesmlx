@@ -5,7 +5,7 @@ import (
 
 	"time"
 
-	"github.com/gbl08ma/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
 // Scraper is something that runs in the background retrieving status of lines

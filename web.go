@@ -10,7 +10,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/gbl08ma/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/gbl08ma/ssoclient"
 	"github.com/heetch/sqalx"
 

@@ -1,4 +1,4 @@
-# disturbancesmlx [![Discord](https://img.shields.io/discord/334423823552217090.svg)](https://discord.gg/hhuC7fc) [![license](https://img.shields.io/github/license/gbl08ma/disturbancesmlx.svg)](https://github.com/gbl08ma/disturbancesmlx/blob/master/LICENSE)
+# disturbancesmlx [![Discord](https://img.shields.io/discord/334423823552217090.svg)](https://discord.gg/hhuC7fc) [![license](https://img.shields.io/github/license/gbl08ma/disturbancesmlx.svg)](https://github.com/underlx/disturbancesmlx/blob/master/LICENSE)
 Fancy status page and status logger for the [Lisbon Metro](http://www.metrolisboa.pt/), that scrapes the official website for information. Live at https://perturbacoes.pt.
 
 The server is written in Go. It is compatible with PostgreSQL only and designed to run behind a reverse proxy.
@@ -13,7 +13,7 @@ The website contains a heavily modified version of [cnanney's CSS flip counter](
 
 ## Installation
 
-`go get -u github.com/gbl08ma/disturbancesmlx`, as is tradition with Go projects.
+`go get -u github.com/underlx/disturbancesmlx`, as is tradition with Go projects.
 
 Use the `schema.sql` file to create the schema on your PostgreSQL database, and edit the database connection string in `secrets-debug.json`.
 

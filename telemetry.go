@@ -3,7 +3,7 @@ package main
 import (
 	"time"
 
-	"github.com/gbl08ma/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	statsd "gopkg.in/alexcesaro/statsd.v2"
 )
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 
-	"github.com/gbl08ma/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/mmcdole/gofeed"
 )
 

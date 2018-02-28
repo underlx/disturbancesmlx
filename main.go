@@ -12,7 +12,7 @@ import (
 
 	sq "github.com/gbl08ma/squirrel"
 
-	"github.com/gbl08ma/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/gbl08ma/keybox"
 )
 

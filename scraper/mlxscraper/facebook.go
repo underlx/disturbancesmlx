@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gbl08ma/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
 // FacebookScraper is an announcement scraper for the Metro de Lisboa Facebook page

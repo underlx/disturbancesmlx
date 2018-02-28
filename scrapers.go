@@ -5,9 +5,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/gbl08ma/disturbancesmlx/dataobjects"
-	"github.com/gbl08ma/disturbancesmlx/scraper"
-	"github.com/gbl08ma/disturbancesmlx/scraper/mlxscraper"
+	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/scraper"
+	"github.com/underlx/disturbancesmlx/scraper/mlxscraper"
 	uuid "github.com/satori/go.uuid"
 )
 
