@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -279,6 +279,15 @@ func (r *Trip) Put(c *yarf.Context) error {
 		Edited:        true,
 		UserConfirmed: request.UserConfirmed,
 		StationUses:   []*dataobjects.StationUse{},
+	}
+
+	maxFuture := time.Now().Add(15 * time.Minute)
+	if trip.StartTime.After(maxFuture) || trip.EndTime.After(maxFuture) {
+		return &yarf.CustomError{
+			HTTPCode:  http.StatusBadRequest,
+			ErrorMsg:  "This trip is from the future. Adjust your clock.",
+			ErrorBody: "This trip is from the future. Adjust your clock.",
+		}
 	}
 
 	for _, requestUse := range request.Uses {
