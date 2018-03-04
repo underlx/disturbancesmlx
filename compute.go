@@ -81,15 +81,25 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 
 	processTransfer := func(transfer *dataobjects.Transfer, use *dataobjects.StationUse) error {
 		seconds := use.LeaveTime.Sub(use.EntryTime).Seconds()
-		transferAvgNumerator[transfer] += seconds - 20
-		transferAvgDenominator[transfer]++
+		// if going from one line to another took more than 15 minutes,
+		// probably what really happened was that the client's clock was adjusted
+		// in the meantime, OR the user decided to go shop or something at the station
+		if seconds < 15*60 {
+			transferAvgNumerator[transfer] += seconds - 20
+			transferAvgDenominator[transfer]++
+		}
 		return nil
 	}
 
 	processConnection := func(connection *dataobjects.Connection, sourceUse *dataobjects.StationUse, targetUse *dataobjects.StationUse) error {
 		seconds := targetUse.EntryTime.Sub(sourceUse.LeaveTime).Seconds()
-		connectionAvgNumerator[connection] += seconds + 20
-		connectionAvgDenominator[connection]++
+		// if going from one station to another took more than 10 minutes,
+		// probably what really happened was that the client's clock was adjusted
+		// in the meantime
+		if seconds < 10*60 {
+			connectionAvgNumerator[connection] += seconds + 20
+			connectionAvgDenominator[connection]++
+		}
 
 		waitSeconds := sourceUse.LeaveTime.Sub(sourceUse.EntryTime).Seconds()
 		if sourceUse.Type == dataobjects.NetworkEntry && waitSeconds < 60*3 {
