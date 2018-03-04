@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 	"io"
+	"math"
 	"sort"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
 // ComputeTypicalSeconds calculates and updates the TypicalSeconds
@@ -180,8 +181,7 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 			continue
 		}
 		average := connectionAvgNumerator[connection] / denominator
-		// TODO: add math.Round to int cast once Go 1.10 is released
-		connection.TypicalSeconds = int(average)
+		connection.TypicalSeconds = int(math.Round(average))
 		fmt.Printf("Updating connection from %s to %s with %d (%f)\n", connection.From.ID, connection.To.ID, connection.TypicalSeconds, denominator)
 		err := connection.Update(tx)
 		if err != nil {
@@ -195,8 +195,7 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 			continue
 		}
 		average := connectionStopAvgNumerator[connection] / denominator
-		// TODO: add math.Round to int cast once Go 1.10 is released
-		connection.TypicalStopSeconds = int(average)
+		connection.TypicalStopSeconds = int(math.Round(average))
 		fmt.Printf("Updating connection from %s to %s with stop %d (%f)\n", connection.From.ID, connection.To.ID, connection.TypicalStopSeconds, denominator)
 		err := connection.Update(tx)
 		if err != nil {
@@ -210,8 +209,7 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 			continue
 		}
 		average := connectionWaitAvgNumerator[connection] / denominator
-		// TODO: add math.Round to int cast once Go 1.10 is released
-		connection.TypicalWaitingSeconds = int(average)
+		connection.TypicalWaitingSeconds = int(math.Round(average))
 		fmt.Printf("Updating connection from %s to %s with wait %d (%f)\n", connection.From.ID, connection.To.ID, connection.TypicalWaitingSeconds, denominator)
 		err := connection.Update(tx)
 		if err != nil {
@@ -259,8 +257,7 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 			average -= float64(avgStopTime) / float64(len(outgoingDestConnections))
 		}
 
-		// TODO: add math.Round to int cast once Go 1.10 is released
-		transfer.TypicalSeconds = int(average)
+		transfer.TypicalSeconds = int(math.Round(average))
 		fmt.Printf("Updating transfer from %s to %s with %d (%f)\n", transfer.From.ID, transfer.To.ID, transfer.TypicalSeconds, denominator)
 		err := transfer.Update(tx)
 		if err != nil {
