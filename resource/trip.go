@@ -290,6 +290,15 @@ func (r *Trip) Put(c *yarf.Context) error {
 		}
 	}
 
+	if trip.EndTime.Sub(trip.StartTime) > 24*time.Hour {
+		// probably the clock of the phone was adjusted (from the default 1970-01-01) between the start and end of the trip
+		return &yarf.CustomError{
+			HTTPCode:  http.StatusBadRequest,
+			ErrorMsg:  "This trip took way too long.",
+			ErrorBody: "This trip took way too long.",
+		}
+	}
+
 	for _, requestUse := range request.Uses {
 		use := dataobjects.StationUse{
 			EntryTime: requestUse.EntryTime,
