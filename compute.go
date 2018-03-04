@@ -12,7 +12,8 @@ import (
 )
 
 // ComputeTypicalSeconds calculates and updates the TypicalSeconds
-// for all the Connections and Transfers where that can be done using the registered Trips
+// for all the Connections and Transfers where that can be done using the registered
+// Trips from the past month.
 // Current TypicalSeconds are ignored and discarded.
 func ComputeTypicalSeconds(node sqalx.Node) error {
 	tx, err := node.Beginx()
@@ -21,7 +22,8 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 	}
 	defer tx.Rollback()
 
-	tripIDs, err := dataobjects.GetTripIDs(tx)
+	startTime := time.Now().AddDate(0, -1, 0)
+	tripIDs, err := dataobjects.GetTripIDsBetween(tx, startTime, time.Now())
 	if err != nil {
 		return err
 	}
