@@ -3,8 +3,9 @@
 package main
 
 const (
-	DEBUG                 = false
-	MLnetworkID           = "pt-ml"
-	SecretsPath           = "secrets.json"
-	DefaultClientCertPath = "trusted_client_cert.pem"
+	DEBUG                   = false
+	MLnetworkID             = "pt-ml"
+	SecretsPath             = "secrets.json"
+	DefaultClientCertPath   = "trusted_client_cert.pem"
+	MaxDBconnectionPoolSize = 30
 )

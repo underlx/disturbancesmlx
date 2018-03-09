@@ -12,8 +12,8 @@ import (
 
 	sq "github.com/gbl08ma/squirrel"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/gbl08ma/keybox"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
 var (
@@ -96,6 +96,7 @@ func main() {
 	if err != nil {
 		mainLog.Fatal(err)
 	}
+	rdb.SetMaxOpenConns(MaxDBconnectionPoolSize)
 	sdb = sq.StatementBuilder.PlaceholderFormat(sq.Dollar).RunWith(rdb)
 
 	rootSqalxNode, err = sqalx.New(rdb)
