@@ -115,6 +115,36 @@ func (station *Station) POIs(node sqalx.Node) ([]*POI, error) {
 	return getPOIsWithSelect(node, s)
 }
 
+// Directions returns the directions (stations at an end of a line) that can be reached directly from this station
+// (i.e. without additional line changes)
+func (station *Station) Directions(node sqalx.Node) ([]*Station, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit() // read-only tx
+
+	lines, err := station.Lines(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	ends := []*Station{}
+	for _, line := range lines {
+		stations, err := line.Stations(tx)
+		if err != nil {
+			return nil, err
+		}
+		if len(stations) > 0 {
+			ends = append(ends, stations[0])
+			if len(stations) > 1 {
+				ends = append(ends, stations[len(stations)-1])
+			}
+		}
+	}
+	return ends, nil
+}
+
 // Closed returns whether this station is closed
 func (station *Station) Closed(node sqalx.Node) (bool, error) {
 	tx, err := node.Beginx()

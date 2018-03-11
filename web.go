@@ -10,9 +10,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/gbl08ma/ssoclient"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 
 	"encoding/json"
 
@@ -941,6 +941,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		UserID               string
 		Username             string
 		PassengerReadings    []PassengerReading
+		TrainETAs            []string
 		UsersOnlineInNetwork int
 	}{
 		Message:              message,
@@ -1014,6 +1015,31 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 
 	// adjust time for display
 	p.EndTime = p.EndTime.AddDate(0, 0, -1)
+
+	// train ETA debugging
+	stations, err := dataobjects.GetStations(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	p.TrainETAs = []string{}
+	for _, station := range stations {
+		directions, err := station.Directions(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		for _, direction := range directions {
+			eta, err := vehicleHandler.GetNextTrainETA(tx, station, direction)
+			if err != nil {
+				p.TrainETAs = append(p.TrainETAs, fmt.Sprintf("%s -> %s: %s", station.ID, direction.ID, err))
+			} else {
+				p.TrainETAs = append(p.TrainETAs, fmt.Sprintf("%s -> %s: %d", station.ID, direction.ID, int(eta.Seconds())))
+			}
+		}
+	}
 
 	err = webtemplate.ExecuteTemplate(w, "internal.html", p)
 	if err != nil {

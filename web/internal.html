@@ -43,6 +43,12 @@
       <p><div id="chart"></div></p>
     </div>
     <div class="pure-u-1">
+        <h1>Tempos de espera</h1>
+        <code>
+          {{ range $eta := .TrainETAs}}
+            {{ $eta }}<br>
+          {{end}}
+        </code>
         <h2>{{ .UsersOnlineInNetwork }} utilizadores online em viagem</h2>
         <h1>100 últimas leituras dos utilizadores</h1>
         <code>
