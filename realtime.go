@@ -80,7 +80,7 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 	userAtIdx := cursor
 
 	// let's find at which station the next train is right now (or from which station it just departed)
-	trainAtSeconds := ^0
+	trainAtSeconds := int(^uint(0) >> 1) // max signed int
 	trainAtIdx := -1
 	var trainMovingUp bool
 	curTime := time.Now()
@@ -170,7 +170,7 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 			totalSeconds += getConnectionDuration(thisLineStations[cursor].ID, thisLineStations[cursor+1].ID)
 		}
 	} else {
-		for cursor = trainAtIdx; (cursor >= userAtIdx+1 || trainMovingUp != movingUp) && cursor > 0; cursor++ {
+		for cursor = trainAtIdx; (cursor >= userAtIdx+1 || trainMovingUp != movingUp) && cursor > 0; cursor-- {
 			totalSeconds += getConnectionDuration(thisLineStations[cursor].ID, thisLineStations[cursor-1].ID)
 		}
 	}
@@ -182,11 +182,11 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 		totalSeconds += 120 // TODO calculate inversion time
 
 		if trainMovingUp {
-			for cursor = trainAtIdx; cursor <= userAtIdx-1 && cursor < len(thisLineStations)-1; cursor++ {
+			for cursor = 0; cursor <= userAtIdx-1 && cursor < len(thisLineStations)-1; cursor++ {
 				totalSeconds += getConnectionDuration(thisLineStations[cursor].ID, thisLineStations[cursor+1].ID)
 			}
 		} else {
-			for cursor = trainAtIdx; cursor >= userAtIdx+1 && cursor > 0; cursor++ {
+			for cursor = len(thisLineStations) - 1; cursor >= userAtIdx+1 && cursor > 0; cursor-- {
 				totalSeconds += getConnectionDuration(thisLineStations[cursor].ID, thisLineStations[cursor-1].ID)
 			}
 		}
@@ -194,7 +194,7 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 
 	totalSeconds -= trainAtSeconds
 
-	return time.Duration(trainAtSeconds) * time.Second, nil
+	return time.Duration(totalSeconds) * time.Second, nil
 }
 
 func (h *VehicleHandler) getMapKey(station *dataobjects.Station, direction *dataobjects.Station) string {

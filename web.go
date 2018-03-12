@@ -1036,7 +1036,11 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				p.TrainETAs = append(p.TrainETAs, fmt.Sprintf("%s -> %s: %s", station.ID, direction.ID, err))
 			} else {
-				p.TrainETAs = append(p.TrainETAs, fmt.Sprintf("%s -> %s: %d", station.ID, direction.ID, int(eta.Seconds())))
+				if eta.Seconds() < 0 {
+					p.TrainETAs = append(p.TrainETAs, fmt.Sprintf("%s -> %s: train expected %d s ago", station.ID, direction.ID, -int(eta.Seconds())))
+				} else {
+					p.TrainETAs = append(p.TrainETAs, fmt.Sprintf("%s -> %s: %d s", station.ID, direction.ID, int(eta.Seconds())))
+				}
 			}
 		}
 	}
