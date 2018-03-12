@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
+	"runtime"
 	"sort"
 	"time"
 
@@ -15,7 +17,7 @@ import (
 // for all the Connections and Transfers where that can be done using the registered
 // Trips from the past month.
 // Current TypicalSeconds are ignored and discarded.
-func ComputeTypicalSeconds(node sqalx.Node) error {
+func ComputeTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err
@@ -185,6 +187,10 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 		if err = processTrip(trip); err != nil {
 			return err
 		}
+
+		if yieldFor > 0 {
+			time.Sleep(yieldFor)
+		}
 	}
 
 	for connection, denominator := range connectionAvgDenominator {
@@ -282,7 +288,7 @@ func ComputeTypicalSeconds(node sqalx.Node) error {
 
 // ComputeAverageSpeed returns the average service speed in km/h
 // based on the trips in the specified time range
-func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time) (float64, error) {
+func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time, yieldFor time.Duration) (float64, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return 0, err
@@ -380,6 +386,10 @@ func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time) 
 		if err = processTrip(trip); err != nil {
 			return 0, err
 		}
+
+		if yieldFor > 0 {
+			time.Sleep(yieldFor)
+		}
 	}
 
 	km := float64(totalDistance) / 1000
@@ -397,17 +407,32 @@ type avgSpeedCacheKey struct {
 }
 
 var avgSpeedCache map[avgSpeedCacheKey]float64
+var avgSpeedComputeInProgress map[avgSpeedCacheKey]bool
+
+var ErrInfoNotReady = errors.New("information not ready")
 
 func ComputeAverageSpeedCached(node sqalx.Node, fromTime time.Time, toTime time.Time) (float64, error) {
 	if val, ok := avgSpeedCache[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}]; ok {
 		return val, nil
 	}
-	val, err := ComputeAverageSpeed(node, fromTime, toTime)
-	if err != nil {
-		return val, err
+
+	if !avgSpeedComputeInProgress[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}] {
+		go func() {
+			mainLog.Println("Now computing average speed between " + fromTime.String() + " and " + toTime.String())
+			avgSpeedComputeInProgress[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}] = true
+			val, err := ComputeAverageSpeed(rootSqalxNode, fromTime, toTime, 30*time.Millisecond)
+			if err != nil {
+				mainLog.Println("Error computing average speed between " + fromTime.String() + " and " + toTime.String() + ": " + err.Error())
+				return
+			}
+			avgSpeedCache[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}] = val
+			avgSpeedComputeInProgress[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}] = false
+			mainLog.Println("Average speed between " + fromTime.String() + " and " + toTime.String() + " computed")
+		}()
+		runtime.Gosched()
 	}
-	avgSpeedCache[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}] = val
-	return val, nil
+
+	return 0, ErrInfoNotReady
 }
 
 // ComputeSimulatedRealtime looks at trips to compute a stream of entry beacons,
@@ -558,4 +583,5 @@ func ComputeSimulatedRealtime(node sqalx.Node, fromTime time.Time, toTime time.T
 
 func init() {
 	avgSpeedCache = make(map[avgSpeedCacheKey]float64)
+	avgSpeedComputeInProgress = make(map[avgSpeedCacheKey]bool)
 }

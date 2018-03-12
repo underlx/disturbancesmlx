@@ -135,7 +135,7 @@ func main() {
 	go func() {
 		time.Sleep(5 * time.Second)
 		for {
-			err := ComputeTypicalSeconds(rootSqalxNode)
+			err := ComputeTypicalSeconds(rootSqalxNode, 50*time.Millisecond)
 			if err != nil {
 				mainLog.Println(err)
 			}

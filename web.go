@@ -516,9 +516,11 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.AverageSpeed, err = ComputeAverageSpeedCached(tx, startDate, endDate.Truncate(24*time.Hour))
-	if err != nil {
+	if err == ErrInfoNotReady {
+		p.AverageSpeed = 0
+	} else if err != nil {
 		webLog.Println(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -906,6 +908,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	message := ""
 	if r.Method == http.MethodPost && r.ParseForm() == nil {
 		if r.Form.Get("action") == "reloadTemplates" {
+			connectionDurationCache = make(map[string]int)
 			WebReloadTemplate()
 			message = "Templates reloaded"
 		}
@@ -936,12 +939,16 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 			Availability string
 			AvgDuration  string
 		}
-		AverageSpeed         float64
-		Message              string
-		UserID               string
-		Username             string
-		PassengerReadings    []PassengerReading
-		TrainETAs            []string
+		AverageSpeed      float64
+		Message           string
+		UserID            string
+		Username          string
+		PassengerReadings []PassengerReading
+		TrainETAs         []struct {
+			Station   *dataobjects.Station
+			Direction *dataobjects.Station
+			ETA       string
+		}
 		UsersOnlineInNetwork int
 	}{
 		Message:              message,
@@ -949,6 +956,11 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		Username:             session.DisplayName,
 		PassengerReadings:    vehicleHandler.GetReadings(),
 		UsersOnlineInNetwork: statsHandler.CurrentlyOnlineInTransit(n, 0),
+		TrainETAs: []struct {
+			Station   *dataobjects.Station
+			Direction *dataobjects.Station
+			ETA       string
+		}{},
 	}
 
 	p.PageCommons, err = InitPageCommons(tx, "Página interna")
@@ -1007,7 +1019,9 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.AverageSpeed, err = ComputeAverageSpeedCached(tx, p.StartTime, p.EndTime)
-	if err != nil {
+	if err == ErrInfoNotReady {
+		p.AverageSpeed = 0
+	} else if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -1023,7 +1037,6 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	p.TrainETAs = []string{}
 	for _, station := range stations {
 		directions, err := station.Directions(tx)
 		if err != nil {
@@ -1034,12 +1047,24 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		for _, direction := range directions {
 			eta, err := vehicleHandler.GetNextTrainETA(tx, station, direction)
 			if err != nil {
-				p.TrainETAs = append(p.TrainETAs, fmt.Sprintf("%s -> %s: %s", station.ID, direction.ID, err))
+				p.TrainETAs = append(p.TrainETAs, struct {
+					Station   *dataobjects.Station
+					Direction *dataobjects.Station
+					ETA       string
+				}{station, direction, err.Error()})
 			} else {
 				if eta.Seconds() < 0 {
-					p.TrainETAs = append(p.TrainETAs, fmt.Sprintf("%s -> %s: train expected %d s ago", station.ID, direction.ID, -int(eta.Seconds())))
+					p.TrainETAs = append(p.TrainETAs, struct {
+						Station   *dataobjects.Station
+						Direction *dataobjects.Station
+						ETA       string
+					}{station, direction, fmt.Sprintf("probably arrived %s ago", (-eta).String())})
 				} else {
-					p.TrainETAs = append(p.TrainETAs, fmt.Sprintf("%s -> %s: %d s", station.ID, direction.ID, int(eta.Seconds())))
+					p.TrainETAs = append(p.TrainETAs, struct {
+						Station   *dataobjects.Station
+						Direction *dataobjects.Station
+						ETA       string
+					}{station, direction, eta.String()})
 				}
 			}
 		}

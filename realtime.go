@@ -42,6 +42,8 @@ func (h *VehicleHandler) GetReadings() []PassengerReading {
 	return h.readings
 }
 
+var connectionDurationCache = make(map[string]int)
+
 func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.Station, direction *dataobjects.Station) (time.Duration, error) {
 	tx, err := node.Beginx()
 	if err != nil {
@@ -79,7 +81,6 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 	}
 	userAtIdx := cursor
 
-	connectionDurationCache := make(map[string]int)
 	getConnectionDuration := func(from, to string) int {
 		if s, present := connectionDurationCache[from+"#"+to]; present {
 			return s
@@ -137,11 +138,12 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 			t, present := h.presenceByStationAndDirection[h.getMapKey(thisLineStations[cursor], direction)]
 			tInt := int(math.Round(curTime.Sub(t).Seconds()))
 			tDistance := getTimeDistance(cursor, movingUp, true) - tInt
-			if present && tDistance < minDistance {
+			if present && tDistance < minDistance && tDistance >= -30 {
 				trainAtSeconds = tInt
 				minDistance = tDistance
 				trainAtIdx = cursor
 				trainMovingUp = true
+				foundTrain = true
 			} else if present && tDistance > minDistance {
 				foundTrain = true
 				break
@@ -154,11 +156,12 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 				t, present := h.presenceByStationAndDirection[h.getMapKey(thisLineStations[cursor], oppositeDirection)]
 				tInt := int(math.Round(curTime.Sub(t).Seconds()))
 				tDistance := getTimeDistance(cursor, movingUp, false) - tInt
-				if present && tDistance < minDistance {
+				if present && tDistance < minDistance && tDistance >= -30 {
 					trainAtSeconds = tInt
 					minDistance = tDistance
 					trainAtIdx = cursor
 					trainMovingUp = false
+					foundTrain = true
 				} else if present && tDistance > minDistance {
 					foundTrain = true
 					break
@@ -171,11 +174,12 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 			t, present := h.presenceByStationAndDirection[h.getMapKey(thisLineStations[cursor], direction)]
 			tInt := int(math.Round(curTime.Sub(t).Seconds()))
 			tDistance := getTimeDistance(cursor, movingUp, false) - tInt
-			if present && tDistance < minDistance {
+			if present && tDistance < minDistance && tDistance >= -30 {
 				trainAtSeconds = tInt
 				minDistance = tDistance
 				trainAtIdx = cursor
 				trainMovingUp = false
+				foundTrain = true
 			} else if present && tDistance > minDistance {
 				foundTrain = true
 				break
@@ -188,11 +192,12 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 				t, present := h.presenceByStationAndDirection[h.getMapKey(thisLineStations[cursor], oppositeDirection)]
 				tInt := int(math.Round(curTime.Sub(t).Seconds()))
 				tDistance := getTimeDistance(cursor, movingUp, true) - tInt
-				if present && tDistance < minDistance {
+				if present && tDistance < minDistance && tDistance >= -30 {
 					trainAtSeconds = tInt
 					minDistance = tDistance
 					trainAtIdx = cursor
 					trainMovingUp = true
+					foundTrain = true
 				} else if present && tDistance > minDistance {
 					foundTrain = true
 					break
