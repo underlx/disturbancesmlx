@@ -24,3 +24,11 @@ script:
   - megacheck ./...                          # "go vet on steroids" + linter
   - gocyclo -over 19 $GO_FILES               # forbid code with huge functions
   - golint -set_exit_status $(go list ./...) # one last linter
+
+# Handle git submodules yourself
+git:
+    submodules: false
+# Use sed to replace the SSH URL with the public URL, then initialize submodules
+before_install:
+    - sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
+    - git submodule update --init --recursive
