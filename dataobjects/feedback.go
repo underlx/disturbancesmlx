@@ -23,6 +23,7 @@ type Feedback struct {
 type FeedbackType string
 
 const (
+	// S2LSincorrectDetection is a type of feedback reserved for incorrect detection of stations by the client
 	S2LSincorrectDetection FeedbackType = "s2ls-incorrect-detection"
 )
 

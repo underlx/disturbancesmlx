@@ -191,6 +191,7 @@ func (sc *Scraper) Lines() []*dataobjects.Line {
 	return lines
 }
 
+// LastUpdate returns the last time this scraper detected a change
 func (sc *Scraper) LastUpdate() time.Time {
 	return sc.lastUpdate
 }

@@ -26,11 +26,16 @@ type StationUse struct {
 type StationUseType string
 
 const (
+	// NetworkEntry is a type of station use reserved for the first station in a trip
 	NetworkEntry StationUseType = "NETWORK_ENTRY"
-	NetworkExit  StationUseType = "NETWORK_EXIT"
-	Interchange  StationUseType = "INTERCHANGE"
-	GoneThrough  StationUseType = "GONE_THROUGH"
-	Visit        StationUseType = "VISIT"
+	// NetworkExit is a type of station use reserved for the last station in a trip
+	NetworkExit StationUseType = "NETWORK_EXIT"
+	// Interchange is a type of station use reserved for a line change in a trip
+	Interchange StationUseType = "INTERCHANGE"
+	// GoneThrough is a type of station use reserved for when an user simply goes through a station on his way to somewhere
+	GoneThrough StationUseType = "GONE_THROUGH"
+	// Visit is a type of station use reserved for trips with a single station use
+	Visit StationUseType = "VISIT"
 )
 
 // GetStationUses returns a slice with all registered stationUses
@@ -163,7 +168,7 @@ func (stationUse *StationUse) Update(node sqalx.Node, tripID string) error {
 		Columns("trip_id", "station_id", "entry_time", "leave_time", "type", "manual", "source_line", "target_line").
 		Values(tripID, stationUse.Station.ID, stationUse.EntryTime, stationUse.LeaveTime, stationUse.Type, stationUse.Manual, sourceLine, targetLine).
 		Suffix("ON CONFLICT (trip_id, station_id, entry_time) DO UPDATE SET leave_time = ?, type = ?, manual = ?, source_line = ?, target_line = ?",
-		stationUse.LeaveTime, stationUse.Type, stationUse.Manual, sourceLine, targetLine).
+			stationUse.LeaveTime, stationUse.Type, stationUse.Manual, sourceLine, targetLine).
 		RunWith(tx).Exec()
 
 	if err != nil {
