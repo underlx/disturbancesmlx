@@ -22,18 +22,21 @@ type apiDataset struct {
 	Authors   pq.StringArray `msgpack:"authors" json:"authors"`
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *Dataset) WithNode(node sqalx.Node) *Dataset {
 	r.node = node
 	return r
 }
 
+// WithSquirrel associates a statement builder with this resource
 func (r *Dataset) WithSquirrel(sdb *sq.StatementBuilderType) *Dataset {
 	r.sdb = sdb
 	return r
 }
 
-func (n *Dataset) Get(c *yarf.Context) error {
-	tx, err := n.Beginx()
+// Get serves HTTP GET requests on this resource
+func (r *Dataset) Get(c *yarf.Context) error {
+	tx, err := r.Beginx()
 	if err != nil {
 		return err
 	}
@@ -42,7 +45,7 @@ func (n *Dataset) Get(c *yarf.Context) error {
 	if c.Param("id") != "" {
 		var dataset apiDataset
 		var version time.Time
-		err := n.sdb.Select("network_id", "version", "authors").
+		err := r.sdb.Select("network_id", "version", "authors").
 			From("dataset_info").RunWith(tx).QueryRow().Scan(
 			&dataset.NetworkID,
 			&version,
@@ -56,7 +59,7 @@ func (n *Dataset) Get(c *yarf.Context) error {
 		RenderData(c, dataset)
 	} else {
 		datasets := []*apiDataset{}
-		rows, err := n.sdb.Select("network_id", "version", "authors").
+		rows, err := r.sdb.Select("network_id", "version", "authors").
 			From("dataset_info").RunWith(tx).Query()
 		if err != nil {
 			return err

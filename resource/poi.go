@@ -1,8 +1,8 @@
 package resource
 
 import (
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -20,13 +20,15 @@ type apiPOI struct {
 	Names      map[string]string `msgpack:"names" json:"names"`
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *POI) WithNode(node sqalx.Node) *POI {
 	r.node = node
 	return r
 }
 
-func (n *POI) Get(c *yarf.Context) error {
-	tx, err := n.Beginx()
+// Get serves HTTP GET requests on this resource
+func (r *POI) Get(c *yarf.Context) error {
+	tx, err := r.Beginx()
 	if err != nil {
 		return err
 	}

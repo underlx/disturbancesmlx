@@ -56,16 +56,19 @@ type apiStationUseWrapper struct {
 	TargetLineID  string `msgpack:"targetLine" json:"targetLine"`
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *Trip) WithNode(node sqalx.Node) *Trip {
 	r.node = node
 	return r
 }
 
+// WithHashKey associates a HMAC key with this resource so it can participate in authentication processes
 func (r *Trip) WithHashKey(key []byte) *Trip {
 	r.hashKey = key
 	return r
 }
 
+// Get serves HTTP GET requests on this resource
 func (r *Trip) Get(c *yarf.Context) error {
 	pair, err := r.AuthenticateClient(c)
 	if err != nil {
@@ -120,6 +123,7 @@ func (r *Trip) Get(c *yarf.Context) error {
 	return nil
 }
 
+// Post serves HTTP POST requests on this resource
 func (r *Trip) Post(c *yarf.Context) error {
 	pair, err := r.AuthenticateClient(c)
 	if err != nil {
@@ -225,6 +229,7 @@ func (r *Trip) Post(c *yarf.Context) error {
 	return nil
 }
 
+// Put serves HTTP PUT requests on this resource
 func (r *Trip) Put(c *yarf.Context) error {
 	pair, err := r.AuthenticateClient(c)
 	if err != nil {

@@ -28,6 +28,7 @@ var sessionStore *sessions.CookieStore
 var daClient *ssoclient.SSOClient
 var websiteURL string
 
+// PageCommons contains information that is required by most page templates
 type PageCommons struct {
 	PageTitle string
 	Lines     []struct {
@@ -41,6 +42,7 @@ type PageCommons struct {
 	LastUpdateAgoHour int
 }
 
+// ConnectionData contains the HTML with the connection information for the station with ID ID
 type ConnectionData struct {
 	ID   string
 	HTML string
@@ -127,6 +129,7 @@ func WebServer() {
 	webLog.Println("Web server terminated")
 }
 
+// InitPageCommons fills PageCommons with the info that is required by most page templates
 func InitPageCommons(node sqalx.Node, title string) (commons PageCommons, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
@@ -660,26 +663,25 @@ func schedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 
 	if allDaysTheSame {
 		return []string{"Todos os dias: " + scheduleToString(schedulesByDay[0])}
-	} else {
-		scheduleString := []string{}
-		if weekdaysAllTheSame {
-			scheduleString = append(scheduleString, "Dias úteis: "+scheduleToString(schedulesByDay[1]))
-		} else {
-			for i := 2; i < 6; i++ {
-				scheduleString = append(scheduleString, time.Weekday(i).String()+": "+scheduleToString(schedulesByDay[i]))
-			}
-		}
-
-		if holidaysAllTheSame {
-			scheduleString = append(scheduleString, "Fins de semana e feriados: "+scheduleToString(schedulesByDay[0]))
-		} else {
-			scheduleString = append(scheduleString, time.Weekday(0).String()+": "+scheduleToString(schedulesByDay[0]))
-			scheduleString = append(scheduleString, time.Weekday(6).String()+": "+scheduleToString(schedulesByDay[6]))
-			scheduleString = append(scheduleString, "Feriados: "+scheduleToString(schedulesByDay[-1]))
-		}
-
-		return scheduleString
 	}
+	scheduleString := []string{}
+	if weekdaysAllTheSame {
+		scheduleString = append(scheduleString, "Dias úteis: "+scheduleToString(schedulesByDay[1]))
+	} else {
+		for i := 2; i < 6; i++ {
+			scheduleString = append(scheduleString, time.Weekday(i).String()+": "+scheduleToString(schedulesByDay[i]))
+		}
+	}
+
+	if holidaysAllTheSame {
+		scheduleString = append(scheduleString, "Fins de semana e feriados: "+scheduleToString(schedulesByDay[0]))
+	} else {
+		scheduleString = append(scheduleString, time.Weekday(0).String()+": "+scheduleToString(schedulesByDay[0]))
+		scheduleString = append(scheduleString, time.Weekday(6).String()+": "+scheduleToString(schedulesByDay[6]))
+		scheduleString = append(scheduleString, "Feriados: "+scheduleToString(schedulesByDay[-1]))
+	}
+
+	return scheduleString
 }
 func scheduleToString(schedule *dataobjects.LobbySchedule) string {
 	if !schedule.Open {
@@ -691,6 +693,8 @@ func scheduleToString(schedule *dataobjects.LobbySchedule) string {
 	return fmt.Sprintf("%s - %s", openString, closeString)
 }
 
+// ReadStationTrivia returns the contents of the HTML file
+// containing trivia for the specified station ID
 func ReadStationTrivia(stationID, locale string) (string, error) {
 	buf, err := ioutil.ReadFile("stationkb/" + locale + "/trivia/" + stationID + ".html")
 	if err != nil {
@@ -699,6 +703,8 @@ func ReadStationTrivia(stationID, locale string) (string, error) {
 	return string(buf), nil
 }
 
+// ReadStationConnections returns the contents of HTML files
+// containing connection information for the specified station ID
 func ReadStationConnections(stationID string) (data []ConnectionData, err error) {
 	connections := []string{"boat", "bus", "train", "park", "bike"}
 	// try pt and use en as fallback

@@ -28,18 +28,20 @@ type apiAnnouncementWrapper struct {
 	NetworkID       string `msgpack:"network" json:"network"`
 }
 
+// WithAnnouncementStore associates an AnnouncementStore with this resource
 func (r *Announcement) WithAnnouncementStore(store dataobjects.AnnouncementStore) *Announcement {
 	r.annStore = store
 	return r
 }
 
-func (n *Announcement) Get(c *yarf.Context) error {
+// Get serves HTTP GET requests on this resource
+func (r *Announcement) Get(c *yarf.Context) error {
 	var anns []*dataobjects.Announcement
 
 	if c.Param("source") != "" {
-		anns = n.annStore.SourceAnnouncements(c.Param("source"))
+		anns = r.annStore.SourceAnnouncements(c.Param("source"))
 	} else {
-		anns = n.annStore.AllAnnouncements()
+		anns = r.annStore.AllAnnouncements()
 	}
 
 	sort.SliceStable(anns, func(i, j int) bool {

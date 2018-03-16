@@ -1,8 +1,8 @@
 package resource
 
 import (
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -38,13 +38,15 @@ type apiNetworkWrapper struct {
 	Schedule   []apiNetworkSchedule `msgpack:"schedule" json:"schedule"`
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *Network) WithNode(node sqalx.Node) *Network {
 	r.node = node
 	return r
 }
 
-func (n *Network) Get(c *yarf.Context) error {
-	tx, err := n.Beginx()
+// Get serves HTTP GET requests on this resource
+func (r *Network) Get(c *yarf.Context) error {
+	tx, err := r.Beginx()
 	if err != nil {
 		return err
 	}

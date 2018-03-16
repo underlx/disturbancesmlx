@@ -11,8 +11,8 @@ import (
 
 	"log"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -27,6 +27,7 @@ func (r *resource) Beginx() (sqalx.Node, error) {
 	return r.node.Beginx()
 }
 
+// DecodeRequest decodes a request according to its headers and places the result in v
 func (r *resource) DecodeRequest(c *yarf.Context, v interface{}) error {
 	contentType := c.Request.Header.Get("Content-Type")
 	var err error
@@ -48,6 +49,7 @@ func (r *resource) DecodeRequest(c *yarf.Context, v interface{}) error {
 	return nil
 }
 
+// AuthenticateClient authenticates a API client
 func (r *resource) AuthenticateClient(c *yarf.Context) (pair *dataobjects.APIPair, err error) {
 	tx, err := r.node.Beginx()
 	if err != nil {

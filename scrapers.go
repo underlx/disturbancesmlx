@@ -17,6 +17,7 @@ var (
 	fbmlxscr  scraper.AnnouncementScraper
 )
 
+// SetUpScrapers initializes and starts the scrapers used to obtain network information
 func SetUpScrapers() {
 	lisbonLoc, _ := time.LoadLocation("Europe/Lisbon")
 
@@ -157,10 +158,12 @@ func SetUpScrapers() {
 
 }
 
+// TearDownScrapers terminates and cleans up the scrapers used to obtain network information
 func TearDownScrapers() {
 	mlxscr.End()
 }
 
+// SetUpAnnouncements sets up the scrapers used to obtain network announcements
 func SetUpAnnouncements(facebookAccessToken string) {
 	network, err := dataobjects.GetNetwork(rootSqalxNode, MLnetworkID)
 
@@ -193,6 +196,7 @@ func SetUpAnnouncements(facebookAccessToken string) {
 	}
 }
 
+// TearDownAnnouncements terminates and cleans up the scrapers used to obtain network announcements
 func TearDownAnnouncements() {
 	if rssmlxscr != nil {
 		rssmlxscr.End()

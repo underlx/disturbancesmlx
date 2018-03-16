@@ -3,8 +3,8 @@ package resource
 import (
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -14,12 +14,12 @@ type Disturbance struct {
 }
 
 type apiDisturbance struct {
-	ID          string               `msgpack:"id" json:"id"`
-	StartTime   time.Time            `msgpack:"startTime" json:"startTime"`
-	EndTime     time.Time            `msgpack:"endTime" json:"endTime"`
-	Ended       bool                 `msgpack:"ended" json:"ended"`
+	ID          string                `msgpack:"id" json:"id"`
+	StartTime   time.Time             `msgpack:"startTime" json:"startTime"`
+	EndTime     time.Time             `msgpack:"endTime" json:"endTime"`
+	Ended       bool                  `msgpack:"ended" json:"ended"`
 	Line        *dataobjects.Line     `msgpack:"-" json:"-"`
-	Description string               `msgpack:"description" json:"description"`
+	Description string                `msgpack:"description" json:"description"`
 	Statuses    []*dataobjects.Status `msgpack:"-" json:"-"`
 }
 
@@ -31,11 +31,11 @@ type apiDisturbanceWrapper struct {
 }
 
 type apiStatus struct {
-	ID         string             `msgpack:"id" json:"id"`
-	Time       time.Time          `msgpack:"time" json:"time"`
+	ID         string              `msgpack:"id" json:"id"`
+	Time       time.Time           `msgpack:"time" json:"time"`
 	Line       *dataobjects.Line   `msgpack:"-" json:"-"`
-	IsDowntime bool               `msgpack:"downtime" json:"downtime"`
-	Status     string             `msgpack:"status" json:"status"`
+	IsDowntime bool                `msgpack:"downtime" json:"downtime"`
+	Status     string              `msgpack:"status" json:"status"`
 	Source     *dataobjects.Source `msgpack:"-" json:"-"`
 }
 
@@ -44,13 +44,15 @@ type apiStatusWrapper struct {
 	SourceID  string `msgpack:"source" json:"source"`
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *Disturbance) WithNode(node sqalx.Node) *Disturbance {
 	r.node = node
 	return r
 }
 
-func (n *Disturbance) Get(c *yarf.Context) error {
-	tx, err := n.Beginx()
+// Get serves HTTP GET requests on this resource
+func (r *Disturbance) Get(c *yarf.Context) error {
+	tx, err := r.Beginx()
 	if err != nil {
 		return err
 	}

@@ -3,8 +3,8 @@ package resource
 import (
 	"os"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -47,13 +47,15 @@ type apiStationWrapper struct {
 	ConnectionURLs map[string]map[string]string `msgpack:"connURLs" json:"connURLs"`
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *Station) WithNode(node sqalx.Node) *Station {
 	r.node = node
 	return r
 }
 
-func (n *Station) Get(c *yarf.Context) error {
-	tx, err := n.Beginx()
+// Get serves HTTP GET requests on this resource
+func (r *Station) Get(c *yarf.Context) error {
+	tx, err := r.Beginx()
 	if err != nil {
 		return err
 	}
@@ -171,6 +173,7 @@ func (n *Station) Get(c *yarf.Context) error {
 	return nil
 }
 
+// ComputeStationTriviaURLs returns a mapping from locales to URLs of the HTML file containing the trivia for the given station
 func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 	m := make(map[string]string)
 	supportedLocales := []string{"pt", "en", "es", "fr"}
@@ -180,6 +183,8 @@ func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 	return m
 }
 
+// ComputeStationConnectionURLs returns a mapping from locales to connection types to URLs
+// of the HTML files containing the connection info for the given station
 func ComputeStationConnectionURLs(station *dataobjects.Station) map[string]map[string]string {
 	m := make(map[string]map[string]string)
 	locales := []string{"pt", "en", "es", "fr"}

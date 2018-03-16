@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -32,16 +32,19 @@ type apiLineStats struct {
 	AverageDisturbanceDuration dataobjects.Duration `msgpack:"avgDistDuration" json:"avgDistDuration"`
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *Stats) WithNode(node sqalx.Node) *Stats {
 	r.node = node
 	return r
 }
 
+// WithStats associates a StatsCalculator with this resource
 func (r *Stats) WithStats(calculator StatsCalculator) *Stats {
 	r.calculator = calculator
 	return r
 }
 
+// Get serves HTTP GET requests on this resource
 func (r *Stats) Get(c *yarf.Context) error {
 	tx, err := r.Beginx()
 	if err != nil {

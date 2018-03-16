@@ -23,6 +23,7 @@ type Static struct {
 	strip string // Part of path to strip from http file server handler
 }
 
+// WithPath associates the path and part of the path to strip with this resource
 func (r *Static) WithPath(path string, strip string) *Static {
 	r.path = path
 	r.strip = strip
@@ -36,6 +37,7 @@ func (r *Static) Get(c *yarf.Context) error {
 	return nil
 }
 
+// APIserver sets up and starts the API server
 func APIserver(trustedClientCertPath string) {
 	y := yarf.New()
 
@@ -110,19 +112,23 @@ func APIserver(trustedClientCertPath string) {
 	y.Start(":12000")
 }
 
+// DelayMiddleware injects a semi-random delay before each request is processed, for debugging
 type DelayMiddleware struct {
 	yarf.Middleware
 }
 
+// PreDispatch runs before the request is dispatched
 func (m *DelayMiddleware) PreDispatch(c *yarf.Context) error {
 	time.Sleep(500*time.Millisecond + time.Duration(rand.Intn(500))*time.Millisecond)
 	return nil
 }
 
+// TelemetryMiddleware collects statistics about API usage
 type TelemetryMiddleware struct {
 	yarf.Middleware
 }
 
+// PostDispatch runs after the request is dispatched
 func (m *TelemetryMiddleware) PostDispatch(c *yarf.Context) error {
 	APIrequestTelemetry <- true
 	return nil

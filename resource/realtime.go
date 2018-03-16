@@ -3,15 +3,17 @@ package resource
 import (
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
+// RealtimeStatsHandler handles real-time network statistics such as the number of users in transit
 type RealtimeStatsHandler interface {
 	RegisterActivity(network *dataobjects.Network, user *dataobjects.APIPair, expectedDuration time.Duration)
 }
 
+// RealtimeVehicleHandler handles real-time vehicle information such as the position of trains in a network
 type RealtimeVehicleHandler interface {
 	RegisterTrainPassenger(currentStation *dataobjects.Station, direction *dataobjects.Station)
 }
@@ -23,21 +25,25 @@ type Realtime struct {
 	vehicleHandler RealtimeVehicleHandler
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *Realtime) WithNode(node sqalx.Node) *Realtime {
 	r.node = node
 	return r
 }
 
+// WithHashKey associates a HMAC key with this resource so it can participate in authentication processes
 func (r *Realtime) WithHashKey(key []byte) *Realtime {
 	r.hashKey = key
 	return r
 }
 
+// WithStatsHandler associates a RealtimeStatsHandler with this resource
 func (r *Realtime) WithStatsHandler(handler RealtimeStatsHandler) *Realtime {
 	r.statsHandler = handler
 	return r
 }
 
+// WithVehicleHandler associates a RealtimeVehicleHandler with this resource
 func (r *Realtime) WithVehicleHandler(handler RealtimeVehicleHandler) *Realtime {
 	r.vehicleHandler = handler
 	return r
@@ -52,6 +58,7 @@ type apiRealtimeLocation struct {
 	Submitter   *dataobjects.APIPair `msgpack:"-" json:"-"`
 }
 
+// Post serves HTTP POST requests on this resource
 func (r *Realtime) Post(c *yarf.Context) error {
 	tx, err := r.Beginx()
 	if err != nil {

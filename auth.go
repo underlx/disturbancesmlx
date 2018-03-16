@@ -7,6 +7,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Session represents a user session
 type Session struct {
 	UserID      string
 	DisplayName string
@@ -74,6 +75,7 @@ func AuthLogoutHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, websiteURL, http.StatusFound)
 }
 
+// AuthGetSession retrieves the Session associated with the user of the specified request, if one exists
 func AuthGetSession(w http.ResponseWriter, r *http.Request) (bool, Session, error) {
 	session, _ := sessionStore.Get(r, "internal")
 	if session.IsNew || session.Values["authenticated"] == nil || session.Values["authenticated"].(int64) < time.Now().UTC().AddDate(0, 0, -7).Unix() {

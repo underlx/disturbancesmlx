@@ -12,8 +12,8 @@ import (
 
 	"net"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -48,32 +48,36 @@ type ecdsaSignature struct {
 	R, S *big.Int
 }
 
-var maxTimestampSkew = 30 * time.Minute
+const maxTimestampSkew = 30 * time.Minute
 
+// WithNode associates a sqalx Node with this resource
 func (r *Pair) WithNode(node sqalx.Node) *Pair {
 	r.node = node
 	return r
 }
 
+// WithPublicKey associates a trusted client public key with this resource
 func (r *Pair) WithPublicKey(key *ecdsa.PublicKey) *Pair {
 	r.trustedClientPublicKey = key
 	return r
 }
 
+// WithHashKey associates a HMAC key with this resource so it can participate in authentication processes
 func (r *Pair) WithHashKey(key []byte) *Pair {
 	r.hashKey = key
 	return r
 }
 
-func (n *Pair) Post(c *yarf.Context) error {
-	tx, err := n.Beginx()
+// Post serves HTTP POST requests on this resource
+func (r *Pair) Post(c *yarf.Context) error {
+	tx, err := r.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
 	var pairRequest apiPairRequest
-	err = n.DecodeRequest(c, &pairRequest)
+	err = r.DecodeRequest(c, &pairRequest)
 	if err != nil {
 		return err
 	}
@@ -135,7 +139,7 @@ func (n *Pair) Post(c *yarf.Context) error {
 	hashedContent := pairRequest.Nonce + pairRequest.Timestamp + pairRequest.AndroidID
 	hash := sha256.Sum256([]byte(hashedContent))
 
-	if !ecdsa.Verify(n.trustedClientPublicKey, hash[:], signature.R, signature.S) {
+	if !ecdsa.Verify(r.trustedClientPublicKey, hash[:], signature.R, signature.S) {
 		return &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "Bad signature",
@@ -171,7 +175,7 @@ func (n *Pair) Post(c *yarf.Context) error {
 		return err
 	}
 
-	pair, err := dataobjects.NewPair(tx, "android", activation, n.hashKey)
+	pair, err := dataobjects.NewPair(tx, "android", activation, r.hashKey)
 	if err != nil {
 		return err
 	}

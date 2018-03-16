@@ -1,8 +1,8 @@
 package resource
 
 import (
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -40,13 +40,15 @@ type apiLobbyWrapper struct {
 	Schedule  []apiLobbySchedule `msgpack:"schedule" json:"schedule"`
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *Lobby) WithNode(node sqalx.Node) *Lobby {
 	r.node = node
 	return r
 }
 
-func (n *Lobby) Get(c *yarf.Context) error {
-	tx, err := n.Beginx()
+// Get serves HTTP GET requests on this resource
+func (r *Lobby) Get(c *yarf.Context) error {
+	tx, err := r.Beginx()
 	if err != nil {
 		return err
 	}

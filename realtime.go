@@ -19,12 +19,14 @@ type VehicleHandler struct {
 	presenceByStationAndDirection map[string]time.Time
 }
 
+// PassengerReading represents a datapoint of real-time information as submitted by a user
 type PassengerReading struct {
 	Time        time.Time
 	StationID   string
 	DirectionID string
 }
 
+// RegisterTrainPassenger registers the presence of a user in a station
 func (h *VehicleHandler) RegisterTrainPassenger(currentStation *dataobjects.Station, direction *dataobjects.Station) {
 	h.presenceByStationAndDirection[h.getMapKey(currentStation, direction)] = time.Now()
 
@@ -38,12 +40,14 @@ func (h *VehicleHandler) RegisterTrainPassenger(currentStation *dataobjects.Stat
 	h.readings = h.readings[altmath.Max(0, len(h.readings)-100):len(h.readings)]
 }
 
+// GetReadings returns the currently stored PassengerReadings
 func (h *VehicleHandler) GetReadings() []PassengerReading {
 	return h.readings
 }
 
 var connectionDurationCache = make(map[string]int)
 
+// GetNextTrainETA makes a best-effort calculation of the ETA to the next train at the specified station going in the specified direction
 func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.Station, direction *dataobjects.Station) (time.Duration, error) {
 	tx, err := node.Beginx()
 	if err != nil {

@@ -10,18 +10,21 @@ type AuthTest struct {
 	resource
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *AuthTest) WithNode(node sqalx.Node) *AuthTest {
 	r.node = node
 	return r
 }
 
+// WithHashKey associates a HMAC key with this resource so it can participate in authentication processes
 func (r *AuthTest) WithHashKey(key []byte) *AuthTest {
 	r.hashKey = key
 	return r
 }
 
-func (n *AuthTest) Get(c *yarf.Context) error {
-	pair, err := n.AuthenticateClient(c)
+// Get serves HTTP GET requests on this resource
+func (r *AuthTest) Get(c *yarf.Context) error {
+	pair, err := r.AuthenticateClient(c)
 	if err != nil {
 		RenderUnauthorized(c)
 		return nil

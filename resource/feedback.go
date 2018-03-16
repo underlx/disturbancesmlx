@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -21,16 +21,19 @@ type apiFeedback struct {
 	Contents string                   `msgpack:"contents" json:"contents"`
 }
 
+// WithNode associates a sqalx Node with this resource
 func (r *Feedback) WithNode(node sqalx.Node) *Feedback {
 	r.node = node
 	return r
 }
 
+// WithHashKey associates a HMAC key with this resource so it can participate in authentication processes
 func (r *Feedback) WithHashKey(key []byte) *Feedback {
 	r.hashKey = key
 	return r
 }
 
+// Post serves HTTP POST requests on this resource
 func (r *Feedback) Post(c *yarf.Context) error {
 	pair, err := r.AuthenticateClient(c)
 	if err != nil {

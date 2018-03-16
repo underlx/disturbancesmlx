@@ -409,8 +409,12 @@ type avgSpeedCacheKey struct {
 var avgSpeedCache map[avgSpeedCacheKey]float64
 var avgSpeedComputeInProgress map[avgSpeedCacheKey]bool
 
+// ErrInfoNotReady is returned when the requested information is not yet available
 var ErrInfoNotReady = errors.New("information not ready")
 
+// ComputeAverageSpeedCached returns the average speed of trips within the specified period,
+// if it has been computed already, or begins computing it, if it has not. Returns
+// ErrInfoNotReady in the latter case, or the average speed in the former case.
 func ComputeAverageSpeedCached(node sqalx.Node, fromTime time.Time, toTime time.Time) (float64, error) {
 	if val, ok := avgSpeedCache[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}]; ok {
 		return val, nil
