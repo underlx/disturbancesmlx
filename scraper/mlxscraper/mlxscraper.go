@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/scraper"
-	uuid "github.com/satori/go.uuid"
 )
 
 // Scraper is a scraper for the status of Metro de Lisboa
@@ -134,9 +134,14 @@ func (sc *Scraper) update() {
 				if !sc.firstUpdate {
 					sc.lastUpdate = time.Now().UTC()
 					status := line.Next()
+
+					id, err := uuid.NewV4()
+					if err != nil {
+						return
+					}
 					if len(status.Find(".semperturbacao").Nodes) == 0 {
 						status := &dataobjects.Status{
-							ID:         uuid.NewV4().String(),
+							ID:         id.String(),
 							Time:       time.Now().UTC(),
 							Line:       newLines[lineID],
 							IsDowntime: true,
@@ -146,7 +151,7 @@ func (sc *Scraper) update() {
 						sc.statusCallback(status)
 					} else {
 						status := &dataobjects.Status{
-							ID:         uuid.NewV4().String(),
+							ID:         id.String(),
 							Time:       time.Now().UTC(),
 							Line:       newLines[lineID],
 							IsDowntime: false,

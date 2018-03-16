@@ -5,10 +5,10 @@ import (
 	"os"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/scraper"
 	"github.com/underlx/disturbancesmlx/scraper/mlxscraper"
-	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -78,8 +78,13 @@ func SetUpScrapers() {
 			mainLog.Println("   Found ongoing disturbance")
 			disturbance = disturbances[len(disturbances)-1]
 		} else {
+			id, err := uuid.NewV4()
+			if err != nil {
+				mainLog.Println(err)
+				return
+			}
 			disturbance = &dataobjects.Disturbance{
-				ID:   uuid.NewV4().String(),
+				ID:   id.String(),
 				Line: status.Line,
 			}
 		}
