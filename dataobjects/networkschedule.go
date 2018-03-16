@@ -71,7 +71,7 @@ func getNetworkSchedulesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) (
 
 // Compare checks if two schedules are the same regardless of their day
 func (schedule *NetworkSchedule) Compare(s2 *NetworkSchedule) bool {
-	return (schedule.Open == false && s2.Open == false) ||
+	return (!schedule.Open && !s2.Open) ||
 		(schedule.Open == s2.Open &&
 			schedule.OpenTime == s2.OpenTime &&
 			schedule.OpenDuration == s2.OpenDuration)

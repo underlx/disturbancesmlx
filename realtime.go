@@ -56,6 +56,9 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 	defer tx.Commit() // read-only tx
 
 	lines, err := station.Lines(tx)
+	if err != nil {
+		return 0, err
+	}
 	thisLineStations := []*dataobjects.Station{}
 	// whether, in thisLineStations, the current direction is the last index (true) or zero (false)
 	// i.e., whether the caller is asking for the ETA in the direction that corresponds to moving "up" in the slice

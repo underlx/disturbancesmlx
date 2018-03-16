@@ -117,6 +117,9 @@ func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network
 	defer tx.Commit() // read-only tx
 
 	lastDist, err := r.getLastDisturbanceTimeForNetwork(tx, network)
+	if err != nil {
+		return apiStats{}, err
+	}
 
 	stats := apiStats{
 		LastDisturbance:          lastDist,

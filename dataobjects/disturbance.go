@@ -203,6 +203,9 @@ func (disturbance *Disturbance) Update(node sqalx.Node) error {
 			Columns("disturbance_id", "status_id").
 			Values(disturbance.ID, disturbance.Statuses[i].ID).
 			RunWith(tx).Exec()
+		if err != nil {
+			return errors.New("AddDisturbance: " + err.Error())
+		}
 	}
 	return tx.Commit()
 }

@@ -266,7 +266,7 @@ func (r *Trip) Put(c *yarf.Context) error {
 		}
 	}
 
-	if time.Now().Sub(oldtrip.SubmitTime) > 7*24*time.Hour {
+	if time.Since(oldtrip.SubmitTime) > 7*24*time.Hour {
 		return &yarf.CustomError{
 			HTTPCode:  http.StatusLocked,
 			ErrorMsg:  "This trip was submitted over 7 days ago and can no longer be edited.",

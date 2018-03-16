@@ -138,10 +138,10 @@ func InitPageCommons(node sqalx.Node, title string) (commons PageCommons, err er
 	defer tx.Commit() // read-only tx
 
 	commons.PageTitle = title + " | Perturbações.pt"
-	commons.LastChangeAgoMin = int(time.Now().Sub(lastChange).Minutes()) % 60
-	commons.LastChangeAgoHour = int(time.Now().Sub(lastChange).Hours())
-	commons.LastUpdateAgoMin = int(time.Now().Sub(mlxscr.LastUpdate()).Minutes()) % 60
-	commons.LastUpdateAgoHour = int(time.Now().Sub(mlxscr.LastUpdate()).Hours())
+	commons.LastChangeAgoMin = int(time.Since(lastChange).Minutes()) % 60
+	commons.LastChangeAgoHour = int(time.Since(lastChange).Hours())
+	commons.LastUpdateAgoMin = int(time.Since(mlxscr.LastUpdate()).Minutes()) % 60
+	commons.LastUpdateAgoHour = int(time.Since(mlxscr.LastUpdate()).Hours())
 
 	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
@@ -163,7 +163,7 @@ func InitPageCommons(node sqalx.Node, title string) (commons PageCommons, err er
 		d, err := lines[i].LastOngoingDisturbance(tx)
 		commons.Lines[i].Down = err == nil
 		if err == nil {
-			commons.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
+			commons.Lines[i].Minutes = int(time.Since(d.StartTime).Minutes())
 		}
 	}
 
@@ -265,7 +265,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		d, err := lines[i].LastOngoingDisturbance(tx)
 		p.Lines[i].Down = err == nil
 		if err == nil {
-			p.Lines[i].Minutes = int(time.Now().Sub(d.StartTime).Minutes())
+			p.Lines[i].Minutes = int(time.Since(d.StartTime).Minutes())
 		}
 
 		p.LinesExtra[i].LastDisturbance, err = lines[i].LastDisturbance(tx)
@@ -951,9 +951,12 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		Username          string
 		PassengerReadings []PassengerReading
 		TrainETAs         []struct {
-			Station   *dataobjects.Station
+			//lint:ignore U1000 false positive, probably related to https://github.com/dominikh/go-tools/issues/262
+			Station *dataobjects.Station
+			//lint:ignore U1000 false positive, probably related to https://github.com/dominikh/go-tools/issues/262
 			Direction *dataobjects.Station
-			ETA       string
+			//lint:ignore U1000 false positive, probably related to https://github.com/dominikh/go-tools/issues/262
+			ETA string
 		}
 		UsersOnlineInNetwork int
 	}{
