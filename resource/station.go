@@ -61,113 +61,72 @@ func (r *Station) Get(c *yarf.Context) error {
 	}
 	defer tx.Commit() // read-only tx
 
+	var stations []*dataobjects.Station
+
 	if c.Param("id") != "" {
-		station, err := dataobjects.GetStation(tx, c.Param("id"))
-		if err != nil {
-			return err
-		}
-		data := apiStationWrapper{
-			apiStation: apiStation(*station),
-			Features:   apiFeatures(*station.Features),
-			NetworkID:  station.Network.ID,
+		var station *dataobjects.Station
+		station, err = dataobjects.GetStation(tx, c.Param("id"))
+		stations = []*dataobjects.Station{station}
+	} else {
+		stations, err = dataobjects.GetStations(tx)
+	}
+
+	if err != nil {
+		return err
+	}
+	apistations := make([]apiStationWrapper, len(stations))
+	for i := range stations {
+		apistations[i] = apiStationWrapper{
+			apiStation: apiStation(*stations[i]),
+			Features:   apiFeatures(*stations[i].Features),
+			NetworkID:  stations[i].Network.ID,
 		}
 
-		data.Lines = []string{}
-		lines, err := station.Lines(tx)
+		apistations[i].Lines = []string{}
+		lines, err := stations[i].Lines(tx)
 		if err != nil {
 			return err
 		}
 		for _, line := range lines {
-			data.Lines = append(data.Lines, line.ID)
+			apistations[i].Lines = append(apistations[i].Lines, line.ID)
 		}
 
-		data.Lobbies = []string{}
-		lobbies, err := station.Lobbies(tx)
+		apistations[i].Lobbies = []string{}
+		lobbies, err := stations[i].Lobbies(tx)
 		if err != nil {
 			return err
 		}
 		for _, lobby := range lobbies {
-			data.Lobbies = append(data.Lobbies, lobby.ID)
+			apistations[i].Lobbies = append(apistations[i].Lobbies, lobby.ID)
 		}
 
-		data.WiFiAPs = []wifiWrapper{}
-		wiFiAPs, err := station.WiFiAPs(tx)
+		apistations[i].WiFiAPs = []wifiWrapper{}
+		wiFiAPs, err := stations[i].WiFiAPs(tx)
 		if err != nil {
 			return err
 		}
 		for _, ap := range wiFiAPs {
-			data.WiFiAPs = append(data.WiFiAPs, wifiWrapper{
+			apistations[i].WiFiAPs = append(apistations[i].WiFiAPs, wifiWrapper{
 				BSSID: ap.BSSID,
 				Line:  ap.Line,
 			})
 		}
 
-		data.POIs = []string{}
-		pois, err := station.POIs(tx)
+		apistations[i].POIs = []string{}
+		pois, err := stations[i].POIs(tx)
 		if err != nil {
 			return err
 		}
 		for _, poi := range pois {
-			data.POIs = append(data.POIs, poi.ID)
+			apistations[i].POIs = append(apistations[i].POIs, poi.ID)
 		}
+		apistations[i].TriviaURLs = ComputeStationTriviaURLs(stations[i])
+		apistations[i].ConnectionURLs = ComputeStationConnectionURLs(stations[i])
+	}
 
-		data.TriviaURLs = ComputeStationTriviaURLs(station)
-
-		RenderData(c, data)
+	if c.Param("id") != "" {
+		RenderData(c, apistations[0])
 	} else {
-		stations, err := dataobjects.GetStations(tx)
-		if err != nil {
-			return err
-		}
-		apistations := make([]apiStationWrapper, len(stations))
-		for i := range stations {
-			apistations[i] = apiStationWrapper{
-				apiStation: apiStation(*stations[i]),
-				Features:   apiFeatures(*stations[i].Features),
-				NetworkID:  stations[i].Network.ID,
-			}
-
-			apistations[i].Lines = []string{}
-			lines, err := stations[i].Lines(tx)
-			if err != nil {
-				return err
-			}
-			for _, line := range lines {
-				apistations[i].Lines = append(apistations[i].Lines, line.ID)
-			}
-
-			apistations[i].Lobbies = []string{}
-			lobbies, err := stations[i].Lobbies(tx)
-			if err != nil {
-				return err
-			}
-			for _, lobby := range lobbies {
-				apistations[i].Lobbies = append(apistations[i].Lobbies, lobby.ID)
-			}
-
-			apistations[i].WiFiAPs = []wifiWrapper{}
-			wiFiAPs, err := stations[i].WiFiAPs(tx)
-			if err != nil {
-				return err
-			}
-			for _, ap := range wiFiAPs {
-				apistations[i].WiFiAPs = append(apistations[i].WiFiAPs, wifiWrapper{
-					BSSID: ap.BSSID,
-					Line:  ap.Line,
-				})
-			}
-
-			apistations[i].POIs = []string{}
-			pois, err := stations[i].POIs(tx)
-			if err != nil {
-				return err
-			}
-			for _, poi := range pois {
-				apistations[i].POIs = append(apistations[i].POIs, poi.ID)
-			}
-			apistations[i].TriviaURLs = ComputeStationTriviaURLs(stations[i])
-			apistations[i].ConnectionURLs = ComputeStationConnectionURLs(stations[i])
-		}
 		RenderData(c, apistations)
 	}
 	return nil

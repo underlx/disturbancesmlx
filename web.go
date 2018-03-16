@@ -48,6 +48,13 @@ type ConnectionData struct {
 	HTML string
 }
 
+// TrainETA contains information about the estimated arrival time of a train for a station and direction
+type TrainETA struct {
+	Station   *dataobjects.Station
+	Direction *dataobjects.Station
+	ETA       string
+}
+
 // WebServer starts the web server
 func WebServer() {
 	authKey, present := secrets.Get("cookieAuthKey")
@@ -945,19 +952,12 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 			Availability string
 			AvgDuration  string
 		}
-		AverageSpeed      float64
-		Message           string
-		UserID            string
-		Username          string
-		PassengerReadings []PassengerReading
-		TrainETAs         []struct {
-			//lint:ignore U1000 false positive, probably related to https://github.com/dominikh/go-tools/issues/262
-			Station *dataobjects.Station
-			//lint:ignore U1000 false positive, probably related to https://github.com/dominikh/go-tools/issues/262
-			Direction *dataobjects.Station
-			//lint:ignore U1000 false positive, probably related to https://github.com/dominikh/go-tools/issues/262
-			ETA string
-		}
+		AverageSpeed         float64
+		Message              string
+		UserID               string
+		Username             string
+		PassengerReadings    []PassengerReading
+		TrainETAs            []TrainETA
 		UsersOnlineInNetwork int
 	}{
 		Message:              message,
@@ -965,11 +965,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		Username:             session.DisplayName,
 		PassengerReadings:    vehicleHandler.GetReadings(),
 		UsersOnlineInNetwork: statsHandler.CurrentlyOnlineInTransit(n, 0),
-		TrainETAs: []struct {
-			Station   *dataobjects.Station
-			Direction *dataobjects.Station
-			ETA       string
-		}{},
+		TrainETAs:            []TrainETA{},
 	}
 
 	p.PageCommons, err = InitPageCommons(tx, "Página interna")
@@ -1040,43 +1036,10 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	p.EndTime = p.EndTime.AddDate(0, 0, -1)
 
 	// train ETA debugging
-	stations, err := dataobjects.GetStations(tx)
+	p.TrainETAs, err = ComputeAllTrainETAs(tx)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	for _, station := range stations {
-		directions, err := station.Directions(tx)
-		if err != nil {
-			webLog.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		for _, direction := range directions {
-			eta, err := vehicleHandler.GetNextTrainETA(tx, station, direction)
-			if err != nil {
-				p.TrainETAs = append(p.TrainETAs, struct {
-					Station   *dataobjects.Station
-					Direction *dataobjects.Station
-					ETA       string
-				}{station, direction, err.Error()})
-			} else {
-				if eta.Seconds() < 0 {
-					p.TrainETAs = append(p.TrainETAs, struct {
-						Station   *dataobjects.Station
-						Direction *dataobjects.Station
-						ETA       string
-					}{station, direction, fmt.Sprintf("probably arrived %s ago", (-eta).String())})
-				} else {
-					p.TrainETAs = append(p.TrainETAs, struct {
-						Station   *dataobjects.Station
-						Direction *dataobjects.Station
-						ETA       string
-					}{station, direction, eta.String()})
-				}
-			}
-		}
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "internal.html", p)

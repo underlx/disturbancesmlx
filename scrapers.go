@@ -41,121 +41,123 @@ func SetUpScrapers() {
 		},
 		Period: 1 * time.Minute,
 	}
-	mlxscr.Begin(l, func(status *dataobjects.Status) {
-		tx, err := rootSqalxNode.Beginx()
+	mlxscr.Begin(l, mlxHandleNewStatus, mlxHandleTopologyChange)
+}
+
+func mlxHandleNewStatus(status *dataobjects.Status) {
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		mainLog.Println(err)
+		return
+	}
+	defer tx.Rollback()
+
+	log.Println("New status for line", status.Line.Name, "on network", status.Line.Network.Name)
+	log.Println("  ", status.Status)
+	if status.IsDowntime {
+		log.Println("   Is disturbance!")
+	}
+
+	err = status.Update(tx)
+	if err != nil {
+		mainLog.Println(err)
+		return
+	}
+
+	d, err := status.Line.LastDisturbance(tx)
+	if err == nil {
+		mainLog.Println("   Last disturbance at", d.StartTime, "description:", d.Description)
+	} else {
+		mainLog.Println(err)
+	}
+
+	disturbances, err := status.Line.OngoingDisturbances(tx)
+	if err != nil {
+		mainLog.Println(err)
+		return
+	}
+	found := len(disturbances) > 0
+	var disturbance *dataobjects.Disturbance
+	if found {
+		mainLog.Println("   Found ongoing disturbance")
+		disturbance = disturbances[len(disturbances)-1]
+	} else {
+		id, err := uuid.NewV4()
 		if err != nil {
 			mainLog.Println(err)
 			return
 		}
-		defer tx.Rollback()
-
-		log.Println("New status for line", status.Line.Name, "on network", status.Line.Network.Name)
-		log.Println("  ", status.Status)
-		if status.IsDowntime {
-			log.Println("   Is disturbance!")
+		disturbance = &dataobjects.Disturbance{
+			ID:   id.String(),
+			Line: status.Line,
 		}
-
-		err = status.Update(tx)
+	}
+	previousStatus := disturbance.LatestStatus()
+	if previousStatus != nil && status.Status == previousStatus.Status {
+		mainLog.Println("   Repeated status, ignore")
+		return
+	}
+	sendNotification := false
+	if status.IsDowntime && !found {
+		disturbance.StartTime = status.Time
+		disturbance.Description = status.Status
+		disturbance.Statuses = append(disturbance.Statuses, status)
+		err = disturbance.Update(tx)
 		if err != nil {
 			mainLog.Println(err)
 			return
 		}
-
-		d, err := status.Line.LastDisturbance(tx)
-		if err == nil {
-			mainLog.Println("   Last disturbance at", d.StartTime, "description:", d.Description)
-		} else {
-			mainLog.Println(err)
+		sendNotification = true
+	} else if found {
+		if !status.IsDowntime {
+			// "close" this disturbance
+			disturbance.EndTime = status.Time
+			disturbance.Ended = true
 		}
-
-		disturbances, err := status.Line.OngoingDisturbances(tx)
+		disturbance.Statuses = append(disturbance.Statuses, status)
+		err = disturbance.Update(tx)
 		if err != nil {
 			mainLog.Println(err)
 			return
 		}
-		found := len(disturbances) > 0
-		var disturbance *dataobjects.Disturbance
-		if found {
-			mainLog.Println("   Found ongoing disturbance")
-			disturbance = disturbances[len(disturbances)-1]
-		} else {
-			id, err := uuid.NewV4()
-			if err != nil {
-				mainLog.Println(err)
-				return
-			}
-			disturbance = &dataobjects.Disturbance{
-				ID:   id.String(),
-				Line: status.Line,
-			}
-		}
-		previousStatus := disturbance.LatestStatus()
-		if previousStatus != nil && status.Status == previousStatus.Status {
-			mainLog.Println("   Repeated status, ignore")
-			return
-		}
-		sendNotification := false
-		if status.IsDowntime && !found {
-			disturbance.StartTime = status.Time
-			disturbance.Description = status.Status
-			disturbance.Statuses = append(disturbance.Statuses, status)
-			err = disturbance.Update(tx)
-			if err != nil {
-				mainLog.Println(err)
-				return
-			}
-			sendNotification = true
-		} else if found {
-			if !status.IsDowntime {
-				// "close" this disturbance
-				disturbance.EndTime = status.Time
-				disturbance.Ended = true
-			}
-			disturbance.Statuses = append(disturbance.Statuses, status)
-			err = disturbance.Update(tx)
-			if err != nil {
-				mainLog.Println(err)
-				return
-			}
-			sendNotification = true
-		}
-		lastChange = time.Now().UTC()
-		if tx.Commit() == nil && sendNotification {
-			SendNotificationForDisturbance(disturbance, status)
-		}
-	},
-		func(s scraper.Scraper) {
-			tx, err := rootSqalxNode.Beginx()
-			if err != nil {
-				mainLog.Println(err)
-				return
-			}
-			defer tx.Rollback()
-			for _, newnetwork := range s.Networks() {
-				newnetwork, err := dataobjects.GetNetwork(tx, newnetwork.ID)
-				if err != nil {
-					mainLog.Println("New network " + newnetwork.ID)
-					err = newnetwork.Update(tx)
-					if err != nil {
-						mainLog.Println(err)
-						return
-					}
-				}
-			}
-			for _, newline := range s.Lines() {
-				newline, err := dataobjects.GetLine(tx, newline.ID)
-				if err != nil {
-					mainLog.Println("New line " + newline.ID)
-					err = newline.Update(tx)
-					if err != nil {
-						mainLog.Println(err)
-						return
-					}
-				}
-			}
-			tx.Commit()
-		})
+		sendNotification = true
+	}
+	lastChange = time.Now().UTC()
+	if tx.Commit() == nil && sendNotification {
+		SendNotificationForDisturbance(disturbance, status)
+	}
+}
 
+func mlxHandleTopologyChange(s scraper.Scraper) {
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		mainLog.Println(err)
+		return
+	}
+	defer tx.Rollback()
+	for _, newnetwork := range s.Networks() {
+		newnetwork, err := dataobjects.GetNetwork(tx, newnetwork.ID)
+		if err != nil {
+			mainLog.Println("New network " + newnetwork.ID)
+			err = newnetwork.Update(tx)
+			if err != nil {
+				mainLog.Println(err)
+				return
+			}
+		}
+	}
+	for _, newline := range s.Lines() {
+		newline, err := dataobjects.GetLine(tx, newline.ID)
+		if err != nil {
+			mainLog.Println("New line " + newline.ID)
+			err = newline.Update(tx)
+			if err != nil {
+				mainLog.Println(err)
+				return
+			}
+		}
+	}
+	tx.Commit()
 }
 
 // TearDownScrapers terminates and cleans up the scrapers used to obtain network information

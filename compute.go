@@ -585,6 +585,37 @@ func ComputeSimulatedRealtime(node sqalx.Node, fromTime time.Time, toTime time.T
 	return nil
 }
 
+func ComputeAllTrainETAs(node sqalx.Node) ([]TrainETA, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return []TrainETA{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	stations, err := dataobjects.GetStations(tx)
+	if err != nil {
+		return []TrainETA{}, err
+	}
+	trainETAs := []TrainETA{}
+	for _, station := range stations {
+		directions, err := station.Directions(tx)
+		if err != nil {
+			return trainETAs, err
+		}
+		for _, direction := range directions {
+			eta, err := vehicleHandler.GetNextTrainETA(tx, station, direction)
+			if err != nil {
+				trainETAs = append(trainETAs, TrainETA{station, direction, err.Error()})
+			} else if eta.Seconds() < 0 {
+				trainETAs = append(trainETAs, TrainETA{station, direction, fmt.Sprintf("probably arrived %s ago", (-eta).String())})
+			} else {
+				trainETAs = append(trainETAs, TrainETA{station, direction, eta.String()})
+			}
+		}
+	}
+	return trainETAs, nil
+}
+
 func init() {
 	avgSpeedCache = make(map[avgSpeedCacheKey]float64)
 	avgSpeedComputeInProgress = make(map[avgSpeedCacheKey]bool)

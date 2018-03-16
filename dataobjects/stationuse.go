@@ -120,24 +120,9 @@ func getStationUsesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*St
 
 // Update adds or updates the stationUse
 func (stationUse *StationUse) Update(node sqalx.Node, tripID string) error {
-	if stationUse.LeaveTime.Before(stationUse.EntryTime) {
-		return errors.New("AddStationUse: leave time before entry time")
-	}
-
-	if stationUse.Type != NetworkEntry && stationUse.Type != NetworkExit &&
-		stationUse.Type != Interchange && stationUse.Type != GoneThrough &&
-		stationUse.Type != Visit {
-		return errors.New("AddStationUse: invalid type")
-	}
-
-	if stationUse.Type == Interchange &&
-		(stationUse.SourceLine == nil || stationUse.TargetLine == nil) {
-		return errors.New("AddStationUse: interchange use missing source or target lines")
-	}
-
-	if stationUse.Type != Interchange &&
-		(stationUse.SourceLine != nil || stationUse.TargetLine != nil) {
-		return errors.New("AddStationUse: non-interchange use contains source or target lines")
+	sourceLine, targetLine, err := stationUse.checkValidAndLines()
+	if err != nil {
+		return err
 	}
 
 	tx, err := node.Beginx()
@@ -145,24 +130,6 @@ func (stationUse *StationUse) Update(node sqalx.Node, tripID string) error {
 		return err
 	}
 	defer tx.Rollback()
-
-	sourceLine := sql.NullString{
-		Valid: stationUse.SourceLine != nil,
-	}
-	if sourceLine.Valid {
-		sourceLine.String = stationUse.SourceLine.ID
-	}
-
-	targetLine := sql.NullString{
-		Valid: stationUse.TargetLine != nil,
-	}
-	if targetLine.Valid {
-		targetLine.String = stationUse.TargetLine.ID
-	}
-
-	if sourceLine.Valid && targetLine.Valid && sourceLine.String == targetLine.String {
-		return errors.New("AddStationUse: interchange has the same source and target")
-	}
 
 	_, err = sdb.Insert("station_use").
 		Columns("trip_id", "station_id", "entry_time", "leave_time", "type", "manual", "source_line", "target_line").
@@ -175,6 +142,48 @@ func (stationUse *StationUse) Update(node sqalx.Node, tripID string) error {
 		return errors.New("AddStationUse: " + err.Error())
 	}
 	return tx.Commit()
+}
+
+func (stationUse *StationUse) checkValidAndLines() (sourceLine, targetLine sql.NullString, err error) {
+	if stationUse.LeaveTime.Before(stationUse.EntryTime) {
+		return sql.NullString{}, sql.NullString{}, errors.New("AddStationUse: leave time before entry time")
+	}
+
+	if stationUse.Type != NetworkEntry && stationUse.Type != NetworkExit &&
+		stationUse.Type != Interchange && stationUse.Type != GoneThrough &&
+		stationUse.Type != Visit {
+		return sql.NullString{}, sql.NullString{}, errors.New("AddStationUse: invalid type")
+	}
+
+	if stationUse.Type == Interchange &&
+		(stationUse.SourceLine == nil || stationUse.TargetLine == nil) {
+		return sql.NullString{}, sql.NullString{}, errors.New("AddStationUse: interchange use missing source or target lines")
+	}
+
+	if stationUse.Type != Interchange &&
+		(stationUse.SourceLine != nil || stationUse.TargetLine != nil) {
+		return sql.NullString{}, sql.NullString{}, errors.New("AddStationUse: non-interchange use contains source or target lines")
+	}
+
+	sourceLine = sql.NullString{
+		Valid: stationUse.SourceLine != nil,
+	}
+	if sourceLine.Valid {
+		sourceLine.String = stationUse.SourceLine.ID
+	}
+
+	targetLine = sql.NullString{
+		Valid: stationUse.TargetLine != nil,
+	}
+	if targetLine.Valid {
+		targetLine.String = stationUse.TargetLine.ID
+	}
+
+	if sourceLine.Valid && targetLine.Valid && sourceLine.String == targetLine.String {
+		return sql.NullString{}, sql.NullString{}, errors.New("AddStationUse: interchange has the same source and target")
+	}
+
+	return sourceLine, targetLine, nil
 }
 
 // Delete deletes the stationUse
