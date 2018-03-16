@@ -585,6 +585,7 @@ func ComputeSimulatedRealtime(node sqalx.Node, fromTime time.Time, toTime time.T
 	return nil
 }
 
+// ComputeAllTrainETAs computes the train ETA for all stations in all directions
 func ComputeAllTrainETAs(node sqalx.Node) ([]TrainETA, error) {
 	tx, err := node.Beginx()
 	if err != nil {
