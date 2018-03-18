@@ -346,15 +346,10 @@ func (line *Line) getClosedDuration(tx sqalx.Node, startTime time.Time, endTime 
 		openSpan := timespan.New(openTime, closeTime.Sub(openTime))
 		d, hasIntersection := wholeSpan.Intersection(openSpan)
 		if hasIntersection {
-			fmt.Println("Adding", d.Duration())
 			openDuration += d.Duration()
 		}
 		ct = ct.AddDate(0, 0, 1)
 	}
-
-	fmt.Println("Between", startTime, "and", endTime)
-	fmt.Println("openDuration", openDuration)
-	fmt.Println("closedDuration", wholeSpan.Duration()-openDuration)
 
 	return wholeSpan.Duration() - openDuration, nil
 }
