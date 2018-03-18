@@ -6,7 +6,6 @@ import (
 	"time"
 
 	fcm "github.com/NaySoftware/go-fcm"
-	"github.com/SaidinWoT/timespan"
 	"github.com/heetch/sqalx"
 	"github.com/jmoiron/sqlx"
 
@@ -49,27 +48,6 @@ func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
 	}
 
 	return d.EndTime, nil
-}
-
-// MLlineAvailability returns the availability for a Metro de Lisboa line
-func MLlineAvailability(node sqalx.Node, line *dataobjects.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error) {
-	// calculate closed time
-	var closedDuration time.Duration
-	ct := startTime
-	wholeSpan := timespan.New(startTime, endTime.Sub(startTime))
-	for ct.Before(endTime) {
-		closeTime := time.Date(ct.Year(), ct.Month(), ct.Day(), 1, 0, 0, 0, ct.Location())
-		openTime := time.Date(ct.Year(), ct.Month(), ct.Day(), 6, 30, 0, 0, ct.Location())
-
-		closedSpan := timespan.New(closeTime, openTime.Sub(closeTime))
-		d, hasIntersection := wholeSpan.Intersection(closedSpan)
-		if hasIntersection {
-			closedDuration += d.Duration()
-		}
-		ct = ct.AddDate(0, 0, 1)
-	}
-
-	return line.Availability(node, startTime, endTime, closedDuration)
 }
 
 func main() {

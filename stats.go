@@ -1,11 +1,9 @@
 package main
 
 import (
-	"errors"
 	"math/rand"
 	"time"
 
-	"github.com/heetch/sqalx"
 	cache "github.com/patrickmn/go-cache"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
@@ -19,14 +17,6 @@ type StatsHandler struct {
 
 func init() {
 	statsHandler.activity = cache.New(cache.NoExpiration, 10*time.Minute)
-}
-
-// Availability returns the availability of a line during the specified period of time
-func (*StatsHandler) Availability(node sqalx.Node, line *dataobjects.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error) {
-	if line.Network.ID == "pt-ml" {
-		return MLlineAvailability(node, line, startTime, endTime)
-	}
-	return 0, 0, errors.New("Availability: line belongs to unsupported network")
 }
 
 // CurrentlyOnlineInTransit returns the number of users in transit in the network

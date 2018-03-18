@@ -3,8 +3,10 @@ package dataobjects
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
+	"github.com/SaidinWoT/timespan"
 	sq "github.com/gbl08ma/squirrel"
 	"github.com/heetch/sqalx"
 )
@@ -290,7 +292,7 @@ func (line *Line) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 
 // Availability returns the fraction of time this line operated without issues
 // between the specified times, and the average duration for each disturbance
-func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime time.Time, closedDuration time.Duration) (availability float64, avgDuration time.Duration, err error) {
+func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime time.Time) (availability float64, avgDuration time.Duration, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return 100.0, 0, err
@@ -315,8 +317,78 @@ func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime tim
 		avgDuration = downTime / time.Duration(len(disturbances))
 	}
 
+	closedDuration, err := line.getClosedDuration(tx, startTime, endTime)
+	if err != nil {
+		return 100.0, 0, err
+	}
+
 	totalTime := endTime.Sub(startTime) - closedDuration
 	return 1.0 - (downTime.Minutes() / totalTime.Minutes()), avgDuration, nil
+}
+
+func (line *Line) getClosedDuration(tx sqalx.Node, startTime time.Time, endTime time.Time) (time.Duration, error) {
+	schedules, err := line.Schedules(tx)
+	if err != nil {
+		return 0, err
+	}
+
+	var openDuration time.Duration
+	wholeSpan := timespan.New(startTime, endTime.Sub(startTime))
+	// expand one day on both sides so we can be sure the schedule info captures everything
+	ct := startTime.AddDate(0, 0, -1)
+	et := endTime.AddDate(0, 0, 1)
+	for ct.Before(et) {
+		schedule := line.getScheduleForDay(ct, schedules)
+		openTime := time.Time(schedule.OpenTime)
+		openTime = time.Date(ct.Year(), ct.Month(), ct.Day(), openTime.Hour(), openTime.Minute(), openTime.Second(), openTime.Nanosecond(), ct.Location())
+		closeTime := openTime.Add(time.Duration(schedule.OpenDuration))
+
+		openSpan := timespan.New(openTime, closeTime.Sub(openTime))
+		d, hasIntersection := wholeSpan.Intersection(openSpan)
+		if hasIntersection {
+			fmt.Println("Adding", d.Duration())
+			openDuration += d.Duration()
+		}
+		ct = ct.AddDate(0, 0, 1)
+	}
+
+	fmt.Println("Between", startTime, "and", endTime)
+	fmt.Println("openDuration", openDuration)
+	fmt.Println("closedDuration", wholeSpan.Duration()-openDuration)
+
+	return wholeSpan.Duration() - openDuration, nil
+}
+
+func (line *Line) getScheduleForDay(day time.Time, schedules []*LineSchedule) *LineSchedule {
+	holidays := make([]int, len(line.Network.Holidays))
+	for i, holiday := range line.Network.Holidays {
+		holidays[i] = int(holiday)
+	}
+
+	// look for specific day overrides (holiday == true, day != 0)
+	for _, schedule := range schedules {
+		if schedule.Holiday && schedule.Day == day.YearDay() {
+			return schedule
+		}
+	}
+
+	// check if this is a holiday
+	holidayIdx := sort.SearchInts(holidays, day.YearDay())
+	if holidayIdx < len(holidays) && holidays[holidayIdx] == day.YearDay() {
+		// holiday, return the schedule for holidays
+		for _, schedule := range schedules {
+			if schedule.Holiday && schedule.Day == 0 {
+				return schedule
+			}
+		}
+	}
+
+	for _, schedule := range schedules {
+		if !schedule.Holiday && schedule.Day == int(day.Weekday()) {
+			return schedule
+		}
+	}
+	return nil
 }
 
 // DisturbanceDuration returns the total duration of the disturbances in this line between the specified times
