@@ -8,8 +8,8 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/mmcdole/gofeed"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
 // RSSScraper is an announcement scraper for the Metro de Lisboa website
@@ -87,7 +87,7 @@ func (sc *RSSScraper) update() {
 			Time:    *item.PublishedParsed,
 			Network: sc.Network,
 			Title:   item.Title,
-			Body:    sc.adaptPostBody(item.Description),
+			Body:    sc.adaptPostBody(item.Content),
 			URL:     item.Link,
 			Source:  "pt-ml-rss",
 		}
