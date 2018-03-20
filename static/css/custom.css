@@ -323,3 +323,18 @@ ul.pt-ml-line {
   display: inline-block;
   text-decoration: none;
 }
+
+.lineHeaderTraditional {
+  display: none;
+}
+.lineHeaderComplete {
+  display: block;
+}
+@media screen and (max-width: 35.5em) {
+  .lineHeaderTraditional {
+    display: block;
+  }
+  .lineHeaderComplete {
+    display: none;
+  }
+}

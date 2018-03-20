@@ -564,6 +564,10 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		Connections    []ConnectionData
 		POIs           []*dataobjects.POI
 		Closed         bool
+		PrevNext       []struct {
+			Prev *dataobjects.Station
+			Next *dataobjects.Station
+		}
 	}{}
 
 	p.Station, err = dataobjects.GetStation(tx, mux.Vars(r)["id"])
@@ -584,6 +588,32 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	for _, line := range p.StationLines {
+		stations, err := line.Stations(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		for i, station := range stations {
+			if station.ID == p.Station.ID {
+				pn := struct {
+					Prev *dataobjects.Station
+					Next *dataobjects.Station
+				}{}
+				if i > 0 {
+					pn.Prev = stations[i-1]
+				}
+				if i < len(stations)-1 {
+					pn.Next = stations[i+1]
+				}
+				p.PrevNext = append(p.PrevNext, pn)
+				break
+			}
+		}
 	}
 
 	p.POIs, err = p.Station.POIs(tx)

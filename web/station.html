@@ -1,36 +1,62 @@
+<style>a.anchor:before { content: ''; display: block; position: relative; width: 0; height: 3em; margin-top: -3em }</style>
+
+{{define "StationLineSelector"}}
+<div class="lineHeaderComplete">
+  {{ range $index, $line := .StationLines }}
+  <div style="text-align: center; margin-bottom: 25px; position:relative;">
+    <span style="display: inline-block; position: absolute; left: 0;">
+      <a style="background-color: #{{ $line.Color }}; color: #fff;" class="pure-button {{if not (index $.PrevNext $index).Prev }}pure-button-disabled{{end}}" href="/s/{{if (index $.PrevNext $index).Prev }}{{ (index $.PrevNext $index).Prev.ID }}{{end}}">
+        <i class="fa fa-arrow-left"></i> {{if (index $.PrevNext $index).Prev }}{{ (index $.PrevNext $index).Prev.Name }}{{else}}<em>Terminal</em>{{end}}
+      </a>
+    </span>
+    <span style="font-weight: 700; font-size: 1.3em;">
+      Linha <a class="line" href="/l/{{ $line.ID }}" style="color: #{{ $line.Color }};">{{ $line.Name | html }}</a>
+    </span>
+    <span style="display: inline-block; position: absolute; right: 0;">
+      <a style="background-color: #{{ $line.Color }}; color: #fff;" class="pure-button {{if not (index $.PrevNext $index).Next }}pure-button-disabled{{end}}" href="/s/{{if (index $.PrevNext $index).Next }}{{ (index $.PrevNext $index).Next.ID }}{{end}}">
+        {{if (index $.PrevNext $index).Next }}{{ (index $.PrevNext $index).Next.Name }}{{else}}<em>Terminal</em>{{end}} <i class="fa fa-arrow-right"></i>
+      </a>
+    </span>
+  </div>
+  {{end}}
+</div>
+<div class="lineHeaderTraditional">
+{{ if gt (len .StationLines) 0 }}
+<h3>Linha{{ if gt (len .StationLines) 1 }}s{{end}}
+  {{ range $index, $line := .StationLines }}
+    {{if (and (gt (len $.StationLines) 1) (eq $index (minus (len $.StationLines) 1)) ) }} e {{else if (gt $index 0)}}, {{end}}
+    <a class="line" href="/l/{{ $line.ID }}" style="color: #{{ $line.Color }};">{{ $line.Name | html }}</a>
+  {{end}}
+</h3>
+</div>
+{{end}}
+{{end}}
+
 {{template "header.html" . }}
-{{ $top := . }}
 <a name="top"></a>
   <div class="content">
     <div class="pure-g">
       <div class="pure-u-1">
         <h1>{{ .Station.Name }} <small style="padding-left: 15px;">Estação do {{ .Station.Network.Name }}</small></h1>
-        {{ if gt (len .StationLines) 0 }}
-        <h3>Linha{{ if gt (len .StationLines) 1 }}s{{end}}
-          {{ range $index, $line := .StationLines }}
-            {{if (and (gt (len $top.StationLines) 1) (eq $index (minus (len $top.StationLines) 1)) ) }} e {{else if (gt $index 0)}}, {{end}}
-            <a class="line" href="/l/{{ $line.ID }}" style="color: #{{ $line.Color }};">{{ $line.Name | html }}</a>
-          {{end}}
-        </h3>
-        {{end}}
+        {{ template "StationLineSelector" . }}
         {{ if .Closed }}
         <aside><p>Esta estação está encerrada por tempo indeterminado.</p></aside>
         {{ end }}
-        <p><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#pois" class="pure-button">Pontos de Interesse</a> <a href="#trivia" class="pure-button">Trívia</a></p>
       </div>
+      <div class="pure-u-1" style="position: sticky; top: 0px; margin-top: 10px; background-color: white;"><p style="text-align: center;"><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#pois" class="pure-button">Pontos de Interesse</a> <a href="#trivia" class="pure-button">Trívia</a></p></div>
       <div class="pure-u-1">
-          <h2><a id="lobbies">Átrios</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+          <h2><a id="lobbies" class="anchor">Átrios</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
           {{ range $index, $lobby := .Lobbies }}
             <h3>Átrio {{ $lobby.Name }}</h3>
             <h4>Horário</h4>
             <p>
-            {{ range $timetableLine := (index $top.LobbySchedules $index) }}
+            {{ range $timetableLine := (index $.LobbySchedules $index) }}
               {{ $timetableLine }}<br>
             {{end}}
             </p>
             <h4>Saídas</h4>
             <ul>
-            {{ range $exit := (index $top.LobbyExits $index) }}
+            {{ range $exit := (index $.LobbyExits $index) }}
               <li>
                 <a target="_blank"
                    href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $exit.WorldCoord 0) (index $exit.WorldCoord 1)) }}">
@@ -42,31 +68,30 @@
           {{end}}
       </div>
       <div class="pure-u-1">
-          <h2><a id="connections">Ligações</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
-          <p>{{ range $data := .Connections }}
-              {{if eq $data.ID "bus"}}<a href="#bus" style="font-size: 85%;" class="pure-button">Carreiras urbanas</a> 
-              {{else if eq $data.ID "boat"}}<a href="#boat" style="font-size: 85%;" class="pure-button">Ligações fluviais</a> 
-              {{else if eq $data.ID "train"}}<a href="#train" style="font-size: 85%;" class="pure-button">Comboios</a> 
-              {{else if eq $data.ID "park"}}<a href="#park" style="font-size: 85%;" class="pure-button">Parques de estacionamento</a> 
-              {{else if eq $data.ID "bike"}}<a href="#bike" style="font-size: 85%;" class="pure-button">Bicicletas partilhadas</a> 
-              {{end}}
-          {{end}}</p>
-          {{ range $data := .Connections }}
-            <h3>
-              {{if eq $data.ID "bus"}}<a id="bus">Carreiras urbanas</a>
-              {{else if eq $data.ID "boat"}}<a id="boat">Ligações fluviais</a>
-              {{else if eq $data.ID "train"}}<a id="train">Comboios</a>
-              {{else if eq $data.ID "park"}}<a id="park">Parques de estacionamento</a>
-              {{else if eq $data.ID "bike"}}<a id="bike">Bicicletas partilhadas</a>
-              {{end}}
-              <a class="top-link" href="#connections">voltar a Ligações</a>
-            </h3>
-            <div class="forceSmallHeaders">{{ $data.HTML }}</div>
-          {{end}}
-        </div>
+        <h2><a id="connections" class="anchor">Ligações</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+        <p>{{ range $data := .Connections }}
+            {{if eq $data.ID "bus"}}<a href="#bus" style="font-size: 85%;" class="pure-button">Carreiras urbanas</a> 
+            {{else if eq $data.ID "boat"}}<a href="#boat" style="font-size: 85%;" class="pure-button">Ligações fluviais</a> 
+            {{else if eq $data.ID "train"}}<a href="#train" style="font-size: 85%;" class="pure-button">Comboios</a> 
+            {{else if eq $data.ID "park"}}<a href="#park" style="font-size: 85%;" class="pure-button">Parques de estacionamento</a> 
+            {{else if eq $data.ID "bike"}}<a href="#bike" style="font-size: 85%;" class="pure-button">Bicicletas partilhadas</a> 
+            {{end}}
+        {{end}}</p>
+        {{ range $data := .Connections }}
+          <h3>
+            {{if eq $data.ID "bus"}}<a id="bus" class="anchor">Carreiras urbanas</a>
+            {{else if eq $data.ID "boat"}}<a id="boat" class="anchor">Ligações fluviais</a>
+            {{else if eq $data.ID "train"}}<a id="train" class="anchor">Comboios</a>
+            {{else if eq $data.ID "park"}}<a id="park" class="anchor">Parques de estacionamento</a>
+            {{else if eq $data.ID "bike"}}<a id="bike" class="anchor">Bicicletas partilhadas</a>
+            {{end}}
+            <a class="top-link" href="#connections">voltar a Ligações</a>
+          </h3>
+          <div class="forceSmallHeaders">{{ $data.HTML }}</div>
+        {{end}}
       </div>
       <div class="pure-u-1">
-          <h2><a id="pois">Pontos de Interesse</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+          <h2><a id="pois" class="anchor">Pontos de Interesse</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
           <ul>
           {{ range $index, $poi := .POIs }}
             <li style="margin-bottom: 15px">
@@ -81,7 +106,7 @@
           </ul>
       </div>
       <div class="pure-u-1">
-        <h2><a id="trivia">Trívia</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+        <h2><a id="trivia" class="anchor">Trívia</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
         {{ .Trivia }}
       </div>
     </div>
