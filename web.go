@@ -300,13 +300,12 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Metro de Lisboa starts operating at 06:30 AM and stops at 01:00 AM
 		for j := 6; j < 24; j++ {
 			p.LinesExtra[i].HourCounts = append(p.LinesExtra[i].HourCounts, hourCounts[j])
 		}
 		p.LinesExtra[i].HourCounts = append(p.LinesExtra[i].HourCounts, hourCounts[0])
 
-		availability, avgd, err := MLlineAvailability(tx, lines[i], time.Now().In(loc).Add(-24*7*time.Hour), time.Now().In(loc))
+		availability, avgd, err := lines[i].Availability(tx, time.Now().In(loc).Add(-24*7*time.Hour), time.Now().In(loc))
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -789,7 +788,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 
 	loc, _ := time.LoadLocation(p.Line.Network.Timezone)
 
-	p.MonthAvailability, p.MonthDuration, err = MLlineAvailability(tx, p.Line, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc))
+	p.MonthAvailability, p.MonthDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc))
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -797,7 +796,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.MonthAvailability *= 100
 
-	p.WeekAvailability, p.WeekDuration, err = MLlineAvailability(tx, p.Line, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc))
+	p.WeekAvailability, p.WeekDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc))
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1004,7 +1003,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	}, len(lines))
 
 	for i := range lines {
-		availability, avgd, err := MLlineAvailability(tx, lines[i], p.StartTime, p.EndTime)
+		availability, avgd, err := lines[i].Availability(tx, p.StartTime, p.EndTime)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)

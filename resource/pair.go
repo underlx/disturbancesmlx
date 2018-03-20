@@ -30,7 +30,7 @@ type apiPairRequest struct {
 	Nonce string `msgpack:"nonce" json:"nonce"`
 	// Timestamp is a string, because it is used to compute the signature
 	// Thus, it's important that it doesn't change depending on the envelope (JSON or msgpack)
-	// The timestmap should be encoded in RFC3339 format
+	// The timestamp should be encoded in RFC3339 format
 	Timestamp string `msgpack:"timestamp" json:"timestamp"`
 	AndroidID string `msgpack:"androidID" json:"androidID"`
 	Signature string `msgpack:"signature" json:"signature"`

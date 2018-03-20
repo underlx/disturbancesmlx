@@ -11,7 +11,6 @@ import (
 
 // StatsCalculator calculates general statistics about a network or part of a network
 type StatsCalculator interface {
-	Availability(node sqalx.Node, line *dataobjects.Line, startTime time.Time, endTime time.Time) (float64, time.Duration, error)
 	CurrentlyOnlineInTransit(network *dataobjects.Network, approximateTo int) int
 }
 
@@ -133,7 +132,7 @@ func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network
 	}
 
 	for _, line := range lines {
-		availability, avgDuration, err := r.calculator.Availability(tx, line, startTime, endTime)
+		availability, avgDuration, err := line.Availability(tx, startTime, endTime)
 		if err != nil {
 			return apiStats{}, err
 		}
