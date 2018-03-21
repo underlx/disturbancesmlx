@@ -424,6 +424,13 @@ func (line *Line) Schedules(node sqalx.Node) ([]*LineSchedule, error) {
 	return getLineSchedulesWithSelect(node, s)
 }
 
+// Paths returns the paths of this line
+func (line *Line) Paths(node sqalx.Node) ([]*LinePath, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"line_id": line.ID})
+	return getLinePathsWithSelect(node, s)
+}
+
 // Update adds or updates the line
 func (line *Line) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()

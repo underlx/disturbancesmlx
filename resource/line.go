@@ -28,11 +28,17 @@ type apiLineSchedule struct {
 	OpenDuration dataobjects.Duration `msgpack:"duration" json:"duration"`
 }
 
+type apiLinePath struct {
+	ID   string       `msgpack:"id" json:"id"`
+	Path [][2]float64 `msgpack:"path" json:"path"`
+}
+
 type apiLineWrapper struct {
 	apiLine   `msgpack:",inline"`
 	NetworkID string            `msgpack:"network" json:"network"`
 	Stations  []string          `msgpack:"stations" json:"stations"`
 	Schedule  []apiLineSchedule `msgpack:"schedule" json:"schedule"`
+	Paths     []apiLinePath     `msgpack:"worldPaths" json:"worldPaths"`
 }
 
 // WithNode associates a sqalx Node with this resource
@@ -49,65 +55,66 @@ func (r *Line) Get(c *yarf.Context) error {
 	}
 	defer tx.Commit() // read-only tx
 
+	var lines []*dataobjects.Line
+
 	if c.Param("id") != "" {
 		line, err := dataobjects.GetLine(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
-		data := apiLineWrapper{
-			apiLine:   apiLine(*line),
-			NetworkID: line.Network.ID,
+		lines = []*dataobjects.Line{line}
+	} else {
+		lines, err = dataobjects.GetLines(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	apilines := make([]apiLineWrapper, len(lines))
+	for i := range lines {
+		apilines[i] = apiLineWrapper{
+			apiLine:   apiLine(*lines[i]),
+			NetworkID: lines[i].Network.ID,
 		}
 
-		data.Stations = []string{}
-		stations, err := line.Stations(tx)
+		apilines[i].Stations = []string{}
+		stations, err := lines[i].Stations(tx)
 		if err != nil {
 			return err
 		}
 		for _, station := range stations {
-			data.Stations = append(data.Stations, station.ID)
+			apilines[i].Stations = append(apilines[i].Stations, station.ID)
 		}
 
-		data.Schedule = []apiLineSchedule{}
-		schedules, err := line.Schedules(tx)
+		apilines[i].Schedule = []apiLineSchedule{}
+		schedules, err := lines[i].Schedules(tx)
 		if err != nil {
 			return err
 		}
 		for _, s := range schedules {
-			data.Schedule = append(data.Schedule, apiLineSchedule(*s))
+			apilines[i].Schedule = append(apilines[i].Schedule, apiLineSchedule(*s))
 		}
 
-		RenderData(c, data)
-	} else {
-		lines, err := dataobjects.GetLines(tx)
+		apilines[i].Paths = []apiLinePath{}
+		paths, err := lines[i].Paths(tx)
 		if err != nil {
 			return err
 		}
-		apilines := make([]apiLineWrapper, len(lines))
-		for i := range lines {
-			apilines[i] = apiLineWrapper{
-				apiLine:   apiLine(*lines[i]),
-				NetworkID: lines[i].Network.ID,
+		for _, p := range paths {
+			apiPath := apiLinePath{
+				ID: p.ID,
 			}
-
-			apilines[i].Stations = []string{}
-			stations, err := lines[i].Stations(tx)
-			if err != nil {
-				return err
+			apiPath.Path = [][2]float64{}
+			for _, point := range p.Path.P {
+				apiPath.Path = append(apiPath.Path, [2]float64{point.X, point.Y})
 			}
-			for _, station := range stations {
-				apilines[i].Stations = append(apilines[i].Stations, station.ID)
-			}
-
-			apilines[i].Schedule = []apiLineSchedule{}
-			schedules, err := lines[i].Schedules(tx)
-			if err != nil {
-				return err
-			}
-			for _, s := range schedules {
-				apilines[i].Schedule = append(apilines[i].Schedule, apiLineSchedule(*s))
-			}
+			apilines[i].Paths = append(apilines[i].Paths, apiPath)
 		}
+	}
+
+	if c.Param("id") != "" {
+		RenderData(c, apilines[0])
+	} else {
 		RenderData(c, apilines)
 	}
 	return nil

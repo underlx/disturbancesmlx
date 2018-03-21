@@ -86,6 +86,13 @@ CREATE TABLE IF NOT EXISTS "line_schedule" (
     PRIMARY KEY (line_id, holiday, day)
 );
 
+CREATE TABLE IF NOT EXISTS "line_path" (
+    line_id VARCHAR(36) NOT NULL REFERENCES mline (id),
+    id VARCHAR(36) NOT NULL,
+    path PATH NOT NULL,
+    PRIMARY KEY (line_id, id)
+);
+
 CREATE TABLE IF NOT EXISTS "station" (
     id VARCHAR(36) PRIMARY KEY,
     name TEXT NOT NULL,
