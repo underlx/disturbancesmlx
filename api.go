@@ -130,7 +130,12 @@ type TelemetryMiddleware struct {
 
 // PostDispatch runs after the request is dispatched
 func (m *TelemetryMiddleware) PostDispatch(c *yarf.Context) error {
-	APIrequestTelemetry <- true
+	// non-blocking send
+	select {
+	case APIrequestTelemetry <- true:
+	default:
+	}
+
 	return nil
 }
 
