@@ -110,6 +110,7 @@ func WebServer() {
 	router.HandleFunc("/stations/{id:[-0-9A-Za-z]{1,36}}", StationPage)
 	router.HandleFunc("/l/{id:[-0-9A-Za-z]{1,36}}", LinePage)
 	router.HandleFunc("/lines/{id:[-0-9A-Za-z]{1,36}}", LinePage)
+	router.HandleFunc("/map", MapPage)
 	router.HandleFunc("/privacy", PrivacyPolicyPage)
 	router.HandleFunc("/privacy/{lang:[a-z]{2}}", PrivacyPolicyPage)
 	router.HandleFunc("/terms", TermsPage)
@@ -842,6 +843,37 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "line.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+// MapPage serves the network map page
+func MapPage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		PageCommons
+	}{}
+
+	p.PageCommons, err = InitPageCommons(tx, "Mapa de rede")
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "map.html", p)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
