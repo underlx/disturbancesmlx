@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS "mline" (
     name TEXT NOT NULL,
     color VARCHAR(6) NOT NULL,
     network VARCHAR(36) NOT NULL REFERENCES network (id),
-    typ_cars INT NOT NULL
+    typ_cars INT NOT NULL,
+    order INT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "line_status" (

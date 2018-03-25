@@ -17,12 +17,13 @@ type Line struct {
 	Name        string
 	Color       string
 	TypicalCars int
+	Order       int
 	Network     *Network
 }
 
 // GetLines returns a slice with all registered lines
 func GetLines(node sqalx.Node) ([]*Line, error) {
-	return getLinesWithSelect(node, sdb.Select())
+	return getLinesWithSelect(node, sdb.Select().OrderBy("\"order\" ASC"))
 }
 
 func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, error) {
@@ -34,7 +35,7 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("id", "name", "color", "network", "typ_cars").
+	rows, err := sbuilder.Columns("id", "name", "color", "network", "typ_cars", "\"order\"").
 		From("mline").
 		RunWith(tx).Query()
 	if err != nil {
@@ -51,6 +52,7 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 			&line.Name,
 			&line.Color,
 			&networkID,
+			&line.Order,
 			&line.TypicalCars)
 		if err != nil {
 			return lines, fmt.Errorf("getLinesWithSelect: %s", err)
@@ -445,10 +447,10 @@ func (line *Line) Update(node sqalx.Node) error {
 	}
 
 	_, err = sdb.Insert("mline").
-		Columns("id", "name", "color", "network", "typ_cars").
-		Values(line.ID, line.Name, line.Color, line.Network.ID, line.TypicalCars).
-		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, color = ?, network = ?, typ_cars = ?",
-			line.Name, line.Color, line.Network.ID, line.TypicalCars).
+		Columns("id", "name", "color", "network", "typ_cars", "\"order\"").
+		Values(line.ID, line.Name, line.Color, line.Network.ID, line.TypicalCars, line.Order).
+		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, color = ?, network = ?, typ_cars = ?, \"order\" = ?",
+			line.Name, line.Color, line.Network.ID, line.TypicalCars, line.Order).
 		RunWith(tx).Exec()
 
 	if err != nil {

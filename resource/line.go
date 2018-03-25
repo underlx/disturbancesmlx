@@ -16,6 +16,7 @@ type apiLine struct {
 	Name        string               `msgpack:"name" json:"name"`
 	Color       string               `msgpack:"color" json:"color"`
 	TypicalCars int                  `msgpack:"typCars" json:"typCars"`
+	Order       int                  `msgpack:"order" json:"order"`
 	Network     *dataobjects.Network `msgpack:"-" json:"-"`
 }
 

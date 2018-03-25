@@ -97,7 +97,8 @@ func GetNetwork(node sqalx.Node, id string) (*Network, error) {
 // Lines returns the lines in this network
 func (network *Network) Lines(node sqalx.Node) ([]*Line, error) {
 	s := sdb.Select().
-		Where(sq.Eq{"network": network.ID})
+		Where(sq.Eq{"network": network.ID}).
+		OrderBy("\"order\" ASC")
 	return getLinesWithSelect(node, s)
 }
 

@@ -148,7 +148,7 @@ func mlxHandleTopologyChange(s scraper.Scraper) {
 	}
 	for _, newline := range s.Lines() {
 		newline, err := dataobjects.GetLine(tx, newline.ID)
-		if err != nil {
+		if err == nil {
 			mainLog.Println("New line " + newline.ID)
 			err = newline.Update(tx)
 			if err != nil {
