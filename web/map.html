@@ -7,9 +7,10 @@
     
     .subway-map {
         margin: 0;
-        background-color: white;
+        background-color: transparent;
         width: 910px;
         height: 650px;
+        position: relative;
     }
     /* Text labels */
     
@@ -41,7 +42,8 @@
         <h1>Mapa de rede <small>do Metro de Lisboa</small></h1>
       </div>
       <div class="pure-u-1">
-        <div class="subway-map" style="position: relative;" data-columns="35" data-rows="25" data-cellSize="26" data-legendId="legend" data-textClass="text" data-gridNumbers="true" data-grid="false" data-lineWidth="8" style="background-color: transparent;">
+        <p>Clique numa estação para ver mais informações sobre a mesma.</p>
+        <div class="subway-map" data-columns="35" data-rows="25" data-cellSize="26" data-legendId="legend" data-textClass="text" data-gridNumbers="true" data-grid="false" data-lineWidth="8">
           <ul data-color="#ddd" data-reverseMarkers="defined">
               <li data-coords="31,23.75"></li> <!-- Santa Apolónia -->
               <li data-coords="32.5,23.75"></li>
