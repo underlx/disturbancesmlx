@@ -97,7 +97,7 @@
             <li style="margin-bottom: 15px">
               {{ index $poi.Names $poi.MainLocale }}<br>
               <a target="_blank" class="pure-button" style="font-size: 75%"
-                  href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $poi.WorldCoord 0) (index $poi.WorldCoord 1)) }}"><i class="fa fa-map" aria-hidden="true"></i>Mapa</a>
+                  href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $poi.WorldCoord 0) (index $poi.WorldCoord 1)) }}"><i class="fa fa-map" aria-hidden="true"></i> Mapa</a>
               {{ if not (eq $poi.URL "") }}
               <a target="_blank" class="pure-button" style="font-size: 75%" href="{{ $poi.URL }} "><i class="fa fa-globe" aria-hidden="true"></i> Site</a>
               {{end}}
