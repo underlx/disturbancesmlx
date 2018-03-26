@@ -44,30 +44,47 @@
   <script src="https://unpkg.com/c3@0.4.18/c3.min.js" charset="utf-8"></script>
   <link rel="stylesheet" type="text/css" href="https://unpkg.com/cal-heatmap@3.6.2/cal-heatmap.css"> 
 
-  <link rel="stylesheet" type="text/css" href="/static/css/custom.css"/>
+  <link rel="stylesheet" type="text/css" href="/static/css/custom.css?v=2"/>
 </head>
 
 <body>
   <div class="header">
     <div class="pure-g">
-      <a href="/" class="pure-u-1-8 pure-u-sm-3-8 pure-u-md-7-24 pure-u-lg-6-24 pure-u-xl-4-24" style="color: inherit; background-color: #eee;">
-          <div class="headerLogo">
-            <img src="/static/img/logo.png" style="height: 44px; float: left;"><span class="headerTitle">Perturbações<small>.pt</small></span>
-          </div>
+      <a href="/" class="pure-u-4-24 pure-u-sm-1-1 pure-u-md-8-24 pure-u-lg-8-24 pure-u-xl-4-24 headerItem" style="color: inherit;">
+        <img src="/static/img/logo.png" style="height: 44px; float: left;"><span class="headerTitle">Perturbações<small>.pt</small></span>
       </a>
-      <div class="pure-u-7-8 pure-u-sm-1-2 pure-u-md-14-24 pure-u-lg-15-24 pure-u-xl-18-24" style="position: relative; text-align: center; background-color: #eee;">
+      <!---<div class="pure-u-7-8 pure-u-sm-1-2 pure-u-md-14-24 pure-u-lg-15-24 pure-u-xl-18-24" style="position: relative; text-align: center; background-color: #eee;">
         <div style="width: 100%; position: absolute; top: 50%; transform: translate(0, -50%);">
           <strong>Estado das linhas</strong> <small style="color: #777;">última alteração há {{ if .LastChangeAgoHour }}{{.LastChangeAgoHour}} horas e {{end}}{{ .LastChangeAgoMin }} minutos</small>
         </div>
-      </div>
-      <div class="headerSocial pure-u-1-8 pure-u-sm-1-8 pure-u-md-3-24 pure-u-lg-3-24 pure-u-xl-2-24" style="position: relative; text-align: center; background-color: #eee;">
-          <div style="width: 100%; position: absolute; top: 50%; transform: translate(0, -50%);">
-            <small>Siga-nos:</small> <nobr><span style="white-space: nowrap; font-size: 130%; text-decoration: none;"><a style="color: #3b5998;" href="https://facebook.com/underlx" target="_blank"><i class="fa fa-facebook-official" aria-hidden="true"></i></a>&nbsp;<a style="color: #55acee;" href="https://twitter.com/underlx" target="_blank"><i class="fa fa-twitter-square" aria-hidden="true"></i></a>&nbsp;<a style="color: #7289DA; text-decoration: none;" href="https://discord.gg/hhuC7fc" target="_blank"><img src="/static/img/discord-no-margin.png" width="16" height="16"></a></nobr></span>
-          </div>
-      </div>
+      </div> -->
+      <a href="/d" class="pure-u-5-24 pure-u-sm-1-4 pure-u-md-4-24 pure-u-lg-3-24 pure-u-xl-4-24 headerItem">
+        <div><i class="fa fa-history" aria-hidden="true"></i> <span class="headerItemText">Histórico</span></div>
+      </a>
+      <a href="/map" class="pure-u-5-24 pure-u-sm-1-4 pure-u-md-4-24 pure-u-lg-3-24 pure-u-xl-4-24 headerItem">
+        <div><i class="fa fa-map-o" aria-hidden="true"></i> <span class="headerItemText">Mapa de rede</span></div>
+      </a>
+      <a href="/donate" class="pure-u-5-24 pure-u-sm-1-4 pure-u-md-4-24 pure-u-lg-3-24 pure-u-xl-4-24 headerItem">
+        <div><i class="fa fa-money" aria-hidden="true"></i> <span class="headerItemText">Donativos</span></div>
+      </a>
+      <a href="/about" class="pure-u-5-24 pure-u-sm-1-4 pure-u-md-4-24 pure-u-lg-3-24 pure-u-xl-4-24 headerItem">
+        <div><i class="fa fa-info-circle" aria-hidden="true"></i> <span class="headerItemText">Sobre nós</span></div>
+      </a>
+      <a href="https://facebook.com/underlx" target="_blank" class="pure-u-1-1 pure-u-lg-1-24 pure-u-xl-1-24 headerItem hideOnMediumOrSmaller">
+        <div style="white-space: nowrap; font-size: 160%; text-decoration: none; color: #3b5998;"><i class="fa fa-facebook-official" aria-hidden="true"></i></div>
+      </a>
+      <a href="https://twitter.com/underlx" target="_blank" class="pure-u-1-1 pure-u-lg-1-24 pure-u-xl-1-24 headerItem hideOnMediumOrSmaller">
+        <div style="white-space: nowrap; font-size: 160%; text-decoration: none; color: #55acee;"><i class="fa fa-twitter-square" aria-hidden="true"></i></div>
+      </a>
+      <a href="https://discord.gg/hhuC7fc" target="_blank" class="pure-u-1-1 pure-u-lg-1-24 pure-u-xl-1-24 headerItem hideOnMediumOrSmaller">
+        <div style="white-space: nowrap; font-size: 160%; text-decoration: none; color: #3b5998;"><img src="/static/img/discord-no-margin.png" width="21" height="21"></div>
+      </a>
+      <a href="https://github.com/underlx" target="_blank" class="pure-u-1-1 pure-u-lg-1-24 pure-u-xl-1-24 headerItem hideOnMediumOrSmaller">
+        <div style="white-space: nowrap; font-size: 160%; text-decoration: none; color: #333;"><i class="fa fa-github" aria-hidden="true"></i></div>
+      </a>
       {{ $numlines := len .Lines }}
       {{ range $line := .Lines }}
-        <a href="/l/{{ $line.ID }}" class="pure-u-1 pure-u-sm-1-{{ $numlines }} line status{{if $line.Down}} dimmed{{end}}" style="background-color: #{{ $line.Color }};">
+        <a href="/l/{{ $line.ID }}" class="pure-u-1-1 pure-u-sm-1-2 pure-u-md-1-{{ $numlines }} line status{{if $line.Down}} dimmed{{end}}" style="background-color: #{{ $line.Color }};">
           {{ $line.Name }}
           {{ if $line.Down }}
           <span style="float: right;">
