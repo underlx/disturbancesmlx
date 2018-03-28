@@ -139,6 +139,23 @@ table.tinycells > tbody > tr > td {
   }
 }
 
+.hideOnSmallOrSmaller {
+  display: none;
+}
+
+.showOnSmallOrSmaller {
+  display: block;
+}
+
+@media screen and (min-width: 35.5em) {
+  .hideOnSmallOrSmaller {
+    display: block;
+  }
+  .showOnSmallOrSmaller {
+    display: none;
+  }
+}
+
 .headerItem {
   position: relative;
   text-align: center;
