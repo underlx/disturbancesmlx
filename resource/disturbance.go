@@ -20,6 +20,7 @@ type apiDisturbance struct {
 	Ended       bool                  `msgpack:"ended" json:"ended"`
 	Line        *dataobjects.Line     `msgpack:"-" json:"-"`
 	Description string                `msgpack:"description" json:"description"`
+	Notes       string                `msgpack:"notes" json:"notes"`
 	Statuses    []*dataobjects.Status `msgpack:"-" json:"-"`
 }
 

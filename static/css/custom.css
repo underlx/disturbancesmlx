@@ -396,3 +396,22 @@ ul.pt-ml-line {
     display: none;
   }
 }
+
+.disturbance-note {
+  font-family: "Georgia", serif;
+  color: #666;
+  font-style: italic;
+  line-height: 1.8;
+  border-left: 5px solid #ddd;
+  padding-left: 1.5em;
+}
+
+.disturbance-note-title {
+  display: block;
+  font-family: 'Roboto', sans-serif;
+  color: #666;
+  font-style: normal;
+  font-weight: bold;
+  font-size: 80%;
+  line-height: 1;
+}

@@ -68,7 +68,8 @@ CREATE TABLE IF NOT EXISTS "line_disturbance" (
     time_start TIMESTAMP WITH TIME ZONE NOT NULL,
     time_end TIMESTAMP WITH TIME ZONE,
     mline VARCHAR(36) NOT NULL REFERENCES mline (id),
-    description TEXT NOT NULL
+    description TEXT NOT NULL,
+    notes TEXT
 );
 
 CREATE TABLE IF NOT EXISTS "line_disturbance_has_status" (

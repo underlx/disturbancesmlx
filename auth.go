@@ -76,9 +76,12 @@ func AuthLogoutHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // AuthGetSession retrieves the Session associated with the user of the specified request, if one exists
-func AuthGetSession(w http.ResponseWriter, r *http.Request) (bool, Session, error) {
+func AuthGetSession(w http.ResponseWriter, r *http.Request, doLogin bool) (bool, Session, error) {
 	session, _ := sessionStore.Get(r, "internal")
 	if session.IsNew || session.Values["authenticated"] == nil || session.Values["authenticated"].(int64) < time.Now().UTC().AddDate(0, 0, -7).Unix() {
+		if !doLogin {
+			return false, Session{}, nil
+		}
 		id, err := uuid.NewV4()
 		if err != nil {
 			return false, Session{}, err

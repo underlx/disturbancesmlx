@@ -1,6 +1,7 @@
 package dataobjects
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"sort"
@@ -19,6 +20,7 @@ type Disturbance struct {
 	Ended       bool
 	Line        *Line
 	Description string
+	Notes       string
 	Statuses    []*Status
 }
 
@@ -61,7 +63,7 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 	defer tx.Commit() // read-only tx
 
 	rows, err := sbuilder.Columns("line_disturbance.id", "line_disturbance.time_start",
-		"line_disturbance.time_end", "line_disturbance.mline", "line_disturbance.description").
+		"line_disturbance.time_end", "line_disturbance.mline", "line_disturbance.description", "line_disturbance.notes").
 		From("line_disturbance").
 		RunWith(tx).Query()
 	if err != nil {
@@ -72,19 +74,22 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 	for rows.Next() {
 		var disturbance Disturbance
 		var timeEnd pq.NullTime
+		var notes sql.NullString
 		var lineID string
 		err := rows.Scan(
 			&disturbance.ID,
 			&disturbance.StartTime,
 			&timeEnd,
 			&lineID,
-			&disturbance.Description)
+			&disturbance.Description,
+			&notes)
 		if err != nil {
 			rows.Close()
 			return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 		}
 		disturbance.EndTime = timeEnd.Time
 		disturbance.Ended = timeEnd.Valid
+		disturbance.Notes = notes.String
 
 		disturbances = append(disturbances, &disturbance)
 		lineIDs = append(lineIDs, lineID)
@@ -177,11 +182,16 @@ func (disturbance *Disturbance) Update(node sqalx.Node) error {
 		Valid: disturbance.Ended,
 	}
 
+	notes := sql.NullString{
+		String: disturbance.Notes,
+		Valid:  len(disturbance.Notes) > 0,
+	}
+
 	_, err = sdb.Insert("line_disturbance").
-		Columns("id", "time_start", "time_end", "mline", "description").
-		Values(disturbance.ID, disturbance.StartTime, timeEnd, disturbance.Line.ID, disturbance.Description).
-		Suffix("ON CONFLICT (id) DO UPDATE SET time_start = ?, time_end = ?, mline = ?, description = ?",
-			disturbance.StartTime, timeEnd, disturbance.Line.ID, disturbance.Description).
+		Columns("id", "time_start", "time_end", "mline", "description", "notes").
+		Values(disturbance.ID, disturbance.StartTime, timeEnd, disturbance.Line.ID, disturbance.Description, notes).
+		Suffix("ON CONFLICT (id) DO UPDATE SET time_start = ?, time_end = ?, mline = ?, description = ?, notes = ?",
+			disturbance.StartTime, timeEnd, disturbance.Line.ID, disturbance.Description, notes).
 		RunWith(tx).Exec()
 	if err != nil {
 		return errors.New("AddDisturbance: " + err.Error())

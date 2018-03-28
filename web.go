@@ -418,10 +418,20 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
+	hasSession, session, err := AuthGetSession(w, r, false)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	p := struct {
 		PageCommons
 		Disturbance *dataobjects.Disturbance
-	}{}
+		CanEdit     bool
+	}{
+		CanEdit: hasSession && session.IsAdmin,
+	}
 
 	p.PageCommons, err = InitPageCommons(tx, "Perturbação do Metro de Lisboa")
 	if err != nil {
@@ -435,6 +445,17 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusNotFound)
 		return
+	}
+
+	if hasSession && session.IsAdmin && r.Method == http.MethodPost {
+		p.Disturbance.Notes = strings.Replace(r.FormValue("notes"), "\n", "<br>", -1)
+		p.Disturbance.Notes = strings.Replace(p.Disturbance.Notes, "\r", "", -1)
+		err = p.Disturbance.Update(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "disturbance.html", p)
@@ -1031,7 +1052,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hasSession, session, err := AuthGetSession(w, r)
+	hasSession, session, err := AuthGetSession(w, r, true)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
