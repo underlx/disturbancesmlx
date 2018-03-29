@@ -14,6 +14,8 @@ type Network struct {
 type apiNetwork struct {
 	ID           string               `msgpack:"id" json:"id"`
 	Name         string               `msgpack:"name" json:"name"`
+	MainLocale   string               `msgpack:"mainLocale" json:"mainLocale"`
+	Names        map[string]string    `msgpack:"names" json:"names"`
 	TypicalCars  int                  `msgpack:"typCars" json:"typCars"`
 	Holidays     []int64              `msgpack:"holidays" json:"holidays"`
 	OpenTime     dataobjects.Time     `msgpack:"openTime" json:"openTime"`

@@ -35,6 +35,14 @@ CREATE TABLE IF NOT EXISTS "network" (
     news_url TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS "network_name" (
+    id VARCHAR(36) REFERENCES network (id),
+    main BOOLEAN NOT NULL,
+    lang VARCHAR(5) NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY (id, lang)
+);
+
 CREATE TABLE IF NOT EXISTS "network_schedule" (
     network_id VARCHAR(36) NOT NULL REFERENCES network (id),
     holiday BOOLEAN NOT NULL,
@@ -52,6 +60,14 @@ CREATE TABLE IF NOT EXISTS "mline" (
     network VARCHAR(36) NOT NULL REFERENCES network (id),
     typ_cars INT NOT NULL,
     order INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "line_name" (
+    id VARCHAR(36) REFERENCES mline (id),
+    main BOOLEAN NOT NULL,
+    lang VARCHAR(5) NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY (id, lang)
 );
 
 CREATE TABLE IF NOT EXISTS "line_status" (

@@ -137,7 +137,7 @@ func mlxHandleTopologyChange(s scraper.Scraper) {
 	defer tx.Rollback()
 	for _, newnetwork := range s.Networks() {
 		newnetwork, err := dataobjects.GetNetwork(tx, newnetwork.ID)
-		if err != nil {
+		if err == nil {
 			mainLog.Println("New network " + newnetwork.ID)
 			err = newnetwork.Update(tx)
 			if err != nil {

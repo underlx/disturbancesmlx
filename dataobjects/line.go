@@ -15,6 +15,8 @@ import (
 type Line struct {
 	ID          string
 	Name        string
+	MainLocale  string
+	Names       map[string]string
 	Color       string
 	TypicalCars int
 	Order       int
@@ -28,6 +30,7 @@ func GetLines(node sqalx.Node) ([]*Line, error) {
 
 func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, error) {
 	lines := []*Line{}
+	lineMap := make(map[string]*Line)
 
 	tx, err := node.Beginx()
 	if err != nil {
@@ -35,7 +38,7 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("id", "name", "color", "network", "typ_cars", "\"order\"").
+	rows, err := sbuilder.Columns("mline.id", "mline.name", "mline.color", "mline.network", "mline.typ_cars", "mline.order").
 		From("mline").
 		RunWith(tx).Query()
 	if err != nil {
@@ -52,8 +55,8 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 			&line.Name,
 			&line.Color,
 			&networkID,
-			&line.Order,
-			&line.TypicalCars)
+			&line.TypicalCars,
+			&line.Order)
 		if err != nil {
 			return lines, fmt.Errorf("getLinesWithSelect: %s", err)
 		}
@@ -62,6 +65,8 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 		}
 		lines = append(lines, &line)
 		networkIDs = append(networkIDs, networkID)
+		lineMap[line.ID] = &line
+		lineMap[line.ID].Names = make(map[string]string)
 	}
 	if err := rows.Err(); err != nil {
 		return lines, fmt.Errorf("getLinesWithSelect: %s", err)
@@ -72,13 +77,61 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 			return lines, fmt.Errorf("getLinesWithSelect: %s", err)
 		}
 	}
+
+	// get MainLocale for each line
+	rows2, err := sbuilder.Columns("mline.id", "line_name.lang").
+		From("mline").
+		Join("line_name ON mline.id = line_name.id AND line_name.main = true").
+		RunWith(tx).Query()
+	if err != nil {
+		return lines, fmt.Errorf("getLinesWithSelect: %s", err)
+	}
+	defer rows2.Close()
+
+	for rows2.Next() {
+		var id string
+		var lang string
+		err := rows2.Scan(&id, &lang)
+		if err != nil {
+			return lines, fmt.Errorf("getLinesWithSelect: %s", err)
+		}
+		lineMap[id].MainLocale = lang
+	}
+	if err := rows2.Err(); err != nil {
+		return lines, fmt.Errorf("getLinesWithSelect: %s", err)
+	}
+
+	// get localized name map for each line
+	rows3, err := sbuilder.Columns("mline.id", "line_name.lang", "line_name.name").
+		From("mline").
+		Join("line_name ON mline.id = line_name.id").
+		RunWith(tx).Query()
+	if err != nil {
+		return lines, fmt.Errorf("getLinesWithSelect: %s", err)
+	}
+	defer rows3.Close()
+
+	for rows3.Next() {
+		var id string
+		var lang string
+		var name string
+		err := rows3.Scan(&id, &lang, &name)
+		if err != nil {
+			return lines, fmt.Errorf("getLinesWithSelect: %s", err)
+		}
+		lineMap[id].Names[lang] = name
+	}
+	if err := rows3.Err(); err != nil {
+		return lines, fmt.Errorf("getLinesWithSelect: %s", err)
+	}
+
 	return lines, nil
 }
 
 // GetLine returns the Line with the given ID
 func GetLine(node sqalx.Node, id string) (*Line, error) {
 	s := sdb.Select().
-		Where(sq.Eq{"id": id})
+		Where(sq.Eq{"mline.id": id})
 	lines, err := getLinesWithSelect(node, s)
 	if err != nil {
 		return nil, err

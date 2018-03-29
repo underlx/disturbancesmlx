@@ -14,6 +14,8 @@ type Line struct {
 type apiLine struct {
 	ID          string               `msgpack:"id" json:"id"`
 	Name        string               `msgpack:"name" json:"name"`
+	MainLocale  string               `msgpack:"mainLocale" json:"mainLocale"`
+	Names       map[string]string    `msgpack:"names" json:"names"`
 	Color       string               `msgpack:"color" json:"color"`
 	TypicalCars int                  `msgpack:"typCars" json:"typCars"`
 	Order       int                  `msgpack:"order" json:"order"`

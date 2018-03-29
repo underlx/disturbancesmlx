@@ -16,6 +16,8 @@ import (
 type Network struct {
 	ID           string
 	Name         string
+	MainLocale   string
+	Names        map[string]string
 	TypicalCars  int
 	Holidays     []int64
 	OpenTime     Time
@@ -26,7 +28,26 @@ type Network struct {
 
 // GetNetworks returns a slice with all registered networks
 func GetNetworks(node sqalx.Node) ([]*Network, error) {
+	return getNetworksWithSelect(node, sdb.Select())
+}
+
+// GetNetwork returns the Line with the given ID
+func GetNetwork(node sqalx.Node, id string) (*Network, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"network.id": id})
+	networks, err := getNetworksWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	if len(networks) == 0 {
+		return nil, errors.New("Network not found")
+	}
+	return networks[0], nil
+}
+
+func getNetworksWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Network, error) {
 	networks := []*Network{}
+	networkMap := make(map[string]*Network)
 
 	tx, err := node.Beginx()
 	if err != nil {
@@ -34,10 +55,10 @@ func GetNetworks(node sqalx.Node) ([]*Network, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sdb.Select("id", "name", "typ_cars", "holidays", "open_time", "open_duration", "timezone", "news_url").
+	rows, err := sbuilder.Columns("network.id", "network.name", "network.typ_cars", "network.holidays", "network.open_time", "network.open_duration", "network.timezone", "network.news_url").
 		From("network").RunWith(tx).Query()
 	if err != nil {
-		return networks, fmt.Errorf("GetNetworks: %s", err)
+		return networks, fmt.Errorf("getNetworksWithSelect: %s", err)
 	}
 	defer rows.Close()
 
@@ -54,44 +75,66 @@ func GetNetworks(node sqalx.Node) ([]*Network, error) {
 			&network.Timezone,
 			&network.NewsURL)
 		if err != nil {
-			return networks, fmt.Errorf("GetNetworks: %s", err)
+			return networks, fmt.Errorf("getNetworksWithSelect: %s", err)
 		}
 		network.Holidays = holidays
 		networks = append(networks, &network)
+		networkMap[network.ID] = &network
+		networkMap[network.ID].Names = make(map[string]string)
 	}
 	if err := rows.Err(); err != nil {
-		return networks, fmt.Errorf("GetNetworks: %s", err)
+		return networks, fmt.Errorf("getNetworksWithSelect: %s", err)
 	}
-	return networks, nil
-}
 
-// GetNetwork returns the Network with the given ID
-func GetNetwork(node sqalx.Node, id string) (*Network, error) {
-	var network Network
-	tx, err := node.Beginx()
-	if err != nil {
-		return &network, err
-	}
-	defer tx.Commit() // read-only tx
-
-	var holidays pq.Int64Array
-	err = sdb.Select("id", "name", "typ_cars", "holidays", "open_time", "open_duration", "timezone", "news_url").
+	// get MainLocale for each network
+	rows2, err := sbuilder.Columns("network.id", "network_name.lang").
 		From("network").
-		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().Scan(
-		&network.ID,
-		&network.Name,
-		&network.TypicalCars,
-		&holidays,
-		&network.OpenTime,
-		&network.OpenDuration,
-		&network.Timezone,
-		&network.NewsURL)
+		Join("network_name ON network.id = network_name.id AND network_name.main = true").
+		RunWith(tx).Query()
+
 	if err != nil {
-		return &network, errors.New("GetNetwork: " + err.Error())
+		return networks, fmt.Errorf("getNetworksWithSelect: %s", err)
 	}
-	network.Holidays = holidays
-	return &network, nil
+	defer rows2.Close()
+
+	for rows2.Next() {
+		var id string
+		var lang string
+		err := rows2.Scan(&id, &lang)
+		if err != nil {
+			return networks, fmt.Errorf("getNetworksWithSelect: %s", err)
+		}
+		networkMap[id].MainLocale = lang
+	}
+	if err := rows2.Err(); err != nil {
+		return networks, fmt.Errorf("getNetworksWithSelect: %s", err)
+	}
+
+	// get localized name map for each network
+	rows3, err := sbuilder.Columns("network.id", "network_name.lang", "network_name.name").
+		From("network").
+		Join("network_name ON network.id = network_name.id").
+		RunWith(tx).Query()
+	if err != nil {
+		return networks, fmt.Errorf("getNetworksWithSelect: %s", err)
+	}
+	defer rows3.Close()
+
+	for rows3.Next() {
+		var id string
+		var lang string
+		var name string
+		err := rows3.Scan(&id, &lang, &name)
+		if err != nil {
+			return networks, fmt.Errorf("getNetworksWithSelect: %s", err)
+		}
+		networkMap[id].Names[lang] = name
+	}
+	if err := rows3.Err(); err != nil {
+		return networks, fmt.Errorf("getNetworksWithSelect: %s", err)
+	}
+
+	return networks, nil
 }
 
 // Lines returns the lines in this network
