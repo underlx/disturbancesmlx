@@ -175,7 +175,8 @@ CREATE TABLE IF NOT EXISTS "station_lobby_exit" (
     id SERIAL PRIMARY KEY,
     lobby_id VARCHAR(36) NOT NULL REFERENCES station_lobby (id),
     world_coord POINT NOT NULL,
-    streets TEXT[] NOT NULL
+    streets TEXT[] NOT NULL,
+    type VARCHAR(20) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "station_lobby_schedule" (

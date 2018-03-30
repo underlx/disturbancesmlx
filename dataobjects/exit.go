@@ -14,6 +14,7 @@ type Exit struct {
 	ID         int
 	WorldCoord [2]float64
 	Streets    []string
+	Type       string
 	Lobby      *Lobby
 }
 
@@ -31,7 +32,7 @@ func getExitsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Exit, er
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("id", "lobby_id", "world_coord", "streets").
+	rows, err := sbuilder.Columns("id", "lobby_id", "world_coord", "streets", "type").
 		From("station_lobby_exit").
 		RunWith(tx).Query()
 	if err != nil {
@@ -49,7 +50,8 @@ func getExitsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Exit, er
 			&exit.ID,
 			&lobbyID,
 			&worldCoord,
-			&streets)
+			&streets,
+			&exit.Type)
 		if err != nil {
 			return exits, fmt.Errorf("getExitsWithSelect: %s", err)
 		}
@@ -99,8 +101,8 @@ func (exit *Exit) Add(node sqalx.Node) error {
 	}
 
 	_, err = sdb.Insert("station_lobby_exit").
-		Columns("lobby_id", "world_coord", "streets").
-		Values(exit.Lobby.ID, exit.WorldCoord, exit.Streets).
+		Columns("lobby_id", "world_coord", "streets", "type").
+		Values(exit.Lobby.ID, exit.WorldCoord, exit.Streets, exit.Type).
 		RunWith(tx).Exec()
 
 	if err != nil {

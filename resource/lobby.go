@@ -27,9 +27,11 @@ type apiLobbySchedule struct {
 }
 
 type exitWrapper struct {
-	ID         int        `msgpack:"id" json:"id"`
-	WorldCoord [2]float64 `msgpack:"worldCoord" json:"worldCoord"`
-	Streets    []string   `msgpack:"streets" json:"streets"`
+	ID         int                `msgpack:"id" json:"id"`
+	WorldCoord [2]float64         `msgpack:"worldCoord" json:"worldCoord"`
+	Streets    []string           `msgpack:"streets" json:"streets"`
+	Type       string             `msgpack:"type" json:"type"`
+	Lobby      *dataobjects.Lobby `msgpack:"-" json:"-"`
 }
 
 type apiLobbyWrapper struct {
@@ -71,11 +73,7 @@ func (r *Lobby) Get(c *yarf.Context) error {
 			return err
 		}
 		for _, exit := range exits {
-			data.Exits = append(data.Exits, exitWrapper{
-				ID:         exit.ID,
-				WorldCoord: exit.WorldCoord,
-				Streets:    exit.Streets,
-			})
+			data.Exits = append(data.Exits, exitWrapper(*exit))
 		}
 
 		data.Schedule = []apiLobbySchedule{}
@@ -113,11 +111,7 @@ func (r *Lobby) Get(c *yarf.Context) error {
 				return err
 			}
 			for _, exit := range exits {
-				apilobbies[i].Exits = append(apilobbies[i].Exits, exitWrapper{
-					ID:         exit.ID,
-					WorldCoord: exit.WorldCoord,
-					Streets:    exit.Streets,
-				})
+				apilobbies[i].Exits = append(apilobbies[i].Exits, exitWrapper(*exit))
 			}
 
 			apilobbies[i].Schedule = []apiLobbySchedule{}
