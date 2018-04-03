@@ -390,38 +390,36 @@ func discordBuildLineMessage(id string) (*Embed, error) {
 	if err != nil {
 		return nil, err
 	}
-	stationsStr := ""
-	origStations := stations
-	if len(stations) > 15 {
-		stations = stations[:10]
-	}
-	collapsed := false
-	if len(stations) < len(origStations) {
-		rand.Shuffle(len(origStations), func(i, j int) {
-			origStations[i], origStations[j] = origStations[j], origStations[i]
-		})
-		stations = origStations[:10]
-		collapsed = true
-	}
-	for i, station := range stations {
+	stationsStrs := []string{}
+	for _, station := range stations {
 		name := station.Name
 		if closed, err := station.Closed(tx); err == nil && closed {
 			name = "~~" + name + "~~"
 		}
-		stationsStr += "[" + name + "](" + websiteURL + "/s/" + station.ID + ")" + " (`" + station.ID + "`)"
-
-		if i < len(stations)-1 {
-			if collapsed {
-				stationsStr += ", "
+		stationsStrs = append(stationsStrs, "["+name+"]("+websiteURL+"/s/"+station.ID+")"+" (`"+station.ID+"`)")
+	}
+	stationsStrPart := ""
+	firstStationEmbed := true
+	for i, str := range stationsStrs {
+		if len(stationsStrPart)+len(str)+2 > 1024 {
+			if firstStationEmbed {
+				firstStationEmbed = false
+				embed.AddField(fmt.Sprintf("%d estações", len(stations)), stationsStrPart)
 			} else {
-				stationsStr += "\n"
+				embed.AddField("(continuação)", stationsStrPart)
 			}
+			stationsStrPart = ""
+		}
+		stationsStrPart += str
+		if i < len(stations)-1 {
+			stationsStrPart += "\n"
 		}
 	}
-	if collapsed {
-		stationsStr += fmt.Sprintf(" e %d outras...", len(origStations)-len(stations))
+	if firstStationEmbed {
+		embed.AddField(fmt.Sprintf("%d estações", len(stations)), stationsStrPart)
+	} else {
+		embed.AddField("(continuação)", stationsStrPart)
 	}
-	embed.AddField(fmt.Sprintf("%d estações", len(origStations)), stationsStr)
 
 	return embed, nil
 }
