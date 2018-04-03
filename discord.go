@@ -210,15 +210,25 @@ func discordMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	for lightTrigger, triggerInfo := range discordLightTriggersMap {
+		if !strings.Contains(lightTrigger, " ") && len(m.Content) > len(lightTrigger) {
+			lightTrigger = " " + lightTrigger + " "
+		}
 		t := transform.Chain(norm.NFD, transform.RemoveFunc(isMn), norm.NFC)
 		noDiacriticsResult, _, _ := transform.String(t, lightTrigger)
+		noDiacriticsMessage, _, _ := transform.String(t, strings.ToLower(m.Content))
 		triggerWord := ""
 		if strings.Contains(m.Content, lightTrigger) {
-			triggerWord = lightTrigger
-		} else if strings.Contains(m.Content, strings.ToLower(lightTrigger)) {
-			triggerWord = strings.ToLower(lightTrigger)
-		} else if strings.Contains(m.Content, strings.ToLower(noDiacriticsResult)) {
-			triggerWord = strings.ToLower(noDiacriticsResult)
+			triggerWord = strings.TrimSpace(lightTrigger)
+		} else if needle := strings.ToLower(lightTrigger); strings.Contains(m.Content, needle) {
+			triggerWord = strings.TrimSpace(needle)
+		} else if needle := strings.ToLower(noDiacriticsResult); strings.Contains(m.Content, needle) {
+			triggerWord = strings.TrimSpace(needle)
+		} else if needle := strings.ToLower(noDiacriticsResult); strings.Contains(noDiacriticsMessage, needle) {
+			triggerWord = strings.TrimSpace(needle)
+		} else if needle := strings.ToLower(strings.TrimRight(noDiacriticsResult, " ")); strings.HasSuffix(noDiacriticsMessage, needle) {
+			triggerWord = strings.TrimSpace(needle)
+		} else if needle := strings.ToLower(strings.TrimLeft(noDiacriticsResult, " ")); strings.HasPrefix(noDiacriticsMessage, needle) {
+			triggerWord = strings.TrimSpace(needle)
 		}
 		if triggerWord != "" {
 			key := discordLastUsageKey{
