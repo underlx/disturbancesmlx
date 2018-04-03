@@ -22,6 +22,7 @@ var (
 	secrets       *keybox.Keybox
 	fcmcl         *fcm.FcmClient
 	mainLog       = log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	discordLog    = log.New(os.Stdout, "discord", log.Ldate|log.Ltime)
 	webLog        = log.New(os.Stdout, "web", log.Ldate|log.Ltime)
 	lastChange    time.Time
 )
@@ -103,6 +104,7 @@ func main() {
 
 	go StatsSender()
 	go WebServer()
+	go DiscordBot()
 
 	certPath := DefaultClientCertPath
 	if len(os.Args) > 1 {

@@ -158,14 +158,12 @@ func (station *Station) Closed(node sqalx.Node) (bool, error) {
 		return false, err
 	}
 	for _, lobby := range lobbies {
-		schedules, err := lobby.Schedules(tx)
+		closed, err := lobby.Closed(tx)
 		if err != nil {
 			return false, err
 		}
-		for _, schedule := range schedules {
-			if schedule.Open {
-				return false, nil
-			}
+		if !closed {
+			return false, nil
 		}
 	}
 	return true, nil

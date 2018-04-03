@@ -99,6 +99,26 @@ func (lobby *Lobby) Schedules(node sqalx.Node) ([]*LobbySchedule, error) {
 	return getLobbySchedulesWithSelect(node, s)
 }
 
+// Closed returns whether this lobby is closed
+func (lobby *Lobby) Closed(node sqalx.Node) (bool, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return false, err
+	}
+	defer tx.Commit() // read-only tx
+
+	schedules, err := lobby.Schedules(tx)
+	if err != nil {
+		return false, err
+	}
+	for _, schedule := range schedules {
+		if schedule.Open {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // Update adds or updates the Lobby
 func (lobby *Lobby) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
