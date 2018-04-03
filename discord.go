@@ -21,12 +21,17 @@ import (
 
 var discordWordMap map[string]wordType
 var discordLightTriggersMap map[string]lightTrigger
-var discordLightTriggersLastUsage map[string]time.Time // maps lightTrigger IDs to the last time they were used
-var discordStopShutUp time.Time
+var discordLightTriggersLastUsage map[discordLastUsageKey]time.Time // maps lightTrigger IDs to the last time they were used
+var discordStopShutUp map[string]time.Time                          // maps channel IDs to the time when the bot can talk again
 
 type lightTrigger struct {
 	wordType wordType
 	id       string
+}
+
+type discordLastUsageKey struct {
+	id        string
+	channelId string
 }
 
 var discordFooterMessages = []string{
@@ -77,6 +82,8 @@ func DiscordBot() {
 		return
 	}
 
+	discordStopShutUp = make(map[string]time.Time)
+
 	user, err := dg.User("@me")
 	if err != nil {
 		discordLog.Println(err)
@@ -111,7 +118,7 @@ func DiscordBot() {
 func builddiscordWordMap() error {
 	discordWordMap = make(map[string]wordType)
 	discordLightTriggersMap = make(map[string]lightTrigger)
-	discordLightTriggersLastUsage = make(map[string]time.Time)
+	discordLightTriggersLastUsage = make(map[discordLastUsageKey]time.Time)
 
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
@@ -182,16 +189,16 @@ func discordMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	if m.Content == "$mute" {
-		discordStopShutUp = time.Now().Add(15 * time.Minute)
+		discordStopShutUp[m.ChannelID] = time.Now().Add(15 * time.Minute)
 		s.ChannelMessageSend(m.ChannelID, "🤐 por 15 minutos")
 	}
 
 	if m.Content == "$unmute" {
-		discordStopShutUp = time.Time{}
+		discordStopShutUp[m.ChannelID] = time.Time{}
 		s.ChannelMessageSend(m.ChannelID, "🤗")
 	}
 
-	if !time.Now().After(discordStopShutUp) {
+	if !time.Now().After(discordStopShutUp[m.ChannelID]) {
 		return
 	}
 
@@ -214,10 +221,13 @@ func discordMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			triggerWord = strings.ToLower(noDiacriticsResult)
 		}
 		if triggerWord != "" {
-			if t, ok := discordLightTriggersLastUsage[triggerInfo.id]; ok && time.Since(t) < 10*time.Minute {
+			key := discordLastUsageKey{
+				channelId: m.ChannelID,
+				id:        triggerInfo.id}
+			if t, ok := discordLightTriggersLastUsage[key]; ok && time.Since(t) < 10*time.Minute {
 				continue
 			}
-			discordLightTriggersLastUsage[triggerInfo.id] = time.Now()
+			discordLightTriggersLastUsage[key] = time.Now()
 			discordSendReply(s, m, triggerInfo.id, triggerWord, triggerInfo.wordType)
 		}
 	}
@@ -288,7 +298,11 @@ func discordBuildNetworkMessage(id string) (*Embed, error) {
 	rand.Shuffle(len(stations), func(i, j int) {
 		stations[i], stations[j] = stations[j], stations[i]
 	})
-	selectedStations := stations[:5]
+	selectedStations := stations
+	if len(stations) > 5 {
+		selectedStations = stations[:5]
+	}
+
 	stationsStr := ""
 	for i, station := range selectedStations {
 		name := station.Name
@@ -367,17 +381,37 @@ func discordBuildLineMessage(id string) (*Embed, error) {
 		return nil, err
 	}
 	stationsStr := ""
+	origStations := stations
+	if len(stations) > 15 {
+		stations = stations[:10]
+	}
+	collapsed := false
+	if len(stations) < len(origStations) {
+		rand.Shuffle(len(origStations), func(i, j int) {
+			origStations[i], origStations[j] = origStations[j], origStations[i]
+		})
+		stations = origStations[:10]
+		collapsed = true
+	}
 	for i, station := range stations {
 		name := station.Name
 		if closed, err := station.Closed(tx); err == nil && closed {
 			name = "~~" + name + "~~"
 		}
 		stationsStr += "[" + name + "](" + websiteURL + "/s/" + station.ID + ")" + " (`" + station.ID + "`)"
+
 		if i < len(stations)-1 {
-			stationsStr += "\n"
+			if collapsed {
+				stationsStr += ", "
+			} else {
+				stationsStr += "\n"
+			}
 		}
 	}
-	embed.AddField(fmt.Sprintf("%d estações", len(stations)), stationsStr)
+	if collapsed {
+		stationsStr += fmt.Sprintf(" e %d outras...", len(origStations)-len(stations))
+	}
+	embed.AddField(fmt.Sprintf("%d estações", len(origStations)), stationsStr)
 
 	return embed, nil
 }
