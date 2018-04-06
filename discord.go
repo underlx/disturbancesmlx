@@ -151,9 +151,16 @@ func builddiscordWordMap() error {
 	}
 	for _, station := range stations {
 		discordWordMap[station.ID] = wordTypeStation
-		discordLightTriggersMap[station.Name] = lightTrigger{
-			wordType: wordTypeStation,
-			id:       station.ID}
+		triggers := []string{
+			"estação do " + station.Name,
+			"estação da " + station.Name,
+			"estação de " + station.Name,
+		}
+		for _, trigger := range triggers {
+			discordLightTriggersMap[trigger] = lightTrigger{
+				wordType: wordTypeStation,
+				id:       station.ID}
+		}
 	}
 
 	lobbies, err := dataobjects.GetLobbies(tx)
