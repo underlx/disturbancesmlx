@@ -155,14 +155,11 @@ CREATE TABLE IF NOT EXISTS "station_has_wifiap" (
     PRIMARY KEY (station_id, bssid)
 );
 
-CREATE TABLE IF NOT EXISTS "station_feature" (
+CREATE TABLE IF NOT EXISTS "station_tag" (
     station_id VARCHAR(36) NOT NULL REFERENCES station (id),
-    lift BOOLEAN NOT NULL,
-    bus BOOLEAN NOT NULL,
-    boat BOOLEAN NOT NULL,
-    train BOOLEAN NOT NULL,
-    airport BOOLEAN NOT NULL,
-    PRIMARY KEY (station_id)
+    tag VARCHAR(20) NOT NULL,
+    priority INT NOT NULL,
+    PRIMARY KEY (station_id, tag)
 );
 
 CREATE TABLE IF NOT EXISTS "station_lobby" (

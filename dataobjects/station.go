@@ -14,7 +14,8 @@ type Station struct {
 	ID       string
 	Name     string
 	AltNames []string
-	Features *Features
+	Tags     []string
+	LowTags  []string
 	Network  *Network
 }
 
@@ -25,6 +26,7 @@ func GetStations(node sqalx.Node) ([]*Station, error) {
 
 func getStationsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Station, error) {
 	stations := []*Station{}
+	stationMap := make(map[string]*Station)
 
 	tx, err := node.Beginx()
 	if err != nil {
@@ -40,7 +42,7 @@ func getStationsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Stati
 	}
 	defer rows.Close()
 
-	var networkIDs []string
+	var stationIDs []string
 	for rows.Next() {
 		var station Station
 		var altNames pq.StringArray
@@ -55,21 +57,25 @@ func getStationsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Stati
 		}
 		station.AltNames = altNames
 		stations = append(stations, &station)
-		networkIDs = append(networkIDs, networkID)
+		stationMap[station.ID] = &station
+		stationIDs = append(stationIDs, networkID)
 	}
 	if err := rows.Err(); err != nil {
 		return stations, fmt.Errorf("getStationsWithSelect: %s", err)
 	}
-	for i := range networkIDs {
-		stations[i].Network, err = GetNetwork(tx, networkIDs[i])
+	for i := range stationIDs {
+		stations[i].Network, err = GetNetwork(tx, stationIDs[i])
 		if err != nil {
 			return stations, fmt.Errorf("getStationsWithSelect: %s", err)
 		}
-		stations[i].Features, err = GetFeaturesForStation(tx, stations[i].ID)
+		stationTags, err := getStationTagsForStation(tx, stations[i].ID)
 		if err != nil {
 			return stations, fmt.Errorf("getStationsWithSelect: %s", err)
 		}
+		stations[i].Tags = stationTags.Tags
+		stations[i].LowTags = stationTags.LowTags
 	}
+
 	return stations, nil
 }
 
@@ -169,6 +175,21 @@ func (station *Station) Closed(node sqalx.Node) (bool, error) {
 	return true, nil
 }
 
+// HasTag returns true if this station was assigned the provided tag
+func (station *Station) HasTag(needle string) bool {
+	for _, tag := range station.Tags {
+		if tag == needle {
+			return true
+		}
+	}
+	for _, tag := range station.LowTags {
+		if tag == needle {
+			return true
+		}
+	}
+	return false
+}
+
 // Update adds or updates the station
 func (station *Station) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
@@ -178,11 +199,6 @@ func (station *Station) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	err = station.Network.Update(tx)
-	if err != nil {
-		return errors.New("AddStation: " + err.Error())
-	}
-
-	err = station.Features.Update(tx)
 	if err != nil {
 		return errors.New("AddStation: " + err.Error())
 	}
@@ -207,11 +223,6 @@ func (station *Station) Delete(node sqalx.Node) error {
 		return err
 	}
 	defer tx.Rollback()
-
-	err = station.Features.Delete(tx)
-	if err != nil {
-		return fmt.Errorf("RemoveStation: %s", err)
-	}
 
 	_, err = sdb.Delete("station").
 		Where(sq.Eq{"id": station.ID}).RunWith(tx).Exec()

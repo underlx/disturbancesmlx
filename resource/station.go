@@ -14,11 +14,12 @@ type Station struct {
 }
 
 type apiStation struct {
-	ID       string                `msgpack:"id" json:"id"`
-	Name     string                `msgpack:"name" json:"name"`
-	AltNames []string              `msgpack:"altNames" json:"altNames"`
-	Features *dataobjects.Features `msgpack:"-" json:"-"`
-	Network  *dataobjects.Network  `msgpack:"-" json:"-"`
+	ID       string               `msgpack:"id" json:"id"`
+	Name     string               `msgpack:"name" json:"name"`
+	AltNames []string             `msgpack:"altNames" json:"altNames"`
+	Tags     []string             `msgpack:"tags" json:"tags"`
+	LowTags  []string             `msgpack:"lowTags" json:"lowTags"`
+	Network  *dataobjects.Network `msgpack:"-" json:"-"`
 }
 
 type wifiWrapper struct {
@@ -78,7 +79,6 @@ func (r *Station) Get(c *yarf.Context) error {
 	for i := range stations {
 		apistations[i] = apiStationWrapper{
 			apiStation: apiStation(*stations[i]),
-			Features:   apiFeatures(*stations[i].Features),
 			NetworkID:  stations[i].Network.ID,
 		}
 
@@ -122,6 +122,14 @@ func (r *Station) Get(c *yarf.Context) error {
 		}
 		apistations[i].TriviaURLs = ComputeStationTriviaURLs(stations[i])
 		apistations[i].ConnectionURLs = ComputeStationConnectionURLs(stations[i])
+
+		// compatibility with old clients: set station features
+		// TODO remove this once old clients are no longer supported
+		apistations[i].Features.Airport = stations[i].HasTag("c_airport")
+		apistations[i].Features.Boat = stations[i].HasTag("c_boat")
+		apistations[i].Features.Bus = stations[i].HasTag("c_bus")
+		apistations[i].Features.Lift = stations[i].HasTag("m_lift_platform") || stations[i].HasTag("m_lift_surface")
+		apistations[i].Features.Train = stations[i].HasTag("c_train")
 	}
 
 	if c.Param("id") != "" {
