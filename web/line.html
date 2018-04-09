@@ -12,11 +12,17 @@
           <li>
             <a href="/stations/{{ $station.ID }}">{{ $station.Name }}</a>
             <span class="station-features">
-              {{ if $station.Features.Lift }}<i class="fa fa-caret-square-o-up" aria-hidden="true"></i>{{end}}
-              {{ if $station.Features.Bus }}<i class="fa fa-bus" aria-hidden="true"></i>{{end}}
-              {{ if $station.Features.Boat }}<i class="fa fa-ship" aria-hidden="true"></i>{{end}}
-              {{ if $station.Features.Train }}<i class="fa fa-train" aria-hidden="true"></i>{{end}}
-              {{ if $station.Features.Airport }}<i class="fa fa-plane" aria-hidden="true"></i>{{end}}
+              {{ range $tag := $station.Tags }}
+                {{ if (eq $tag "c_airport") }}<i class="fa fa-plane" aria-hidden="true"></i>{{end}}
+                {{ if (eq $tag "c_bike") }}<i class="fa fa-bicycle" aria-hidden="true"></i>{{end}}
+                {{ if (eq $tag "c_boat") }}<i class="fa fa-ship" aria-hidden="true"></i>{{end}}
+                {{ if (eq $tag "c_bus") }}<i class="fa fa-bus" aria-hidden="true"></i>{{end}}
+                {{ if (eq $tag "c_parking") }}<i class="fa fa-car" aria-hidden="true"></i>{{end}}
+                {{ if (eq $tag "c_taxi") }}<i class="fa fa-taxi" aria-hidden="true"></i>{{end}}
+                {{ if (eq $tag "c_train") }}<i class="fa fa-train" aria-hidden="true"></i>{{end}}
+                {{ if (or (eq $tag "m_lift_surface") (eq $tag "m_lift_platform") ) }}<i class="fa fa-caret-square-o-up" aria-hidden="true"></i>{{end}}
+                {{ if (eq $tag "m_stepfree") }}<i class="fa fa-wheelchair" aria-hidden="true"></i>{{end}}
+              {{end}}
             </span>
           </li>
         {{end}}
