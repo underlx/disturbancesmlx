@@ -34,6 +34,8 @@ type discordLastUsageKey struct {
 	channelId string
 }
 
+var discordBotOwnerUserId string
+
 var discordFooterMessages = []string{
 	"$mute para me mandar ir dar uma volta de Metro",
 	"$mute para me calar por 15 minutos",
@@ -75,6 +77,13 @@ func DiscordBot() {
 		discordLog.Println(err)
 		return
 	}
+
+	selfApp, err := dg.Application("@me")
+	if err != nil {
+		discordLog.Println(err)
+		return
+	}
+	discordBotOwnerUserId = selfApp.Owner.ID
 
 	err = builddiscordWordMap()
 	if err != nil {
@@ -155,6 +164,7 @@ func builddiscordWordMap() error {
 			"estação do " + station.Name,
 			"estação da " + station.Name,
 			"estação de " + station.Name,
+			"estação " + station.Name,
 		}
 		for _, trigger := range triggers {
 			discordLightTriggersMap[trigger] = lightTrigger{
@@ -189,11 +199,12 @@ func isMn(r rune) bool {
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func discordMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
+
+	words := strings.Split(m.Content, " ")
 
 	if m.Content == "$mute" {
 		discordStopShutUp[m.ChannelID] = time.Now().Add(15 * time.Minute)
@@ -205,11 +216,57 @@ func discordMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "🤗")
 	}
 
+	if m.Author.ID == discordBotOwnerUserId {
+		if words[0] == "$setstatus" {
+			var err error
+			if len(words) == 1 {
+				err = s.UpdateStatus(0, "")
+			} else if len(words) > 1 {
+				usd := &discordgo.UpdateStatusData{
+					Status: "online",
+				}
+
+				switch words[1] {
+				case "playing":
+					usd.Game = &discordgo.Game{
+						Name: strings.Join(words[2:], " "),
+						Type: discordgo.GameTypeGame,
+					}
+				case "streaming":
+					usd.Game = &discordgo.Game{
+						Type: discordgo.GameTypeGame,
+						URL:  strings.Join(words[2:], " "),
+					}
+				case "listening":
+					usd.Game = &discordgo.Game{
+						Name: strings.Join(words[2:], " "),
+						Type: discordgo.GameTypeListening,
+					}
+				case "watching":
+					usd.Game = &discordgo.Game{
+						Name: strings.Join(words[2:], " "),
+						Type: discordgo.GameTypeWatching,
+					}
+				default:
+					usd.Game = &discordgo.Game{
+						Name: strings.Join(words[1:], " "),
+						Type: discordgo.GameTypeGame,
+					}
+				}
+
+				err = s.UpdateStatusComplex(*usd)
+			}
+			if err != nil {
+				s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			} else {
+				s.ChannelMessageSend(m.ChannelID, "✅")
+			}
+		}
+	}
+
 	if !time.Now().After(discordStopShutUp[m.ChannelID]) {
 		return
 	}
-
-	words := strings.Split(m.Content, " ")
 	for _, word := range words {
 		if wordType, ok := discordWordMap[word]; ok {
 			discordSendReply(s, m, word, word, wordType)
