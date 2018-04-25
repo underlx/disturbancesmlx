@@ -11,6 +11,8 @@ import (
 	"time"
 	"unicode"
 
+	"golang.org/x/text/runes"
+
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/resource"
 	"golang.org/x/text/transform"
@@ -31,10 +33,10 @@ type lightTrigger struct {
 
 type discordLastUsageKey struct {
 	id        string
-	channelId string
+	channelID string
 }
 
-var discordBotOwnerUserId string
+var discordBotOwnerUserID string
 
 var discordFooterMessages = []string{
 	"$mute para me mandar ir dar uma volta de Metro",
@@ -83,7 +85,7 @@ func DiscordBot() {
 		discordLog.Println(err)
 		return
 	}
-	discordBotOwnerUserId = selfApp.Owner.ID
+	discordBotOwnerUserID = selfApp.Owner.ID
 
 	err = builddiscordWordMap()
 	if err != nil {
@@ -116,7 +118,7 @@ func DiscordBot() {
 	// Wait here until CTRL-C or other term signal is received.
 	discordLog.Println("Bot is now running.  Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
 	// Cleanly close down the Discord session.
@@ -192,10 +194,6 @@ func builddiscordWordMap() error {
 	return nil
 }
 
-func isMn(r rune) bool {
-	return unicode.Is(unicode.Mn, r) // Mn: nonspacing marks
-}
-
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func discordMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -216,7 +214,7 @@ func discordMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "🤗")
 	}
 
-	if m.Author.ID == discordBotOwnerUserId {
+	if m.Author.ID == discordBotOwnerUserID {
 		if words[0] == "$setstatus" {
 			var err error
 			if len(words) == 1 {
@@ -277,7 +275,7 @@ func discordMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if !strings.Contains(lightTrigger, " ") && len(m.Content) > len(lightTrigger) {
 			lightTrigger = " " + lightTrigger + " "
 		}
-		t := transform.Chain(norm.NFD, transform.RemoveFunc(isMn), norm.NFC)
+		t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 		noDiacriticsResult, _, _ := transform.String(t, lightTrigger)
 		noDiacriticsMessage, _, _ := transform.String(t, strings.ToLower(m.Content))
 		triggerWord := ""
@@ -296,7 +294,7 @@ func discordMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		if triggerWord != "" {
 			key := discordLastUsageKey{
-				channelId: m.ChannelID,
+				channelID: m.ChannelID,
 				id:        triggerInfo.id}
 			if t, ok := discordLightTriggersLastUsage[key]; ok && time.Since(t) < 10*time.Minute {
 				continue

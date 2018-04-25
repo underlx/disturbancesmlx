@@ -54,8 +54,7 @@ func SetUpScrapers(node sqalx.Node) error {
 
 	l := log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime)
 	mlxscr = &mlxscraper.Scraper{
-		//URL:     "http://app.metrolisboa.pt/status/estado_Linhas.php",
-		URL:     "http://localhost:8000/faux.html",
+		URL:     "http://app.metrolisboa.pt/status/estado_Linhas.php",
 		Network: network,
 		Source: &dataobjects.Source{
 			ID:          "mlxscraper-pt-ml",
