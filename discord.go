@@ -22,10 +22,9 @@ func DiscordBot() {
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
-	discordLog.Println("Bot is now running.  Press CTRL-C to exit.")
+	discordLog.Println("Bot is now running.")
 	sc := make(chan os.Signal, 1)
-	//lint:ignore SA1016 contrary to what staticcheck believes, os.Kill can be trapped in some OS and has to be trapped for this to work on Windows
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
 	// Cleanly close down the Discord session.
