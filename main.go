@@ -56,47 +56,50 @@ func main() {
 	mainLog.Println("Server starting, opening keybox...")
 	secrets, err = keybox.Open(SecretsPath)
 	if err != nil {
-		mainLog.Fatal(err)
+		mainLog.Fatalln(err)
 	}
 	mainLog.Println("Keybox opened")
 
 	mainLog.Println("Opening database...")
 	databaseURI, present := secrets.Get("databaseURI")
 	if !present {
-		mainLog.Fatal("Database connection string not present in keybox")
+		mainLog.Fatalln("Database connection string not present in keybox")
 	}
 	rdb, err = sqlx.Open("postgres", databaseURI)
 	if err != nil {
-		mainLog.Fatal(err)
+		mainLog.Fatalln(err)
 	}
 	defer rdb.Close()
 
 	err = rdb.Ping()
 	if err != nil {
-		mainLog.Fatal(err)
+		mainLog.Fatalln(err)
 	}
 	rdb.SetMaxOpenConns(MaxDBconnectionPoolSize)
 	sdb = sq.StatementBuilder.PlaceholderFormat(sq.Dollar).RunWith(rdb)
 
 	rootSqalxNode, err = sqalx.New(rdb)
 	if err != nil {
-		mainLog.Fatal(err)
+		mainLog.Fatalln(err)
 	}
 
 	mainLog.Println("Database opened")
 
 	fcmServerKey, present := secrets.Get("firebaseServerKey")
 	if !present {
-		mainLog.Fatal("Firebase server key not present in keybox")
+		mainLog.Fatalln("Firebase server key not present in keybox")
 	}
 	fcmcl = fcm.NewFcmClient(fcmServerKey)
 
-	SetUpScrapers()
+	err = SetUpScrapers(rootSqalxNode)
+	if err != nil {
+		mainLog.Fatalln(err)
+	}
 	defer TearDownScrapers()
 
 	facebookAccessToken, present := secrets.Get("facebookToken")
 	if !present {
-		mainLog.Fatal("Facebook API access token not present in keybox")
+		mainLog.Fatalln("Facebook API access token not present in keybox")
 	}
 
 	SetUpAnnouncements(facebookAccessToken)
@@ -123,7 +126,7 @@ func main() {
 		}
 	}()
 
-	if DEBUG {
+	/*if DEBUG {
 		f, err := os.Create("realTimeSimulationData.txt")
 		if err == nil {
 			toTime := time.Now()
@@ -135,7 +138,7 @@ func main() {
 			f.Close()
 			mainLog.Println("Real-time simulation data written")
 		}
-	}
+	}*/
 
 	for {
 		if DEBUG {

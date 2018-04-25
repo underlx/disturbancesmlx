@@ -5,6 +5,17 @@ import (
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
+func init() {
+	go func(newNotifChan <-chan dataobjects.StatusNotification) {
+		for {
+			select {
+			case sn := <-newNotifChan:
+				SendNotificationForDisturbance(sn.Disturbance, sn.Status)
+			}
+		}
+	}(dataobjects.NewStatusNotification)
+}
+
 // SendNotificationForDisturbance sends a FCM notification for this disturbance about the specified status
 func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.Status) {
 	downtimeStr := "false"
@@ -18,6 +29,13 @@ func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.S
 		"status":      s.Status,
 		"downtime":    downtimeStr,
 	}
+
+	if fcmcl == nil {
+		// too soon
+		return
+	}
+
+	mainLog.Println("Sending notification for disturbance " + d.ID + ": " + s.Status)
 
 	if DEBUG {
 		fcmcl.NewFcmMsgTo("/topics/disturbances-debug", data)
@@ -41,6 +59,13 @@ func SendNotificationForAnnouncement(a *dataobjects.Announcement) {
 		"url":     a.URL,
 		"source":  a.Source,
 	}
+
+	if fcmcl == nil {
+		// too soon
+		return
+	}
+
+	mainLog.Println("Sending notification for announcement: " + a.Title)
 
 	if DEBUG {
 		fcmcl.NewFcmMsgTo("/topics/announcements-debug-"+a.Source, data)

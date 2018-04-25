@@ -9,7 +9,19 @@ import (
 	"github.com/SaidinWoT/timespan"
 	sq "github.com/gbl08ma/squirrel"
 	"github.com/heetch/sqalx"
+	uuid "github.com/satori/go.uuid"
 )
+
+// StatusNotification contains the information needed to issue a disturbance
+// notification
+type StatusNotification struct {
+	Disturbance *Disturbance
+	Status      *Status
+}
+
+// NewStatusNotification is a channel where a StatusNotification will be sent
+// whenever a new status/disturbance notification should be issued
+var NewStatusNotification = make(chan StatusNotification)
 
 // Line is a Network line
 type Line struct {
@@ -484,6 +496,91 @@ func (line *Line) Paths(node sqalx.Node) ([]*LinePath, error) {
 	s := sdb.Select().
 		Where(sq.Eq{"line_id": line.ID})
 	return getLinePathsWithSelect(node, s)
+}
+
+// Statuses returns all the statuses for this line
+func (line *Line) Statuses(node sqalx.Node) ([]*Status, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"mline": line.ID})
+	return getStatusesWithSelect(node, s)
+}
+
+// AddStatus associates a new status with this line, and runs the disturbance
+// start/end logic
+func (line *Line) AddStatus(node sqalx.Node, status *Status) error {
+	if status.Line.ID != line.ID {
+		return errors.New("The line of the status does not match the receiver line")
+	}
+	status.Line = line // so we don't have two different pointers to what should be the same thing
+
+	tx, err := node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = status.Update(tx)
+	if err != nil {
+		return err
+	}
+
+	ongoing, err := line.OngoingDisturbances(tx)
+	if err != nil {
+		return err
+	}
+	if len(ongoing) > 0 {
+		// there's an ongoing disturbance
+		disturbance := ongoing[len(ongoing)-1]
+
+		previousStatus := disturbance.LatestStatus()
+		if previousStatus != nil &&
+			status.Status == previousStatus.Status &&
+			status.IsDowntime == previousStatus.IsDowntime {
+			// do not add repeated status to disturbance (nor issue a new notif)
+			// our work here is done
+			return tx.Commit()
+		}
+
+		if !status.IsDowntime {
+			// "close" this disturbance
+			disturbance.EndTime = status.Time
+			disturbance.Ended = true
+		}
+		disturbance.Statuses = append(disturbance.Statuses, status)
+		err = disturbance.Update(tx)
+		if err != nil {
+			return err
+		}
+
+		// blocking send
+		NewStatusNotification <- StatusNotification{
+			Disturbance: disturbance,
+			Status:      status,
+		}
+	} else if status.IsDowntime {
+		// no ongoing disturbances, create new one
+		id, err := uuid.NewV4()
+		if err != nil {
+			return err
+		}
+		disturbance := &Disturbance{
+			ID:          id.String(),
+			Line:        line,
+			StartTime:   status.Time,
+			Description: status.Status,
+			Statuses:    []*Status{status},
+		}
+		err = disturbance.Update(tx)
+		if err != nil {
+			return err
+		}
+		// blocking send
+		NewStatusNotification <- StatusNotification{
+			Disturbance: disturbance,
+			Status:      status,
+		}
+	}
+	return tx.Commit()
 }
 
 // Update adds or updates the line

@@ -249,7 +249,7 @@ func (network *Network) Update(node sqalx.Node) error {
 		Columns("id", "name", "typ_cars", "holidays", "open_time", "open_duration", "timezone", "news_url").
 		Values(network.ID, network.Name, network.TypicalCars, pq.Int64Array(network.Holidays), network.OpenTime, network.OpenDuration, network.Timezone, network.NewsURL).
 		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, typ_cars = ?, holidays = ?, open_time = ?, open_duration = ?, timezone = ?, news_url = ?",
-			network.Name, network.TypicalCars, network.Holidays, network.OpenTime, network.OpenDuration, network.Timezone, network.NewsURL).
+			network.Name, network.TypicalCars, pq.Int64Array(network.Holidays), network.OpenTime, network.OpenDuration, network.Timezone, network.NewsURL).
 		RunWith(tx).Exec()
 
 	if err != nil {

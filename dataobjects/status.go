@@ -21,6 +21,24 @@ type Status struct {
 
 // GetStatuses returns a slice with all registered statuses
 func GetStatuses(node sqalx.Node) ([]*Status, error) {
+	return getStatusesWithSelect(node, sdb.Select())
+}
+
+// GetStatus returns the Status with the given ID
+func GetStatus(node sqalx.Node, id string) (*Status, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"id": id})
+	statuses, err := getStatusesWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	if len(statuses) == 0 {
+		return nil, errors.New("Status not found")
+	}
+	return statuses[0], nil
+}
+
+func getStatusesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Status, error) {
 	statuss := []*Status{}
 
 	tx, err := node.Beginx()
@@ -29,12 +47,12 @@ func GetStatuses(node sqalx.Node) ([]*Status, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sdb.Select("id", "timestamp", "mline", "downtime", "status", "source").
+	rows, err := sbuilder.Columns("id", "timestamp", "mline", "downtime", "status", "source").
 		From("line_status").
 		OrderBy("timestamp ASC").
 		RunWith(tx).Query()
 	if err != nil {
-		return statuss, fmt.Errorf("GetStatuses: %s", err)
+		return statuss, fmt.Errorf("getStatusesWithSelect: %s", err)
 	}
 	defer rows.Close()
 
@@ -51,60 +69,26 @@ func GetStatuses(node sqalx.Node) ([]*Status, error) {
 			&status.Status,
 			&sourceID)
 		if err != nil {
-			return statuss, fmt.Errorf("GetStatuses: %s", err)
+			return statuss, fmt.Errorf("getStatusesWithSelect: %s", err)
 		}
 		statuss = append(statuss, &status)
 		lineIDs = append(lineIDs, lineID)
 		sourceIDs = append(sourceIDs, sourceID)
 	}
 	if err := rows.Err(); err != nil {
-		return statuss, fmt.Errorf("GetStatuses: %s", err)
+		return statuss, fmt.Errorf("getStatusesWithSelect: %s", err)
 	}
 	for i := range lineIDs {
 		statuss[i].Line, err = GetLine(tx, lineIDs[i])
 		if err != nil {
-			return statuss, fmt.Errorf("GetStatuses: %s", err)
+			return statuss, fmt.Errorf("getStatusesWithSelect: %s", err)
 		}
 		statuss[i].Source, err = GetSource(tx, sourceIDs[i])
 		if err != nil {
-			return statuss, fmt.Errorf("GetStatuses: %s", err)
+			return statuss, fmt.Errorf("getStatusesWithSelect: %s", err)
 		}
 	}
 	return statuss, nil
-}
-
-// GetStatus returns the Status with the given ID
-func GetStatus(node sqalx.Node, id string) (*Status, error) {
-	var status Status
-	tx, err := node.Beginx()
-	if err != nil {
-		return &status, err
-	}
-	defer tx.Commit() // read-only tx
-
-	var lineID, sourceID string
-	err = sdb.Select("id", "timestamp", "mline", "downtime", "status", "source").
-		From("line_status").
-		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().Scan(
-		&status.ID,
-		&status.Time,
-		&lineID,
-		&status.IsDowntime,
-		&status.Status,
-		&sourceID)
-	if err != nil {
-		return &status, errors.New("GetStatus: " + err.Error())
-	}
-	status.Line, err = GetLine(tx, lineID)
-	if err != nil {
-		return &status, fmt.Errorf("GetStatus: %s", err)
-	}
-	status.Source, err = GetSource(tx, sourceID)
-	if err != nil {
-		return &status, fmt.Errorf("GetStatus: %s", err)
-	}
-	return &status, nil
 }
 
 // Update adds or updates the status

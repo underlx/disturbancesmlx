@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/heetch/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/scraper"
 	"github.com/underlx/disturbancesmlx/scraper/mlxscraper"
@@ -18,22 +18,45 @@ var (
 )
 
 // SetUpScrapers initializes and starts the scrapers used to obtain network information
-func SetUpScrapers() {
+func SetUpScrapers(node sqalx.Node) error {
+	tx, err := node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
 	lisbonLoc, _ := time.LoadLocation("Europe/Lisbon")
 
-	l := log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime)
-	mlxscr = &mlxscraper.Scraper{
-		URL: "http://app.metrolisboa.pt/status/estado_Linhas.php",
-		Network: &dataobjects.Network{
-			ID:           MLnetworkID,
-			Name:         "Metro de Lisboa",
+	network, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	if err != nil {
+		// network does not exist, create it
+		network = &dataobjects.Network{
+			ID:         MLnetworkID,
+			Name:       "Metro de Lisboa",
+			MainLocale: "pt",
+			Names: map[string]string{
+				"en": "Lisbon Metro",
+				"fr": "Métro de Lisbonne",
+				"pt": "Metro de Lisboa",
+			},
 			TypicalCars:  6,
 			Holidays:     []int64{},
 			OpenTime:     dataobjects.Time(time.Date(0, 0, 0, 6, 30, 0, 0, lisbonLoc)),
 			OpenDuration: dataobjects.Duration(18*time.Hour + 30*time.Minute),
 			Timezone:     "Europe/Lisbon",
 			NewsURL:      "http://www.metrolisboa.pt/feed/",
-		},
+		}
+		err = network.Update(tx)
+		if err != nil {
+			return err
+		}
+	}
+
+	l := log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime)
+	mlxscr = &mlxscraper.Scraper{
+		//URL:     "http://app.metrolisboa.pt/status/estado_Linhas.php",
+		URL:     "http://localhost:8000/faux.html",
+		Network: network,
 		Source: &dataobjects.Source{
 			ID:          "mlxscraper-pt-ml",
 			Name:        "Metro de Lisboa estado_Linhas.php",
@@ -41,10 +64,11 @@ func SetUpScrapers() {
 		},
 		Period: 1 * time.Minute,
 	}
-	mlxscr.Begin(l, mlxHandleNewStatus, mlxHandleTopologyChange)
+	mlxscr.Begin(l, handleNewStatus, handleTopologyChange)
+	return tx.Commit()
 }
 
-func mlxHandleNewStatus(status *dataobjects.Status) {
+func handleNewStatus(status *dataobjects.Status) {
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		mainLog.Println(err)
@@ -58,77 +82,22 @@ func mlxHandleNewStatus(status *dataobjects.Status) {
 		log.Println("   Is disturbance!")
 	}
 
-	err = status.Update(tx)
+	err = status.Line.AddStatus(tx, status)
 	if err != nil {
 		mainLog.Println(err)
 		return
 	}
 
-	d, err := status.Line.LastDisturbance(tx)
-	if err == nil {
-		mainLog.Println("   Last disturbance at", d.StartTime, "description:", d.Description)
-	} else {
-		mainLog.Println(err)
-	}
-
-	disturbances, err := status.Line.OngoingDisturbances(tx)
+	err = tx.Commit()
 	if err != nil {
 		mainLog.Println(err)
 		return
 	}
-	found := len(disturbances) > 0
-	var disturbance *dataobjects.Disturbance
-	if found {
-		mainLog.Println("   Found ongoing disturbance")
-		disturbance = disturbances[len(disturbances)-1]
-	} else {
-		id, err := uuid.NewV4()
-		if err != nil {
-			mainLog.Println(err)
-			return
-		}
-		disturbance = &dataobjects.Disturbance{
-			ID:   id.String(),
-			Line: status.Line,
-		}
-	}
-	previousStatus := disturbance.LatestStatus()
-	if previousStatus != nil && status.Status == previousStatus.Status {
-		mainLog.Println("   Repeated status, ignore")
-		return
-	}
-	sendNotification := false
-	if status.IsDowntime && !found {
-		disturbance.StartTime = status.Time
-		disturbance.Description = status.Status
-		disturbance.Statuses = append(disturbance.Statuses, status)
-		err = disturbance.Update(tx)
-		if err != nil {
-			mainLog.Println(err)
-			return
-		}
-		sendNotification = true
-	} else if found {
-		if !status.IsDowntime {
-			// "close" this disturbance
-			disturbance.EndTime = status.Time
-			disturbance.Ended = true
-		}
-		disturbance.Statuses = append(disturbance.Statuses, status)
-		err = disturbance.Update(tx)
-		if err != nil {
-			mainLog.Println(err)
-			return
-		}
-		sendNotification = true
-	}
+
 	lastChange = time.Now().UTC()
-	if tx.Commit() == nil && sendNotification {
-		SendNotificationForDisturbance(disturbance, status)
-	}
 }
 
-func mlxHandleTopologyChange(s scraper.Scraper) {
+func handleTopologyChange(s scraper.Scraper) {
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		mainLog.Println(err)
@@ -136,8 +105,8 @@ func mlxHandleTopologyChange(s scraper.Scraper) {
 	}
 	defer tx.Rollback()
 	for _, newnetwork := range s.Networks() {
-		newnetwork, err := dataobjects.GetNetwork(tx, newnetwork.ID)
-		if err == nil {
+		_, err := dataobjects.GetNetwork(tx, newnetwork.ID)
+		if err != nil {
 			mainLog.Println("New network " + newnetwork.ID)
 			err = newnetwork.Update(tx)
 			if err != nil {
@@ -147,8 +116,8 @@ func mlxHandleTopologyChange(s scraper.Scraper) {
 		}
 	}
 	for _, newline := range s.Lines() {
-		newline, err := dataobjects.GetLine(tx, newline.ID)
-		if err == nil {
+		_, err := dataobjects.GetLine(tx, newline.ID)
+		if err != nil {
 			mainLog.Println("New line " + newline.ID)
 			err = newline.Update(tx)
 			if err != nil {
