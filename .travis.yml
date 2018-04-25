@@ -9,6 +9,8 @@ git:
 before_install:
   - sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
   - git submodule update --init --recursive
+  - go get github.com/bwmarrin/discordgo
+  - git -C $GOPATH/src/github.com/bwmarrin/discordgo checkout develop
 
 # Don't email me the results of the test runs.
 notifications:
