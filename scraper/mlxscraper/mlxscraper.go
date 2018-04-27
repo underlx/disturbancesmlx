@@ -133,33 +133,21 @@ func (sc *Scraper) update() {
 
 				if !sc.firstUpdate {
 					sc.lastUpdate = time.Now().UTC()
-					status := line.Next()
+					lstatus := line.Next()
 
 					id, err := uuid.NewV4()
 					if err != nil {
 						return
 					}
-					if len(status.Find(".semperturbacao").Nodes) == 0 {
-						status := &dataobjects.Status{
-							ID:         id.String(),
-							Time:       time.Now().UTC(),
-							Line:       newLines[lineID],
-							IsDowntime: true,
-							Status:     status.Find("li").Text(),
-							Source:     sc.Source,
-						}
-						sc.statusCallback(status)
-					} else {
-						status := &dataobjects.Status{
-							ID:         id.String(),
-							Time:       time.Now().UTC(),
-							Line:       newLines[lineID],
-							IsDowntime: false,
-							Status:     status.Find("li").Text(),
-							Source:     sc.Source,
-						}
-						sc.statusCallback(status)
+					status := &dataobjects.Status{
+						ID:         id.String(),
+						Time:       time.Now().UTC(),
+						Line:       newLines[lineID],
+						IsDowntime: len(lstatus.Find(".semperturbacao").Nodes) == 0,
+						Status:     lstatus.Find("li").Text(),
+						Source:     sc.Source,
 					}
+					sc.statusCallback(status)
 				}
 			})
 			sc.lines = newLines

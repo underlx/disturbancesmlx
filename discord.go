@@ -15,7 +15,8 @@ func DiscordBot() {
 		discordLog.Println("Discord token not found, Discord functions disabled")
 		return
 	}
-	err := discordbot.Start(rootSqalxNode, websiteURL, discordToken, discordLog, schedulesToLines)
+	err := discordbot.Start(rootSqalxNode, websiteURL, discordToken, discordLog,
+		schedulesToLines, handleNewStatus)
 	if err != nil {
 		discordLog.Println(err)
 		return

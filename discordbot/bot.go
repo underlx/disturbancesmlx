@@ -9,6 +9,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/heetch/sqalx"
+	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
@@ -25,6 +26,7 @@ var websiteURL string
 var botLog *log.Logger
 var session *discordgo.Session
 var schedToLines func(schedules []*dataobjects.LobbySchedule) []string
+var statusCallback func(status *dataobjects.Status)
 
 type lightTrigger struct {
 	wordType wordType
@@ -68,11 +70,13 @@ const (
 
 // Start starts the Discord bot
 func Start(snode sqalx.Node, swebsiteURL, discordToken string, log *log.Logger,
-	schedulesToLines func(schedules []*dataobjects.LobbySchedule) []string) error {
+	schedulesToLines func(schedules []*dataobjects.LobbySchedule) []string,
+	statusCb func(status *dataobjects.Status)) error {
 	node = snode
 	websiteURL = swebsiteURL
 	botLog = log
 	schedToLines = schedulesToLines
+	statusCallback = statusCb
 	rand.Seed(time.Now().Unix())
 	dg, err := discordgo.New("Bot " + discordToken)
 	if err != nil {
@@ -194,20 +198,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	words := strings.Split(m.Content, " ")
 
-	if m.Content == "$mute" {
-		stopMute[m.ChannelID] = time.Now().Add(15 * time.Minute)
-		s.ChannelMessageSend(m.ChannelID, "🤐 por 15 minutos")
-	}
-
-	if m.Content == "$unmute" {
-		stopMute[m.ChannelID] = time.Time{}
-		s.ChannelMessageSend(m.ChannelID, "🤗")
-	}
-
-	if m.Author.ID == botOwnerUserID {
-		if words[0] == "$setstatus" {
-			handleStatus(s, m, words[1:])
-		}
+	if parseCommands(s, m, words) {
+		return
 	}
 
 	if !time.Now().After(stopMute[m.ChannelID]) {
@@ -251,7 +243,93 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			sendReply(s, m, triggerInfo.id, triggerWord, triggerInfo.wordType)
 		}
 	}
+}
 
+func parseCommands(s *discordgo.Session, m *discordgo.MessageCreate, words []string) bool {
+	// whole-message commands
+	switch m.Content {
+	case "$mute":
+		stopMute[m.ChannelID] = time.Now().Add(15 * time.Minute)
+		s.ChannelMessageSend(m.ChannelID, "🤐 por 15 minutos")
+		return true
+	case "$unmute":
+		stopMute[m.ChannelID] = time.Time{}
+		s.ChannelMessageSend(m.ChannelID, "🤗")
+		return true
+	}
+
+	if m.Author.ID == botOwnerUserID {
+		switch words[0] {
+		case "$setstatus":
+			handleStatus(s, m, words[1:])
+			return true
+		case "$addlinestatus":
+			handleLineStatus(s, m, words[1:])
+			return true
+		}
+	}
+	return false
+}
+
+func handleLineStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {
+	if len(words) < 3 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+	id, err := uuid.NewV4()
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+
+	tx, err := node.Beginx()
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+	defer tx.Commit() // read-only tx
+
+	status := &dataobjects.Status{
+		ID:   id.String(),
+		Time: time.Now().UTC(),
+		Source: &dataobjects.Source{
+			ID:        "underlx-bot",
+			Name:      "UnderLX Discord bot",
+			Automatic: false,
+			Official:  false,
+		},
+	}
+
+	switch words[0] {
+	case "up":
+		status.IsDowntime = false
+	case "down":
+		status.IsDowntime = true
+	default:
+		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `up` or `down`")
+		return
+	}
+
+	line, err := dataobjects.GetLine(tx, words[1])
+	if err != nil {
+		lines, err := dataobjects.GetLines(tx)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			return
+		}
+		lineIDs := make([]string, len(lines))
+		for i := range lines {
+			lineIDs[i] = "`" + lines[i].ID + "`"
+		}
+		s.ChannelMessageSend(m.ChannelID, "🆖 line ID must be one of ["+strings.Join(lineIDs, ",")+"]")
+		return
+	}
+
+	status.Line = line
+	status.Status = strings.Join(words[2:], " ")
+
+	statusCallback(status)
+	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 
 func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {

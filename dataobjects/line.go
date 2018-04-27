@@ -593,15 +593,13 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status) error {
 			return tx.Commit()
 		}
 
-		if !disturbance.Official && status.Source.Official {
-			// make existing unofficial disturbance official
-			disturbance.Official = true
-			disturbance.OStartTime = status.Time
-		}
-
 		if !status.IsDowntime {
 			// "close" this disturbance
 
+			if status.Source.Official && !disturbance.Official {
+				// official "everything is fine" statuses don't affect unofficial disturbances
+				return tx.Commit()
+			}
 			// if an unofficial source wants to end a disturbance while it hasn't ended officially -> times don't change
 			// (because UStartTime~UEndTime is a subinterval of OStartTime~OEndTime)
 			// we still add the status down below, though
@@ -614,7 +612,12 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status) error {
 				disturbance.UEndTime = status.Time
 				disturbance.UEnded = true
 			}
+		} else if !disturbance.Official && status.Source.Official {
+			// make existing unofficial disturbance official
+			disturbance.Official = true
+			disturbance.OStartTime = status.Time
 		}
+
 		disturbance.Statuses = append(disturbance.Statuses, status)
 		err = disturbance.Update(tx)
 		if err != nil {
