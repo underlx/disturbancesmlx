@@ -160,7 +160,7 @@ func (network *Network) Schedules(node sqalx.Node) ([]*NetworkSchedule, error) {
 }
 
 // LastDisturbance returns the latest disturbance affecting this network
-func (network *Network) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
+func (network *Network) LastDisturbance(node sqalx.Node, officialOnly bool) (*Disturbance, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return nil, err
@@ -172,7 +172,7 @@ func (network *Network) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 	}
 	lastDisturbances := []*Disturbance{}
 	for _, line := range lines {
-		d, err := line.LastDisturbance(tx)
+		d, err := line.LastDisturbance(tx, officialOnly)
 		if err != nil {
 			continue
 		}
@@ -184,17 +184,36 @@ func (network *Network) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 	sort.Slice(lastDisturbances, func(iidx, jidx int) bool {
 		i := lastDisturbances[iidx]
 		j := lastDisturbances[jidx]
-		// i < j ?
-		if i.Ended && j.Ended {
-			return i.EndTime.Before(j.EndTime)
+
+		iStartTime := i.UStartTime
+		iEndTime := i.UEndTime
+		iEnded := i.UEnded
+		if officialOnly {
+			iStartTime = i.OStartTime
+			iEndTime = i.OEndTime
+			iEnded = i.OEnded
 		}
-		if i.Ended && !j.Ended {
+
+		jStartTime := j.UStartTime
+		jEndTime := j.UEndTime
+		jEnded := j.UEnded
+		if officialOnly {
+			jStartTime = j.OStartTime
+			jEndTime = j.OEndTime
+			jEnded = j.OEnded
+		}
+
+		// i < j ?
+		if iEnded && jEnded {
+			return iEndTime.Before(jEndTime)
+		}
+		if iEnded && !jEnded {
 			return true
 		}
-		if !i.Ended && j.Ended {
+		if !iEnded && jEnded {
 			return false
 		}
-		return i.StartTime.Before(j.StartTime)
+		return iStartTime.Before(jStartTime)
 	})
 	return lastDisturbances[len(lastDisturbances)-1], nil
 }

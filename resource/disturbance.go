@@ -15,9 +15,13 @@ type Disturbance struct {
 
 type apiDisturbance struct {
 	ID          string                `msgpack:"id" json:"id"`
-	StartTime   time.Time             `msgpack:"startTime" json:"startTime"`
-	EndTime     time.Time             `msgpack:"endTime" json:"endTime"`
-	Ended       bool                  `msgpack:"ended" json:"ended"`
+	Official    bool                  `msgpack:"official" json:"official"`
+	OStartTime  time.Time             `msgpack:"oStartTime" json:"oStartTime"`
+	OEndTime    time.Time             `msgpack:"oEndTime" json:"oEndTime"`
+	OEnded      bool                  `msgpack:"oEnded" json:"oEnded"`
+	UStartTime  time.Time             `msgpack:"startTime" json:"startTime"`
+	UEndTime    time.Time             `msgpack:"endTime" json:"endTime"`
+	UEnded      bool                  `msgpack:"ended" json:"ended"`
 	Line        *dataobjects.Line     `msgpack:"-" json:"-"`
 	Description string                `msgpack:"description" json:"description"`
 	Notes       string                `msgpack:"notes" json:"notes"`

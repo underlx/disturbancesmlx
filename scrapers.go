@@ -57,9 +57,10 @@ func SetUpScrapers(node sqalx.Node) error {
 		URL:     "http://app.metrolisboa.pt/status/estado_Linhas.php",
 		Network: network,
 		Source: &dataobjects.Source{
-			ID:          "mlxscraper-pt-ml",
-			Name:        "Metro de Lisboa estado_Linhas.php",
-			IsAutomatic: true,
+			ID:        "mlxscraper-pt-ml",
+			Name:      "Metro de Lisboa estado_Linhas.php",
+			Automatic: true,
+			Official:  true,
 		},
 		Period: 1 * time.Minute,
 	}

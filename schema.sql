@@ -21,7 +21,8 @@ DROP TABLE source;
 CREATE TABLE IF NOT EXISTS "source" (
     id VARCHAR(36) PRIMARY KEY,
     name TEXT NOT NULL,
-    automatic BOOL NOT NULL
+    automatic BOOL NOT NULL,
+    official BOOL NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "network" (
@@ -83,6 +84,8 @@ CREATE TABLE IF NOT EXISTS "line_disturbance" (
     id VARCHAR(36) PRIMARY KEY,
     time_start TIMESTAMP WITH TIME ZONE NOT NULL,
     time_end TIMESTAMP WITH TIME ZONE,
+    otime_start TIMESTAMP WITH TIME ZONE,
+    otime_end TIMESTAMP WITH TIME ZONE,
     mline VARCHAR(36) NOT NULL REFERENCES mline (id),
     description TEXT NOT NULL,
     notes TEXT

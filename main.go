@@ -28,7 +28,7 @@ var (
 )
 
 // MLlastDisturbanceTime returns the time of the latest Metro de Lisboa disturbance
-func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
+func MLlastDisturbanceTime(node sqalx.Node, officialOnly bool) (t time.Time, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return time.Now().UTC(), err
@@ -39,16 +39,16 @@ func MLlastDisturbanceTime(node sqalx.Node) (t time.Time, err error) {
 	if err != nil {
 		return time.Now().UTC(), err
 	}
-	d, err := n.LastDisturbance(tx)
+	d, err := n.LastDisturbance(tx, officialOnly)
 	if err != nil {
 		return time.Now().UTC(), err
 	}
 
-	if !d.Ended {
+	if !d.UEnded {
 		return time.Now().UTC(), nil
 	}
 
-	return d.EndTime, nil
+	return d.UEndTime, nil
 }
 
 func main() {
@@ -143,7 +143,7 @@ func main() {
 	for {
 		if DEBUG {
 			printLatestDisturbance(rootSqalxNode)
-			ld, err := MLlastDisturbanceTime(rootSqalxNode)
+			ld, err := MLlastDisturbanceTime(rootSqalxNode, false)
 			if err != nil {
 				mainLog.Println(err)
 			}
@@ -166,9 +166,9 @@ func printLatestDisturbance(node sqalx.Node) {
 		mainLog.Println(err)
 		return
 	}
-	d, err := n.LastDisturbance(tx)
+	d, err := n.LastDisturbance(tx, false)
 	if err == nil {
-		mainLog.Println("Network last disturbance at", d.StartTime, "description:", d.Description)
+		mainLog.Println("Network last disturbance at", d.UStartTime, "description:", d.Description)
 	} else {
 		mainLog.Println(err)
 	}

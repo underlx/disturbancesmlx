@@ -108,6 +108,7 @@ func Start(snode sqalx.Node, swebsiteURL, discordToken string, log *log.Logger,
 	return dg.Open()
 }
 
+// Stop stops the Discord bot
 func Stop() {
 	// Cleanly close down the Discord session.
 	if session != nil {

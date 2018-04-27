@@ -77,13 +77,15 @@ func (r *Stats) Get(c *yarf.Context) error {
 		}
 	}
 
+	officialOnly := c.Request.URL.Query().Get("type") != "unofficial"
+
 	if c.Param("id") != "" {
 		network, err := dataobjects.GetNetwork(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
 
-		stats, err := r.getStatsForNetwork(tx, network, startTime, endTime)
+		stats, err := r.getStatsForNetwork(tx, network, startTime, endTime, officialOnly)
 		if err != nil {
 			return err
 		}
@@ -97,7 +99,7 @@ func (r *Stats) Get(c *yarf.Context) error {
 		}
 
 		for _, network := range networks {
-			stats, err := r.getStatsForNetwork(tx, network, startTime, endTime)
+			stats, err := r.getStatsForNetwork(tx, network, startTime, endTime, officialOnly)
 			if err != nil {
 				return err
 			}
@@ -108,14 +110,14 @@ func (r *Stats) Get(c *yarf.Context) error {
 	return nil
 }
 
-func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network, startTime time.Time, endTime time.Time) (apiStats, error) {
+func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network, startTime time.Time, endTime time.Time, officialOnly bool) (apiStats, error) {
 	tx, err := r.Beginx()
 	if err != nil {
 		return apiStats{}, err
 	}
 	defer tx.Commit() // read-only tx
 
-	lastDist, err := r.getLastDisturbanceTimeForNetwork(tx, network)
+	lastDist, err := r.getLastDisturbanceTimeForNetwork(tx, network, officialOnly)
 	if err != nil {
 		return apiStats{}, err
 	}
@@ -132,7 +134,7 @@ func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network
 	}
 
 	for _, line := range lines {
-		availability, avgDuration, err := line.Availability(tx, startTime, endTime)
+		availability, avgDuration, err := line.Availability(tx, startTime, endTime, officialOnly)
 		if err != nil {
 			return apiStats{}, err
 		}
@@ -144,20 +146,26 @@ func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network
 	return stats, nil
 }
 
-func (r *Stats) getLastDisturbanceTimeForNetwork(node sqalx.Node, network *dataobjects.Network) (time.Time, error) {
+func (r *Stats) getLastDisturbanceTimeForNetwork(node sqalx.Node, network *dataobjects.Network, officialOnly bool) (time.Time, error) {
 	tx, err := r.Beginx()
 	if err != nil {
 		return time.Now().UTC(), err
 	}
 	defer tx.Commit() // read-only tx
 
-	d, err := network.LastDisturbance(tx)
+	d, err := network.LastDisturbance(tx, officialOnly)
 	if err != nil {
 		return time.Now().UTC(), err
 	}
 
-	if !d.Ended {
+	if officialOnly {
+		if !d.OEnded {
+			return time.Now().UTC(), nil
+		}
+		return d.OEndTime, nil
+	}
+	if !d.UEnded {
 		return time.Now().UTC(), nil
 	}
-	return d.EndTime, nil
+	return d.UEndTime, nil
 }

@@ -10,13 +10,32 @@ import (
 
 // Source represents a Status source
 type Source struct {
-	ID          string
-	Name        string
-	IsAutomatic bool
+	ID        string
+	Name      string
+	Automatic bool
+	Official  bool
 }
 
 // GetSources returns a slice with all registered sources
 func GetSources(node sqalx.Node) ([]*Source, error) {
+	return getSourcesWithSelect(node, sdb.Select())
+}
+
+// GetSource returns the Source with the given ID
+func GetSource(node sqalx.Node, id string) (*Source, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"id": id})
+	sources, err := getSourcesWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	if len(sources) == 0 {
+		return nil, errors.New("Source not found")
+	}
+	return sources[0], nil
+}
+
+func getSourcesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Source, error) {
 	sources := []*Source{}
 
 	tx, err := node.Beginx()
@@ -25,7 +44,7 @@ func GetSources(node sqalx.Node) ([]*Source, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sdb.Select("id", "name", "automatic").
+	rows, err := sbuilder.Columns("id", "name", "automatic", "official").
 		From("source").RunWith(tx).Query()
 	if err != nil {
 		return sources, fmt.Errorf("GetSources: %s", err)
@@ -37,7 +56,8 @@ func GetSources(node sqalx.Node) ([]*Source, error) {
 		err := rows.Scan(
 			&source.ID,
 			&source.Name,
-			&source.IsAutomatic)
+			&source.Automatic,
+			&source.Official)
 		if err != nil {
 			return sources, fmt.Errorf("GetSources: %s", err)
 		}
@@ -49,25 +69,6 @@ func GetSources(node sqalx.Node) ([]*Source, error) {
 	return sources, nil
 }
 
-// GetSource returns the Source with the given ID
-func GetSource(node sqalx.Node, id string) (*Source, error) {
-	var source Source
-	tx, err := node.Beginx()
-	if err != nil {
-		return &source, err
-	}
-	defer tx.Commit() // read-only tx
-
-	err = sdb.Select("id", "name").
-		From("source").
-		Where(sq.Eq{"id": id}).
-		RunWith(tx).QueryRow().Scan(&source.ID, &source.Name)
-	if err != nil {
-		return &source, errors.New("GetSource: " + err.Error())
-	}
-	return &source, nil
-}
-
 // Update adds or updates the source
 func (source *Source) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()
@@ -77,10 +78,10 @@ func (source *Source) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	_, err = sdb.Insert("source").
-		Columns("id", "name", "automatic").
-		Values(source.ID, source.Name, source.IsAutomatic).
-		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?",
-			source.Name).
+		Columns("id", "name", "automatic", "official").
+		Values(source.ID, source.Name, source.Automatic, source.Official).
+		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, automatic = ?, official = ?",
+			source.Name, source.Automatic, source.Official).
 		RunWith(tx).Exec()
 
 	if err != nil {

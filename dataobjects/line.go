@@ -206,40 +206,65 @@ func (line *Line) GetDirectionForConnection(node sqalx.Node, connection *Connect
 }
 
 // OngoingDisturbances returns a slice with all ongoing disturbances on this line
-func (line *Line) OngoingDisturbances(node sqalx.Node) ([]*Disturbance, error) {
+func (line *Line) OngoingDisturbances(node sqalx.Node, officialOnly bool) ([]*Disturbance, error) {
 	s := sdb.Select().
-		Where(sq.Eq{"mline": line.ID}).
-		Where("time_end IS NULL").
-		OrderBy("time_start ASC")
+		Where(sq.Eq{"mline": line.ID})
+
+	if officialOnly {
+		s = s.Where(sq.Expr("otime_start IS NOT NULL")).
+			Where(sq.Expr("otime_end IS NULL")).
+			OrderBy("otime_start ASC")
+	} else {
+		s = s.Where("time_end IS NULL").
+			OrderBy("time_start ASC")
+	}
 	return getDisturbancesWithSelect(node, s)
 }
 
 // DisturbancesBetween returns a slice with all disturbances that start or end between the specified times
-func (line *Line) DisturbancesBetween(node sqalx.Node, startTime time.Time, endTime time.Time) ([]*Disturbance, error) {
+func (line *Line) DisturbancesBetween(node sqalx.Node, startTime time.Time, endTime time.Time, officialOnly bool) ([]*Disturbance, error) {
 	s := sdb.Select().
-		Where(sq.Eq{"mline": line.ID}).
-		Where(sq.Or{
+		Where(sq.Eq{"mline": line.ID})
+
+	if officialOnly {
+		s = s.Where(sq.Or{
+			sq.Expr("otime_start BETWEEN ? AND ?", startTime, endTime),
+			sq.And{
+				sq.Expr("otime_end IS NOT NULL"),
+				sq.Expr("otime_end BETWEEN ? AND ?", startTime, endTime),
+			},
+		}).OrderBy("otime_start ASC")
+	} else {
+		s = s.Where(sq.Or{
 			sq.Expr("time_start BETWEEN ? AND ?", startTime, endTime),
 			sq.And{
 				sq.Expr("time_end IS NOT NULL"),
 				sq.Expr("time_end BETWEEN ? AND ?", startTime, endTime),
 			},
 		}).OrderBy("time_start ASC")
+	}
 	return getDisturbancesWithSelect(node, s)
 }
 
 // CountDisturbancesByDay counts disturbances by day between the specified dates
-func (line *Line) CountDisturbancesByDay(node sqalx.Node, start time.Time, end time.Time) ([]int, error) {
+func (line *Line) CountDisturbancesByDay(node sqalx.Node, start time.Time, end time.Time, officialOnly bool) ([]int, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return []int{}, err
 	}
 	defer tx.Commit() // read-only tx
 
+	var midLine string
+	if officialOnly {
+		midLine = "(otime_start IS NOT NULL AND curd BETWEEN (otime_start at time zone $1)::date AND (coalesce(otime_end, now()) at time zone $1)::date) "
+	} else {
+		midLine = "(curd BETWEEN (time_start at time zone $1)::date AND (coalesce(time_end, now()) at time zone $1)::date) "
+	}
+
 	rows, err := tx.Query("SELECT curd, COUNT(id) "+
 		"FROM generate_series(($2 at time zone $1)::date, ($3 at time zone $1)::date, '1 day') AS curd "+
 		"LEFT OUTER JOIN line_disturbance ON "+
-		"(curd BETWEEN (time_start at time zone $1)::date AND (coalesce(time_end, now()) at time zone $1)::date) "+
+		midLine+
 		"AND mline = $4 "+
 		"GROUP BY curd ORDER BY curd;",
 		start.Location().String(), start, end, line.ID)
@@ -268,17 +293,24 @@ func (line *Line) CountDisturbancesByDay(node sqalx.Node, start time.Time, end t
 }
 
 // CountDisturbancesByHourOfDay counts disturbances by hour of day between the specified dates
-func (line *Line) CountDisturbancesByHourOfDay(node sqalx.Node, start time.Time, end time.Time) ([]int, error) {
+func (line *Line) CountDisturbancesByHourOfDay(node sqalx.Node, start time.Time, end time.Time, officialOnly bool) ([]int, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return []int{}, err
 	}
 	defer tx.Commit() // read-only tx
 
+	var midLine string
+	if officialOnly {
+		midLine = "(otime_start IS NOT NULL AND curd BETWEEN date_trunc('hour', otime_start at time zone $1) AND date_trunc('hour', coalesce(otime_end, now()) at time zone $1)) "
+	} else {
+		midLine = "(curd BETWEEN date_trunc('hour', time_start at time zone $1) AND date_trunc('hour', coalesce(time_end, now()) at time zone $1)) "
+	}
+
 	rows, err := tx.Query("SELECT date_part('hour', curd) AS hour, COUNT(id) "+
 		"FROM generate_series(($2 at time zone $1)::date, ($3 at time zone $1)::date + interval '1 day' - interval '1 second', '1 hour') AS curd "+
 		"LEFT OUTER JOIN line_disturbance ON "+
-		"(curd BETWEEN date_trunc('hour', time_start at time zone $1) AND date_trunc('hour', coalesce(time_end, now()) at time zone $1)) "+
+		midLine+
 		"AND mline = $4 "+
 		"GROUP BY hour ORDER BY hour;",
 		start.Location().String(), start, end, line.ID)
@@ -307,7 +339,7 @@ func (line *Line) CountDisturbancesByHourOfDay(node sqalx.Node, start time.Time,
 }
 
 // LastOngoingDisturbance returns the latest ongoing disturbance affecting this line
-func (line *Line) LastOngoingDisturbance(node sqalx.Node) (*Disturbance, error) {
+func (line *Line) LastOngoingDisturbance(node sqalx.Node, officialOnly bool) (*Disturbance, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return nil, err
@@ -316,9 +348,16 @@ func (line *Line) LastOngoingDisturbance(node sqalx.Node) (*Disturbance, error) 
 
 	// are there any ongoing disturbances? get the one with most recent START time
 	s := sdb.Select().
-		Where(sq.Eq{"mline": line.ID}).
-		Where(sq.Expr("time_start = (SELECT MAX(time_start) FROM line_disturbance WHERE mline = ? AND time_end IS NULL)", line.ID)).
-		OrderBy("time_start DESC")
+		Where(sq.Eq{"mline": line.ID})
+
+	if officialOnly {
+		s = s.Where(sq.Expr("otime_start = (SELECT MAX(otime_start) FROM line_disturbance WHERE mline = ? AND otime_end IS NULL AND otime_start IS NOT NULL)", line.ID)).
+			OrderBy("otime_start DESC")
+	} else {
+		s = s.Where(sq.Expr("time_start = (SELECT MAX(time_start) FROM line_disturbance WHERE mline = ? AND time_end IS NULL)", line.ID)).
+			OrderBy("time_start DESC")
+	}
+
 	disturbances, err := getDisturbancesWithSelect(tx, s)
 	if err != nil {
 		return nil, err
@@ -330,7 +369,7 @@ func (line *Line) LastOngoingDisturbance(node sqalx.Node) (*Disturbance, error) 
 }
 
 // LastDisturbance returns the latest disturbance affecting this line
-func (line *Line) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
+func (line *Line) LastDisturbance(node sqalx.Node, officialOnly bool) (*Disturbance, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return nil, err
@@ -338,13 +377,20 @@ func (line *Line) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 	defer tx.Commit() // read-only tx
 
 	// are there any ongoing disturbances? get the one with most recent START time
-	disturbance, err := line.LastOngoingDisturbance(tx)
+	disturbance, err := line.LastOngoingDisturbance(tx, officialOnly)
 	if err != nil {
 		// no ongoing disturbances. look at past ones and get the one with the most recent END time
 		s := sdb.Select().
-			Where(sq.Eq{"mline": line.ID}).
-			Where(sq.Expr("time_end = (SELECT MAX(time_end) FROM line_disturbance WHERE mline = ?)", line.ID)).
-			OrderBy("time_end DESC")
+			Where(sq.Eq{"mline": line.ID})
+
+		if officialOnly {
+			s = s.Where(sq.Expr("otime_end = (SELECT MAX(otime_end) FROM line_disturbance WHERE mline = ? AND otime_start IS NOT NULL)", line.ID)).
+				OrderBy("otime_end DESC")
+		} else {
+			s = s.Where(sq.Expr("time_end = (SELECT MAX(time_end) FROM line_disturbance WHERE mline = ?)", line.ID)).
+				OrderBy("time_end DESC")
+		}
+
 		disturbances, err := getDisturbancesWithSelect(tx, s)
 		if err != nil {
 			return nil, errors.New("LastDisturbance: " + err.Error())
@@ -359,25 +405,21 @@ func (line *Line) LastDisturbance(node sqalx.Node) (*Disturbance, error) {
 
 // Availability returns the fraction of time this line operated without issues
 // between the specified times, and the average duration for each disturbance
-func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime time.Time) (availability float64, avgDuration time.Duration, err error) {
+func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime time.Time, officialOnly bool) (availability float64, avgDuration time.Duration, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return 100.0, 0, err
 	}
 	defer tx.Commit() // read-only tx
 
-	disturbances, err := line.DisturbancesBetween(tx, startTime, endTime)
+	disturbances, err := line.DisturbancesBetween(tx, startTime, endTime, officialOnly)
 	if err != nil {
 		return 100.0, 0, err
 	}
 
-	var downTime time.Duration
-	for _, d := range disturbances {
-		if d.Ended {
-			downTime += d.EndTime.Sub(d.StartTime)
-		} else {
-			downTime += endTime.Sub(d.StartTime)
-		}
+	downTime, err := line.DisturbanceDuration(tx, startTime, endTime, officialOnly)
+	if err != nil {
+		return 100.0, 0, err
 	}
 
 	if len(disturbances) > 0 {
@@ -454,28 +496,37 @@ func (line *Line) getScheduleForDay(day time.Time, schedules []*LineSchedule) *L
 }
 
 // DisturbanceDuration returns the total duration of the disturbances in this line between the specified times
-func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endTime time.Time) (avgDuration time.Duration, err error) {
+func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endTime time.Time, officialOnly bool) (avgDuration time.Duration, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Commit() // read-only tx
 
-	disturbances, err := line.DisturbancesBetween(tx, startTime, endTime)
+	disturbances, err := line.DisturbancesBetween(tx, startTime, endTime, officialOnly)
 	if err != nil {
 		return 0, err
 	}
 
 	var downTime time.Duration
 	for _, d := range disturbances {
-		thisEnd := d.EndTime
-		if !d.Ended {
+		var thisEnd, thisStart time.Time
+		var ended bool
+		if officialOnly && d.Official {
+			thisEnd = d.OEndTime
+			thisStart = d.OStartTime
+			ended = d.OEnded
+		} else if !officialOnly {
+			thisEnd = d.UEndTime
+			thisStart = d.UStartTime
+			ended = d.UEnded
+		}
+		if !ended {
 			thisEnd = time.Now()
 		}
 		if thisEnd.After(endTime) {
 			thisEnd = endTime
 		}
-		thisStart := d.StartTime
 		if thisStart.Before(startTime) {
 			thisStart = startTime
 		}
@@ -524,7 +575,7 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status) error {
 		return err
 	}
 
-	ongoing, err := line.OngoingDisturbances(tx)
+	ongoing, err := line.OngoingDisturbances(tx, false)
 	if err != nil {
 		return err
 	}
@@ -535,16 +586,34 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status) error {
 		previousStatus := disturbance.LatestStatus()
 		if previousStatus != nil &&
 			status.Status == previousStatus.Status &&
-			status.IsDowntime == previousStatus.IsDowntime {
+			status.IsDowntime == previousStatus.IsDowntime &&
+			status.Source.Official == previousStatus.Source.Official {
 			// do not add repeated status to disturbance (nor issue a new notif)
 			// our work here is done
 			return tx.Commit()
 		}
 
+		if !disturbance.Official && status.Source.Official {
+			// make existing unofficial disturbance official
+			disturbance.Official = true
+			disturbance.OStartTime = status.Time
+		}
+
 		if !status.IsDowntime {
 			// "close" this disturbance
-			disturbance.EndTime = status.Time
-			disturbance.Ended = true
+
+			// if an unofficial source wants to end a disturbance while it hasn't ended officially -> times don't change
+			// (because UStartTime~UEndTime is a subinterval of OStartTime~OEndTime)
+			// we still add the status down below, though
+			if !(!status.Source.Official && disturbance.Official) {
+				if status.Source.Official && disturbance.Official {
+					disturbance.OEndTime = status.Time
+					disturbance.OEnded = true
+				}
+				// when a disturbance ends officially -> it ends unofficially (this simplifies the code)
+				disturbance.UEndTime = status.Time
+				disturbance.UEnded = true
+			}
 		}
 		disturbance.Statuses = append(disturbance.Statuses, status)
 		err = disturbance.Update(tx)
@@ -566,9 +635,13 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status) error {
 		disturbance := &Disturbance{
 			ID:          id.String(),
 			Line:        line,
-			StartTime:   status.Time,
+			UStartTime:  status.Time,
+			Official:    status.Source.Official,
 			Description: status.Status,
 			Statuses:    []*Status{status},
+		}
+		if status.Source.Official {
+			disturbance.OStartTime = status.Time
 		}
 		err = disturbance.Update(tx)
 		if err != nil {

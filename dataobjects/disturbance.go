@@ -15,9 +15,13 @@ import (
 // Disturbance represents a disturbance
 type Disturbance struct {
 	ID          string
-	StartTime   time.Time
-	EndTime     time.Time
-	Ended       bool
+	Official    bool
+	OStartTime  time.Time
+	OEndTime    time.Time
+	OEnded      bool
+	UStartTime  time.Time
+	UEndTime    time.Time
+	UEnded      bool
 	Line        *Line
 	Description string
 	Notes       string
@@ -62,8 +66,10 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("line_disturbance.id", "line_disturbance.time_start",
-		"line_disturbance.time_end", "line_disturbance.mline", "line_disturbance.description", "line_disturbance.notes").
+	rows, err := sbuilder.Columns("line_disturbance.id",
+		"line_disturbance.time_start", "line_disturbance.time_end",
+		"line_disturbance.otime_start", "line_disturbance.otime_end",
+		"line_disturbance.mline", "line_disturbance.description", "line_disturbance.notes").
 		From("line_disturbance").
 		RunWith(tx).Query()
 	if err != nil {
@@ -74,12 +80,16 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 	for rows.Next() {
 		var disturbance Disturbance
 		var timeEnd pq.NullTime
+		var otimeStart pq.NullTime
+		var otimeEnd pq.NullTime
 		var notes sql.NullString
 		var lineID string
 		err := rows.Scan(
 			&disturbance.ID,
-			&disturbance.StartTime,
+			&disturbance.UStartTime,
 			&timeEnd,
+			&otimeStart,
+			&otimeEnd,
 			&lineID,
 			&disturbance.Description,
 			&notes)
@@ -87,8 +97,12 @@ func getDisturbancesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*D
 			rows.Close()
 			return disturbances, fmt.Errorf("getDisturbancesWithSelect: %s", err)
 		}
-		disturbance.EndTime = timeEnd.Time
-		disturbance.Ended = timeEnd.Valid
+		disturbance.UEndTime = timeEnd.Time
+		disturbance.UEnded = timeEnd.Valid
+		disturbance.OStartTime = otimeStart.Time
+		disturbance.Official = otimeStart.Valid
+		disturbance.OEndTime = otimeEnd.Time
+		disturbance.OEnded = otimeEnd.Valid
 		disturbance.Notes = notes.String
 
 		disturbances = append(disturbances, &disturbance)
@@ -178,8 +192,18 @@ func (disturbance *Disturbance) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	timeEnd := pq.NullTime{
-		Time:  disturbance.EndTime,
-		Valid: disturbance.Ended,
+		Time:  disturbance.UEndTime,
+		Valid: disturbance.UEnded,
+	}
+
+	otimeStart := pq.NullTime{
+		Time:  disturbance.OStartTime,
+		Valid: disturbance.Official,
+	}
+
+	otimeEnd := pq.NullTime{
+		Time:  disturbance.OEndTime,
+		Valid: disturbance.Official && disturbance.OEnded,
 	}
 
 	notes := sql.NullString{
@@ -188,10 +212,10 @@ func (disturbance *Disturbance) Update(node sqalx.Node) error {
 	}
 
 	_, err = sdb.Insert("line_disturbance").
-		Columns("id", "time_start", "time_end", "mline", "description", "notes").
-		Values(disturbance.ID, disturbance.StartTime, timeEnd, disturbance.Line.ID, disturbance.Description, notes).
-		Suffix("ON CONFLICT (id) DO UPDATE SET time_start = ?, time_end = ?, mline = ?, description = ?, notes = ?",
-			disturbance.StartTime, timeEnd, disturbance.Line.ID, disturbance.Description, notes).
+		Columns("id", "time_start", "time_end", "otime_start", "otime_end", "mline", "description", "notes").
+		Values(disturbance.ID, disturbance.UStartTime, timeEnd, otimeStart, otimeEnd, disturbance.Line.ID, disturbance.Description, notes).
+		Suffix("ON CONFLICT (id) DO UPDATE SET time_start = ?, time_end = ?, otime_start = ?, otime_end = ?, mline = ?, description = ?, notes = ?",
+			disturbance.UStartTime, timeEnd, otimeStart, otimeEnd, disturbance.Line.ID, disturbance.Description, notes).
 		RunWith(tx).Exec()
 	if err != nil {
 		return errors.New("AddDisturbance: " + err.Error())

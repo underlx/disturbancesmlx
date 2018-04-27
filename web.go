@@ -33,8 +33,9 @@ type PageCommons struct {
 	PageTitle string
 	Lines     []struct {
 		*dataobjects.Line
-		Down    bool
-		Minutes int
+		Down     bool
+		Official bool
+		Minutes  int
 	}
 	LastChangeAgoMin  int
 	LastChangeAgoHour int
@@ -164,16 +165,18 @@ func InitPageCommons(node sqalx.Node, title string) (commons PageCommons, err er
 
 	commons.Lines = make([]struct {
 		*dataobjects.Line
-		Down    bool
-		Minutes int
+		Down     bool
+		Official bool
+		Minutes  int
 	}, len(lines))
 
 	for i := range lines {
 		commons.Lines[i].Line = lines[i]
-		d, err := lines[i].LastOngoingDisturbance(tx)
+		d, err := lines[i].LastOngoingDisturbance(tx, false)
 		commons.Lines[i].Down = err == nil
+		commons.Lines[i].Official = err == nil && d.Official
 		if err == nil {
-			commons.Lines[i].Minutes = int(time.Since(d.StartTime).Minutes())
+			commons.Lines[i].Minutes = int(time.Since(d.UStartTime).Minutes())
 		}
 	}
 
@@ -192,6 +195,8 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Commit()
+
+	officialOnly := true
 
 	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
@@ -246,7 +251,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		t = t.AddDate(0, 0, 1)
 	}
 
-	lastDisturbanceTime, err := MLlastDisturbanceTime(tx)
+	lastDisturbanceTime, err := MLlastDisturbanceTime(tx, officialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -272,13 +277,14 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 
 	for i := range lines {
 		p.Lines[i].Line = lines[i]
-		d, err := lines[i].LastOngoingDisturbance(tx)
+		d, err := lines[i].LastOngoingDisturbance(tx, false)
 		p.Lines[i].Down = err == nil
+		p.Lines[i].Official = err == nil && d.Official
 		if err == nil {
-			p.Lines[i].Minutes = int(time.Since(d.StartTime).Minutes())
+			p.Lines[i].Minutes = int(time.Since(d.UStartTime).Minutes())
 		}
 
-		p.LinesExtra[i].LastDisturbance, err = lines[i].LastDisturbance(tx)
+		p.LinesExtra[i].LastDisturbance, err = lines[i].LastDisturbance(tx, officialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -289,14 +295,14 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 			return p.LinesExtra[i].LastDisturbance.Statuses[j].Time.Before(p.LinesExtra[i].LastDisturbance.Statuses[k].Time)
 		})
 
-		p.LinesExtra[i].DayCounts, err = lines[i].CountDisturbancesByDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc))
+		p.LinesExtra[i].DayCounts, err = lines[i].CountDisturbancesByDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc), officialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		hourCounts, err := lines[i].CountDisturbancesByHourOfDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc))
+		hourCounts, err := lines[i].CountDisturbancesByHourOfDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc), officialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -308,7 +314,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		}
 		p.LinesExtra[i].HourCounts = append(p.LinesExtra[i].HourCounts, hourCounts[0])
 
-		availability, avgd, err := lines[i].Availability(tx, time.Now().In(loc).Add(-24*7*time.Hour), time.Now().In(loc))
+		availability, avgd, err := lines[i].Availability(tx, time.Now().In(loc).Add(-24*7*time.Hour), time.Now().In(loc), officialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -534,14 +540,17 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 
 	p.DowntimePerLine = make(map[string]float32)
 	for _, disturbance := range p.Disturbances {
-		endTime := disturbance.EndTime
-		if !disturbance.Ended {
+		if !disturbance.Official {
+			continue
+		}
+		endTime := disturbance.OEndTime
+		if !disturbance.OEnded {
 			endTime = time.Now()
 		}
 		if endTime.After(endDate) {
 			endTime = endDate
 		}
-		startTime := disturbance.StartTime
+		startTime := disturbance.OStartTime
 		if startTime.Before(startDate) {
 			startTime = startDate
 		}
@@ -817,6 +826,8 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
+	officialOnly := true
+
 	p := struct {
 		PageCommons
 		Line              *dataobjects.Line
@@ -842,7 +853,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 
 	loc, _ := time.LoadLocation(p.Line.Network.Timezone)
 
-	p.MonthAvailability, p.MonthDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc))
+	p.MonthAvailability, p.MonthDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc), officialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -850,7 +861,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.MonthAvailability *= 100
 
-	p.WeekAvailability, p.WeekDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc))
+	p.WeekAvailability, p.WeekDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc), officialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1081,6 +1092,8 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
+	officialOnly := true
+
 	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		webLog.Println(err)
@@ -1150,7 +1163,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	}, len(lines))
 
 	for i := range lines {
-		availability, avgd, err := lines[i].Availability(tx, p.StartTime, p.EndTime)
+		availability, avgd, err := lines[i].Availability(tx, p.StartTime, p.EndTime, officialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1159,7 +1172,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 
 		p.LinesExtra[i].Availability = fmt.Sprintf("%.03f%%", availability*100)
 		p.LinesExtra[i].AvgDuration = fmt.Sprintf("%.01f", avgd.Minutes())
-		totalDuration, err := lines[i].DisturbanceDuration(tx, p.StartTime, p.EndTime)
+		totalDuration, err := lines[i].DisturbanceDuration(tx, p.StartTime, p.EndTime, officialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)

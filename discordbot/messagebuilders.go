@@ -102,7 +102,7 @@ func buildLineMessage(id string) (*Embed, error) {
 
 	loc, _ := time.LoadLocation(line.Network.Timezone)
 
-	monthAvailability, monthDuration, err := line.Availability(tx, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc))
+	monthAvailability, monthDuration, err := line.Availability(tx, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc), true)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func buildLineMessage(id string) (*Embed, error) {
 		monthAvString += fmt.Sprintf(", as perturbações duraram em média %.01f minutos", monthDuration.Minutes())
 	}
 
-	weekAvailability, weekDuration, err := line.Availability(tx, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc))
+	weekAvailability, weekDuration, err := line.Availability(tx, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc), true)
 	if err != nil {
 		return nil, err
 	}
