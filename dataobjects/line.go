@@ -558,7 +558,7 @@ func (line *Line) Statuses(node sqalx.Node) ([]*Status, error) {
 
 // AddStatus associates a new status with this line, and runs the disturbance
 // start/end logic
-func (line *Line) AddStatus(node sqalx.Node, status *Status) error {
+func (line *Line) AddStatus(node sqalx.Node, status *Status, letNotify bool) error {
 	if status.Line.ID != line.ID {
 		return errors.New("The line of the status does not match the receiver line")
 	}
@@ -624,10 +624,12 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status) error {
 			return err
 		}
 
-		// blocking send
-		NewStatusNotification <- StatusNotification{
-			Disturbance: disturbance,
-			Status:      status,
+		if letNotify {
+			// blocking send
+			NewStatusNotification <- StatusNotification{
+				Disturbance: disturbance,
+				Status:      status,
+			}
 		}
 	} else if status.IsDowntime {
 		// no ongoing disturbances, create new one
@@ -650,10 +652,12 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status) error {
 		if err != nil {
 			return err
 		}
-		// blocking send
-		NewStatusNotification <- StatusNotification{
-			Disturbance: disturbance,
-			Status:      status,
+		if letNotify {
+			// blocking send
+			NewStatusNotification <- StatusNotification{
+				Disturbance: disturbance,
+				Status:      status,
+			}
 		}
 	}
 	return tx.Commit()
