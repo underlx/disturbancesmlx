@@ -22,12 +22,17 @@ func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.S
 	if s.IsDowntime {
 		downtimeStr = "true"
 	}
+	officialStr := "false"
+	if s.Source.Official {
+		officialStr = "true"
+	}
 	data := map[string]string{
 		"network":     d.Line.Network.ID,
 		"line":        d.Line.ID,
 		"disturbance": d.ID,
 		"status":      s.Status,
 		"downtime":    downtimeStr,
+		"official":    officialStr,
 	}
 
 	if fcmcl == nil {
