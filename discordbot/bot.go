@@ -20,6 +20,7 @@ var wordMap map[string]wordType
 var lightTriggersMap map[string]lightTrigger
 var lightTriggersLastUsage map[lastUsageKey]time.Time // maps lightTrigger IDs to the last time they were used
 var stopMute map[string]time.Time                     // maps channel IDs to the time when the bot can talk again
+var channelMute map[string]bool
 
 var node sqalx.Node
 var websiteURL string
@@ -77,6 +78,7 @@ func Start(snode sqalx.Node, swebsiteURL, discordToken string, log *log.Logger,
 	botLog = log
 	schedToLines = schedulesToLines
 	statusCallback = statusCb
+	channelMute = make(map[string]bool)
 	rand.Seed(time.Now().Unix())
 	dg, err := discordgo.New("Bot " + discordToken)
 	if err != nil {
@@ -202,7 +204,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if !time.Now().After(stopMute[m.ChannelID]) {
+	if !time.Now().After(stopMute[m.ChannelID]) || channelMute[m.ChannelID] {
 		return
 	}
 	for _, word := range words {
@@ -265,6 +267,12 @@ func parseCommands(s *discordgo.Session, m *discordgo.MessageCreate, words []str
 			return true
 		case "$addlinestatus":
 			handleLineStatus(s, m, words[1:])
+			return true
+		case "$permamute":
+			channelMute[m.ChannelID] = true
+			return true
+		case "$permaunmute":
+			channelMute[m.ChannelID] = false
 			return true
 		}
 	}

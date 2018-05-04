@@ -82,7 +82,7 @@ func handleNewStatus(status *dataobjects.Status) {
 		log.Println("   Is disturbance!")
 	}
 
-	err = status.Line.AddStatus(tx, status)
+	err = status.Line.AddStatus(tx, status, true)
 	if err != nil {
 		mainLog.Println(err)
 		return
