@@ -344,35 +344,35 @@ func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 	var err error
 	if len(words) == 0 {
 		err = s.UpdateStatus(0, "")
-	} else if len(words) > 1 {
+	} else if len(words) > 0 {
 		usd := &discordgo.UpdateStatusData{
 			Status: "online",
 		}
 
-		switch words[1] {
+		switch words[0] {
 		case "playing":
 			usd.Game = &discordgo.Game{
-				Name: strings.Join(words[2:], " "),
+				Name: strings.Join(words[1:], " "),
 				Type: discordgo.GameTypeGame,
 			}
 		case "streaming":
 			usd.Game = &discordgo.Game{
 				Type: discordgo.GameTypeGame,
-				URL:  strings.Join(words[2:], " "),
+				URL:  strings.Join(words[1:], " "),
 			}
 		case "listening":
 			usd.Game = &discordgo.Game{
-				Name: strings.Join(words[2:], " "),
+				Name: strings.Join(words[1:], " "),
 				Type: discordgo.GameTypeListening,
 			}
 		case "watching":
 			usd.Game = &discordgo.Game{
-				Name: strings.Join(words[2:], " "),
+				Name: strings.Join(words[1:], " "),
 				Type: discordgo.GameTypeWatching,
 			}
 		default:
 			usd.Game = &discordgo.Game{
-				Name: strings.Join(words[1:], " "),
+				Name: strings.Join(words, " "),
 				Type: discordgo.GameTypeGame,
 			}
 		}
