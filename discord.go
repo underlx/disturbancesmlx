@@ -30,4 +30,6 @@ func DiscordBot() {
 
 	// Cleanly close down the Discord session.
 	discordbot.Stop()
+
+	os.Exit(0)
 }
