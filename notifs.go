@@ -5,6 +5,9 @@ import (
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
+var enableStatusNotifs = true
+var enableAnnouncementNotifs = true
+
 func init() {
 	go func(newNotifChan <-chan dataobjects.StatusNotification) {
 		for {
@@ -18,6 +21,9 @@ func init() {
 
 // SendNotificationForDisturbance sends a FCM notification for this disturbance about the specified status
 func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.Status) {
+	if !enableStatusNotifs {
+		return
+	}
 	downtimeStr := "false"
 	if s.IsDowntime {
 		downtimeStr = "true"
@@ -57,6 +63,9 @@ func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.S
 
 // SendNotificationForAnnouncement sends a FCM notification for the specified announcement
 func SendNotificationForAnnouncement(a *dataobjects.Announcement) {
+	if !enableAnnouncementNotifs {
+		return
+	}
 	data := map[string]string{
 		"network": a.Network.ID,
 		"title":   a.Title,
@@ -81,5 +90,14 @@ func SendNotificationForAnnouncement(a *dataobjects.Announcement) {
 	_, err := fcmcl.Send()
 	if err != nil {
 		mainLog.Println(err)
+	}
+}
+
+func handleControlNotifs(notiftype string, enable bool) {
+	switch notiftype {
+	case "status":
+		enableStatusNotifs = enable
+	case "announcements":
+		enableAnnouncementNotifs = enable
 	}
 }

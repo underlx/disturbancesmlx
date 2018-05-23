@@ -21,13 +21,14 @@ import (
 
 // Scraper is a scraper for the status of Metro de Lisboa
 type Scraper struct {
+	running                bool
 	ticker                 *time.Ticker
 	stopChan               chan struct{}
 	lines                  map[string]*dataobjects.Line
 	previousResponse       []byte
 	log                    *log.Logger
 	statusCallback         func(status *dataobjects.Status)
-	topologyChangeCallback func(scraper.Scraper)
+	topologyChangeCallback func(scraper.StatusScraper)
 	firstUpdate            bool
 	lastUpdate             time.Time
 
@@ -37,23 +38,38 @@ type Scraper struct {
 	Period  time.Duration
 }
 
-// Begin starts the scraper
-func (sc *Scraper) Begin(log *log.Logger,
+// ID returns the ID of this scraper
+func (sc *Scraper) ID() string {
+	return "sc-pt-ml-lines"
+}
+
+// Init initializes the scraper
+func (sc *Scraper) Init(log *log.Logger,
 	statusCallback func(status *dataobjects.Status),
-	topologyChangeCallback func(scraper.Scraper)) {
-	sc.stopChan = make(chan struct{})
-	sc.ticker = time.NewTicker(sc.Period)
+	topologyChangeCallback func(scraper.StatusScraper)) {
 	sc.log = log
 	sc.statusCallback = statusCallback
 	sc.topologyChangeCallback = topologyChangeCallback
 	sc.lines = make(map[string]*dataobjects.Line)
 	sc.firstUpdate = true
 
-	sc.log.Println("Scraper starting")
+	sc.log.Println("Scraper initializing")
 	sc.update()
 	sc.log.Println("Scraper completed first fetch")
 	topologyChangeCallback(sc)
+}
+
+// Begin starts the scraper
+func (sc *Scraper) Begin() {
+	sc.stopChan = make(chan struct{})
+	sc.ticker = time.NewTicker(sc.Period)
+	sc.running = true
 	go sc.scrape()
+}
+
+// Running returns whether the scraper is running
+func (sc *Scraper) Running() bool {
+	return sc.running
 }
 
 func (sc *Scraper) scrape() {
@@ -160,6 +176,7 @@ func (sc *Scraper) update() {
 func (sc *Scraper) End() {
 	sc.ticker.Stop()
 	close(sc.stopChan)
+	sc.running = false
 }
 
 // Networks returns the networks monitored by this scraper

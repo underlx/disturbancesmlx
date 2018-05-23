@@ -16,7 +16,7 @@ func DiscordBot() {
 		return
 	}
 	err := discordbot.Start(rootSqalxNode, websiteURL, discordToken, discordLog,
-		schedulesToLines, handleNewStatus)
+		schedulesToLines, handleBotCommands)
 	if err != nil {
 		discordLog.Println(err)
 		return
@@ -32,4 +32,17 @@ func DiscordBot() {
 	discordbot.Stop()
 
 	os.Exit(0)
+}
+
+func handleBotCommands(command discordbot.ParentCommand) {
+	switch t := command.Command().(type) {
+	case *discordbot.NewStatusCommand:
+		handleNewStatus(t.Status)
+	case *discordbot.ControlScraperCommand:
+		handleControlScraper(t)
+	case *discordbot.ControlNotifsCommand:
+		handleControlNotifs(t.Type, t.Enable)
+	default:
+		discordLog.Println("Unknown ParentCommand type")
+	}
 }

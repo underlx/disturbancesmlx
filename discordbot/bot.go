@@ -27,7 +27,7 @@ var websiteURL string
 var botLog *log.Logger
 var session *discordgo.Session
 var schedToLines func(schedules []*dataobjects.LobbySchedule) []string
-var statusCallback func(status *dataobjects.Status)
+var cmdCallback func(command ParentCommand)
 
 type lightTrigger struct {
 	wordType wordType
@@ -72,12 +72,12 @@ const (
 // Start starts the Discord bot
 func Start(snode sqalx.Node, swebsiteURL, discordToken string, log *log.Logger,
 	schedulesToLines func(schedules []*dataobjects.LobbySchedule) []string,
-	statusCb func(status *dataobjects.Status)) error {
+	cmdCb func(command ParentCommand)) error {
 	node = snode
 	websiteURL = swebsiteURL
 	botLog = log
 	schedToLines = schedulesToLines
-	statusCallback = statusCb
+	cmdCallback = cmdCb
 	channelMute = make(map[string]bool)
 	rand.Seed(time.Now().Unix())
 	dg, err := discordgo.New("Bot " + discordToken)
@@ -268,6 +268,12 @@ func parseCommands(s *discordgo.Session, m *discordgo.MessageCreate, words []str
 		case "$addlinestatus":
 			handleLineStatus(s, m, words[1:])
 			return true
+		case "$scraper":
+			handleControlScraper(s, m, words[1:])
+			return true
+		case "$notifs":
+			handleControlNotifs(s, m, words[1:])
+			return true
 		case "$permamute":
 			channelMute[m.ChannelID] = true
 			return true
@@ -336,7 +342,68 @@ func handleLineStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []
 	status.Line = line
 	status.Status = strings.Join(words[2:], " ")
 
-	statusCallback(status)
+	cmdCallback(&NewStatusCommand{
+		Status: status,
+	})
+	s.ChannelMessageSend(m.ChannelID, "✅")
+}
+
+func handleControlScraper(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {
+	if len(words) < 2 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+
+	var enabled bool
+	switch words[0] {
+	case "start":
+		enabled = true
+	case "stop":
+		enabled = false
+	default:
+		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `start` or `stop`")
+		return
+	}
+
+	cmdCallback(&ControlScraperCommand{
+		Scraper: words[1],
+		Enable:  enabled,
+		MessageCallback: func(message string) {
+			s.ChannelMessageSend(m.ChannelID, message)
+		},
+	})
+}
+
+func handleControlNotifs(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {
+	if len(words) < 2 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+
+	var enabled bool
+	switch words[0] {
+	case "mute":
+		enabled = false
+	case "unmute":
+		enabled = true
+	default:
+		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `mute` or `unmute`")
+		return
+	}
+
+	switch words[1] {
+	case "status":
+	case "announcements":
+		break
+	default:
+		s.ChannelMessageSend(m.ChannelID, "🆖 second argument must be `status` or `announcements`")
+		return
+	}
+
+	cmdCallback(&ControlNotifsCommand{
+		Type:   words[1],
+		Enable: enabled,
+	})
 	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 

@@ -15,6 +15,7 @@ import (
 // RSSScraper is an announcement scraper for the Metro de Lisboa website
 // It reads the RSS feed from the official website
 type RSSScraper struct {
+	running        bool
 	ticker         *time.Ticker
 	stopChan       chan struct{}
 	log            *log.Logger
@@ -28,20 +29,30 @@ type RSSScraper struct {
 	Period  time.Duration
 }
 
-// Begin starts the scraper
-func (sc *RSSScraper) Begin(log *log.Logger,
+// ID returns the ID of this scraper
+func (sc *RSSScraper) ID() string {
+	return "sc-pt-ml-rss"
+}
+
+// Init initializes the scraper
+func (sc *RSSScraper) Init(log *log.Logger,
 	newAnnCallback func(announcement *dataobjects.Announcement)) {
-	sc.stopChan = make(chan struct{})
-	sc.ticker = time.NewTicker(sc.Period)
 	sc.log = log
 	sc.newAnnCallback = newAnnCallback
 	sc.firstUpdate = true
 	sc.fp = gofeed.NewParser()
 
-	sc.log.Println("RSSScraper starting")
+	sc.log.Println("RSSScraper initializing")
 	sc.update()
 	sc.firstUpdate = false
 	sc.log.Println("RSSScraper completed first fetch")
+}
+
+// Begin starts the scraper
+func (sc *RSSScraper) Begin() {
+	sc.stopChan = make(chan struct{})
+	sc.ticker = time.NewTicker(sc.Period)
+	sc.running = true
 	go sc.scrape()
 }
 
@@ -49,6 +60,12 @@ func (sc *RSSScraper) Begin(log *log.Logger,
 func (sc *RSSScraper) End() {
 	sc.ticker.Stop()
 	close(sc.stopChan)
+	sc.running = false
+}
+
+// Running returns whether the scraper is running
+func (sc *RSSScraper) Running() bool {
+	return sc.running
 }
 
 func (sc *RSSScraper) copyAnnouncements() []*dataobjects.Announcement {

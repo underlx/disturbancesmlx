@@ -3,7 +3,10 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/underlx/disturbancesmlx/discordbot"
 
 	"github.com/heetch/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -12,9 +15,11 @@ import (
 )
 
 var (
-	mlxscr    scraper.Scraper
+	mlxscr    scraper.StatusScraper
 	rssmlxscr scraper.AnnouncementScraper
 	fbmlxscr  scraper.AnnouncementScraper
+
+	scrapers = make(map[string]scraper.Scraper)
 )
 
 // SetUpScrapers initializes and starts the scrapers used to obtain network information
@@ -64,7 +69,9 @@ func SetUpScrapers(node sqalx.Node) error {
 		},
 		Period: 1 * time.Minute,
 	}
-	mlxscr.Begin(l, handleNewStatus, handleTopologyChange)
+	mlxscr.Init(l, handleNewStatus, handleTopologyChange)
+	mlxscr.Begin()
+	scrapers[mlxscr.ID()] = mlxscr
 	return tx.Commit()
 }
 
@@ -97,7 +104,7 @@ func handleNewStatus(status *dataobjects.Status) {
 	lastChange = time.Now().UTC()
 }
 
-func handleTopologyChange(s scraper.Scraper) {
+func handleTopologyChange(s scraper.StatusScraper) {
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		mainLog.Println(err)
@@ -147,7 +154,9 @@ func SetUpAnnouncements(facebookAccessToken string) {
 			Network: network,
 			Period:  1 * time.Minute,
 		}
-		rssmlxscr.Begin(rssl, SendNotificationForAnnouncement)
+		rssmlxscr.Init(rssl, SendNotificationForAnnouncement)
+		rssmlxscr.Begin()
+		scrapers[rssmlxscr.ID()] = rssmlxscr
 
 		annStore.AddScraper(rssmlxscr)
 	}
@@ -161,7 +170,9 @@ func SetUpAnnouncements(facebookAccessToken string) {
 			Network:     network,
 			Period:      1 * time.Minute,
 		}
-		fbmlxscr.Begin(fbl, SendNotificationForAnnouncement)
+		fbmlxscr.Init(fbl, SendNotificationForAnnouncement)
+		fbmlxscr.Begin()
+		scrapers[fbmlxscr.ID()] = fbmlxscr
 
 		annStore.AddScraper(fbmlxscr)
 	}
@@ -175,4 +186,26 @@ func TearDownAnnouncements() {
 	if fbmlxscr != nil {
 		fbmlxscr.End()
 	}
+}
+
+func handleControlScraper(command *discordbot.ControlScraperCommand) {
+	if scraper, ok := scrapers[command.Scraper]; ok {
+		if command.Enable && !scraper.Running() {
+			scraper.Begin()
+			command.MessageCallback("✅")
+		} else if scraper.Running() {
+			scraper.End()
+			command.MessageCallback("✅")
+		} else {
+			command.MessageCallback("❌ already started/stopped")
+		}
+		return
+	}
+	scraperIDs := make([]string, len(scrapers))
+	i := 0
+	for id := range scrapers {
+		scraperIDs[i] = "`" + id + "`"
+		i++
+	}
+	command.MessageCallback("🆖 second argument must be one of [" + strings.Join(scraperIDs, ",") + "]")
 }

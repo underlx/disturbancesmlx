@@ -20,14 +20,20 @@ type FacebookScraper struct {
 	newAnnCallback func(announcement *dataobjects.Announcement)
 	firstUpdate    bool
 	announcements  []*dataobjects.Announcement
+	running        bool
 
 	AccessToken string
 	Network     *dataobjects.Network
 	Period      time.Duration
 }
 
-// Begin starts the scraper
-func (sc *FacebookScraper) Begin(log *log.Logger,
+// ID returns the ID of this scraper
+func (sc *FacebookScraper) ID() string {
+	return "sc-pt-ml-facebook"
+}
+
+// Init initializes the scraper
+func (sc *FacebookScraper) Init(log *log.Logger,
 	newAnnCallback func(announcement *dataobjects.Announcement)) {
 	sc.stopChan = make(chan struct{})
 	sc.ticker = time.NewTicker(sc.Period)
@@ -35,9 +41,16 @@ func (sc *FacebookScraper) Begin(log *log.Logger,
 	sc.newAnnCallback = newAnnCallback
 	sc.firstUpdate = true
 
-	sc.log.Println("FacebookScraper starting")
+	sc.log.Println("FacebookScraper initializing")
 	sc.update()
 	sc.log.Println("FacebookScraper completed first fetch")
+}
+
+// Begin starts the scraper
+func (sc *FacebookScraper) Begin() {
+	sc.stopChan = make(chan struct{})
+	sc.ticker = time.NewTicker(sc.Period)
+	sc.running = true
 	go sc.scrape()
 }
 
@@ -45,6 +58,12 @@ func (sc *FacebookScraper) Begin(log *log.Logger,
 func (sc *FacebookScraper) End() {
 	sc.ticker.Stop()
 	close(sc.stopChan)
+	sc.running = false
+}
+
+// Running returns whether the scraper is running
+func (sc *FacebookScraper) Running() bool {
+	return sc.running
 }
 
 func (sc *FacebookScraper) copyAnnouncements() []*dataobjects.Announcement {
