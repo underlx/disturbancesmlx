@@ -102,6 +102,10 @@ func (sc *FacebookScraper) update() {
 		sc.log.Println(err)
 		return
 	}
+	if dat == nil || dat["data"] == nil {
+		sc.log.Println("FacebookScraper data is nil")
+		return
+	}
 	data := dat["data"].([]interface{})
 
 	announcements := []*dataobjects.Announcement{}
