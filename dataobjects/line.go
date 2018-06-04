@@ -435,6 +435,15 @@ func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime tim
 	return 1.0 - (downTime.Minutes() / totalTime.Minutes()), avgDuration, nil
 }
 
+// CurrentlyClosed returns whether this line is closed right now
+func (line *Line) CurrentlyClosed(tx sqalx.Node) (bool, error) {
+	closedDuration, err := line.getClosedDuration(tx, time.Now(), time.Now().Add(1*time.Millisecond))
+	if err != nil {
+		return false, err
+	}
+	return closedDuration > 0, nil
+}
+
 func (line *Line) getClosedDuration(tx sqalx.Node, startTime time.Time, endTime time.Time) (time.Duration, error) {
 	schedules, err := line.Schedules(tx)
 	if err != nil {

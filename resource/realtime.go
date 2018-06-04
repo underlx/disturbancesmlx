@@ -1,8 +1,6 @@
 package resource
 
 import (
-	"time"
-
 	"github.com/heetch/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
@@ -10,7 +8,7 @@ import (
 
 // RealtimeStatsHandler handles real-time network statistics such as the number of users in transit
 type RealtimeStatsHandler interface {
-	RegisterActivity(network *dataobjects.Network, user *dataobjects.APIPair, expectedDuration time.Duration)
+	RegisterActivity(lines []*dataobjects.Line, user *dataobjects.APIPair, justEntered bool)
 }
 
 // RealtimeVehicleHandler handles real-time vehicle information such as the position of trains in a network
@@ -85,15 +83,16 @@ func (r *Realtime) Post(c *yarf.Context) error {
 		return err
 	}
 
+	lines, err := station.Lines(tx)
+	if err != nil {
+		return err
+	}
+
 	if r.statsHandler != nil {
 		if request.DirectionID == "" {
-			// user just entered the network, is going to wait for a vehicle
-			r.statsHandler.RegisterActivity(station.Network, request.Submitter, 8*time.Minute)
-		} else if lines, err := station.Lines(tx); err == nil && len(lines) > 1 {
-			// user might change lines and will need to wait for a vehicle
-			r.statsHandler.RegisterActivity(station.Network, request.Submitter, 8*time.Minute)
+			r.statsHandler.RegisterActivity(lines, request.Submitter, true)
 		} else {
-			r.statsHandler.RegisterActivity(station.Network, request.Submitter, 4*time.Minute)
+			r.statsHandler.RegisterActivity(lines, request.Submitter, false)
 		}
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"time"
 
+	cache "github.com/patrickmn/go-cache"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	statsd "gopkg.in/alexcesaro/statsd.v2"
 )
@@ -40,7 +41,20 @@ func StatsSender() {
 	for {
 		select {
 		case <-ticker.C:
-			c.Gauge("online_in_transit", statsHandler.CurrentlyOnlineInTransit(network, 0))
+			// this one stays here for compatibility
+			c.Gauge("online_in_transit", statsHandler.OITInNetwork(network, 0))
+
+			statsHandler.RangeNetworks(rootSqalxNode, func(n *dataobjects.Network, cache *cache.Cache) bool {
+				c.Gauge("online_in_transit_"+n.ID, statsHandler.OITInNetwork(n, 0))
+				return true
+			})
+
+			statsHandler.RangeLines(rootSqalxNode, func(l *dataobjects.Line, cache *cache.Cache) bool {
+				c.Gauge("online_in_transit_"+l.ID, statsHandler.OITInLine(l, 0))
+				c.Gauge("report_votes_"+l.ID, reportHandler.countVotesForLine(l))
+				c.Gauge("report_threshold_"+l.ID, reportHandler.getThresholdForLine(l))
+				return true
+			})
 		case <-APIrequestTelemetry:
 			c.Increment("apicalls")
 		}

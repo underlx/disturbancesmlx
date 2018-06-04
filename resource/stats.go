@@ -11,7 +11,8 @@ import (
 
 // StatsCalculator calculates general statistics about a network or part of a network
 type StatsCalculator interface {
-	CurrentlyOnlineInTransit(network *dataobjects.Network, approximateTo int) int
+	OITInNetwork(network *dataobjects.Network, approximateTo int) int
+	OITInLine(line *dataobjects.Line, approximateTo int) int
 }
 
 // Stats composites resource
@@ -125,7 +126,7 @@ func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network
 	stats := apiStats{
 		LastDisturbance:          lastDist,
 		LineStats:                make(map[string]apiLineStats),
-		CurrentlyOnlineInTransit: r.calculator.CurrentlyOnlineInTransit(network, 5),
+		CurrentlyOnlineInTransit: r.calculator.OITInNetwork(network, 5),
 	}
 
 	lines, err := network.Lines(tx)

@@ -39,6 +39,20 @@ func GetTripsForSubmitter(node sqalx.Node, submitter *APIPair) ([]*Trip, error) 
 	return getTripsWithSelect(node, s)
 }
 
+// GetTripsForSubmitterBetween returns a slice with trips submitted by the specified submitter made in the specified interval
+func GetTripsForSubmitterBetween(node sqalx.Node, submitter *APIPair, start time.Time, end time.Time) ([]*Trip, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"submitter": submitter.Key}).
+		Where(sq.Or{
+			sq.Expr("start_time BETWEEN ? AND ?",
+				start, end),
+			sq.Expr("end_time BETWEEN ? AND ?",
+				start, end),
+		}).
+		OrderBy("start_time ASC")
+	return getTripsWithSelect(node, s)
+}
+
 // getTripsWithSelect returns a slice with all trips that match the conditions in sbuilder
 func getTripsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Trip, error) {
 	trips := []*Trip{}

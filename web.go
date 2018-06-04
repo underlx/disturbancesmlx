@@ -1123,7 +1123,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		UserID:               session.UserID,
 		Username:             session.DisplayName,
 		PassengerReadings:    vehicleHandler.GetReadings(),
-		UsersOnlineInNetwork: statsHandler.CurrentlyOnlineInTransit(n, 0),
+		UsersOnlineInNetwork: statsHandler.OITInNetwork(n, 0),
 		TrainETAs:            []TrainETA{},
 	}
 
