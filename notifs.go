@@ -10,11 +10,8 @@ var enableAnnouncementNotifs = true
 
 func init() {
 	go func(newNotifChan <-chan dataobjects.StatusNotification) {
-		for {
-			select {
-			case sn := <-newNotifChan:
-				SendNotificationForDisturbance(sn.Disturbance, sn.Status)
-			}
+		for sn := range newNotifChan {
+			SendNotificationForDisturbance(sn.Disturbance, sn.Status)
 		}
 	}(dataobjects.NewStatusNotification)
 }
