@@ -15,7 +15,11 @@
                   <input id="line-{{ $line.ID }}" name="lines" value="{{ $line.ID }}" type="checkbox"> Linha <a class="line" style="color: #{{ $line.Color }};">{{ .Line.Name | html }}</a>
               </label>
               {{end}}
+              {{ if .DebugBuild }}
               <div class="g-recaptcha" data-sitekey="6LcQZV0UAAAAAKH7Q5GdUOvST3eDtCdgVBhb0jUq"></div>
+              {{ else }}
+              <div class="g-recaptcha" data-sitekey="6LfdaV0UAAAAAPEmdyWlIPGGYyU6G6AsrjYlcHZJ"></div>
+              {{end}}
               <button type="submit" class="button-warning pure-button" style="margin-top: 10px; font-size: 110%;">Comunicar problemas</button>
           </fieldset>
       </form>

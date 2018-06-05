@@ -44,6 +44,7 @@ type PageCommons struct {
 	LastUpdateAgoMin  int
 	LastUpdateAgoHour int
 	OfficialOnly      bool
+	DebugBuild        bool
 }
 
 // ConnectionData contains the HTML with the connection information for the station with ID ID
@@ -168,6 +169,7 @@ func InitPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 	commons.LastUpdateAgoMin = int(time.Since(mlxscr.LastUpdate()).Minutes()) % 60
 	commons.LastUpdateAgoHour = int(time.Since(mlxscr.LastUpdate()).Hours())
 	commons.OfficialOnly = ShowOfficialDataOnly(w, r)
+	commons.DebugBuild = DEBUG
 
 	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
