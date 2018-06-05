@@ -7,6 +7,7 @@ import (
 
 	"github.com/heetch/sqalx"
 	cache "github.com/patrickmn/go-cache"
+	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
@@ -89,6 +90,21 @@ func (r *ReportHandler) getVoteWeightForReport(report *dataobjects.LineDisturban
 	return 5, nil
 }
 
+func (r *ReportHandler) getEarliestVoteForLine(line *dataobjects.Line) *reportData {
+	earliestTime := time.Time{}
+	var earliestValue *reportData
+	for _, item := range r.reports.Items() {
+		data := item.Object.(*reportData)
+		if ldr, ok := data.Report.(*dataobjects.LineDisturbanceReport); ok {
+			if earliestTime.IsZero() || ldr.Time().Before(earliestTime) {
+				earliestTime = ldr.Time()
+				earliestValue = data
+			}
+		}
+	}
+	return earliestValue
+}
+
 func (r *ReportHandler) countVotesForLine(line *dataobjects.Line) int {
 	count := 0
 	for _, item := range r.reports.Items() {
@@ -135,7 +151,7 @@ func (r *ReportHandler) evaluateSituation() {
 		mainLog.Println("ReportHandler: " + err.Error())
 		return
 	}
-	defer tx.Rollback()
+	defer tx.Commit() // read-only tx (any new statuses are handled in different transactions)
 
 	lines, err := dataobjects.GetLines(tx)
 	if err != nil {
@@ -151,22 +167,134 @@ func (r *ReportHandler) evaluateSituation() {
 		}
 
 		if len(disturbances) == 0 && r.lineHasEnoughVotesToStartDisturbance(line) {
-			// TODO start new unofficial disturbance
-			// idea: even though we are only creating the disturbance now, the start time might be the time of the earliest report in memory
-			// we would then add two line states: one for the date of the earliest report ("users began reporting...")
-			// and another for the current time ("reports have been confirmed by multiple users...")
-		} else {
-			for _, disturbance := range disturbances {
-				if disturbance.Official {
-					// this avoids a new disturbance reopening immediately after it officially ends
-					// do we really want this? TODO
-					r.clearVotesForLine(line)
-				} else if !r.lineHasEnoughVotesToKeepDisturbance(line) {
-					// TODO end this unofficial disturbance
+			err := r.startDisturbance(tx, line)
+			if err != nil {
+				mainLog.Println("ReportHandler: " + err.Error())
+			}
+			continue
+		}
+
+		// the system works in such a way that there can only be one ongoing disturbance per line at a time,
+		// but we use a loop anyway
+		for _, disturbance := range disturbances {
+			if disturbance.Official {
+				// this avoids a new disturbance reopening immediately after it officially ends
+				r.clearVotesForLine(line)
+			} else if !r.lineHasEnoughVotesToKeepDisturbance(line) {
+				// end this unofficial disturbance
+				err := r.endDisturbance(line)
+				if err != nil {
+					mainLog.Println("ReportHandler: " + err.Error())
 				}
 			}
 		}
 	}
+}
 
-	tx.Commit()
+func (r *ReportHandler) startDisturbance(node sqalx.Node, line *dataobjects.Line) error {
+	earliestVote := r.getEarliestVoteForLine(line)
+	if earliestVote == nil {
+		return errors.New("earliest vote is nil")
+	}
+
+	latestDisturbance, err := line.LastDisturbance(node, false)
+	if err != nil {
+		return err
+	}
+
+	id, err := uuid.NewV4()
+	if err != nil {
+		return err
+	}
+
+	if earliestVote.Report.Time().After(latestDisturbance.UEndTime) {
+		// even though we are only creating the disturbance now, the start time might be the time of the earliest report in memory
+		// we would then add two line states: one for the date of the earliest report ("users began reporting...")
+		// (we do not notify for this first state)
+		// and another for the current time ("reports have been confirmed by multiple users...")
+
+		if earliestVote.Report.Time().Before(time.Now().Add(-1 * time.Minute)) {
+			// avoid issuing two states if their times would be too close to each other
+			status := &dataobjects.Status{
+				ID:         id.String(),
+				Time:       earliestVote.Report.Time().UTC(),
+				Line:       line,
+				IsDowntime: true,
+				Status:     "Os utilizadores comunicaram problemas na circulação",
+				Source: &dataobjects.Source{
+					ID:        "underlx-community",
+					Name:      "UnderLX user community",
+					Automatic: false,
+					Official:  false,
+				},
+			}
+
+			handleNewStatus(status, false)
+
+			id, err = uuid.NewV4()
+			if err != nil {
+				return err
+			}
+		}
+
+		status := &dataobjects.Status{
+			ID:         id.String(),
+			Time:       time.Now().UTC(),
+			Line:       line,
+			IsDowntime: true,
+			Status:     "Vários utilizadores confirmaram problemas na circulação",
+			Source: &dataobjects.Source{
+				ID:        "underlx-community",
+				Name:      "UnderLX user community",
+				Automatic: false,
+				Official:  false,
+			},
+		}
+
+		handleNewStatus(status, true)
+	} else {
+		// last disturbance ended after the earliest vote we have in memory
+		// show a different message in this case
+
+		status := &dataobjects.Status{
+			ID:         id.String(),
+			Time:       time.Now().UTC(),
+			Line:       line,
+			IsDowntime: true,
+			Status:     "Vários utilizadores confirmaram mais problemas na circulação",
+			Source: &dataobjects.Source{
+				ID:        "underlx-community",
+				Name:      "UnderLX user community",
+				Automatic: false,
+				Official:  false,
+			},
+		}
+
+		handleNewStatus(status, true)
+	}
+	return nil
+}
+
+func (r *ReportHandler) endDisturbance(line *dataobjects.Line) error {
+	id, err := uuid.NewV4()
+	if err != nil {
+		return err
+	}
+
+	status := &dataobjects.Status{
+		ID:         id.String(),
+		Time:       time.Now().UTC(),
+		Line:       line,
+		IsDowntime: false,
+		Status:     "Já não existem relatos de problemas na circulação",
+		Source: &dataobjects.Source{
+			ID:        "underlx-community",
+			Name:      "UnderLX user community",
+			Automatic: false,
+			Official:  false,
+		},
+	}
+
+	handleNewStatus(status, true)
+	return nil
 }

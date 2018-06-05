@@ -1,12 +1,17 @@
 package dataobjects
 
-import uuid "github.com/satori/go.uuid"
+import (
+	"time"
+
+	uuid "github.com/satori/go.uuid"
+)
 
 // Report is a user report
 type Report interface {
 	Submitter() *APIPair // might be nil
 	RateLimiterKey() string
 	ReplayProtected() bool // whether it is hard for the submitter to bypass the replay protections
+	Time() time.Time
 }
 
 // BaseReport is the base for user report structs
@@ -14,6 +19,7 @@ type BaseReport struct {
 	submitter              *APIPair // might be nil
 	submitterKey           string   // uniquely identifies the submitter (might be API key, IP address...)
 	strongReplayProtection bool
+	time                   time.Time
 }
 
 // LineDisturbanceReport is a Report of a disturbance in a line
@@ -30,6 +36,7 @@ func NewLineDisturbanceReportThroughAPI(pair *APIPair, line *Line, category stri
 			submitter:              pair,
 			submitterKey:           pair.Key,
 			strongReplayProtection: true,
+			time: time.Now(),
 		},
 		category: category,
 		line:     line,
@@ -42,6 +49,7 @@ func NewLineDisturbanceReport(ipAddr string, line *Line, category string) *LineD
 		BaseReport: BaseReport{
 			submitterKey:           ipAddr,
 			strongReplayProtection: false,
+			time: time.Now(),
 		},
 		category: category,
 		line:     line,
@@ -55,6 +63,7 @@ func NewLineDisturbanceReportDebug(line *Line, category string) *LineDisturbance
 		BaseReport: BaseReport{
 			submitterKey:           uuid.String(),
 			strongReplayProtection: true,
+			time: time.Now(),
 		},
 		category: category,
 		line:     line,
@@ -75,6 +84,11 @@ func (r *LineDisturbanceReport) RateLimiterKey() string {
 // ReplayProtected returns whether it is hard for the submitter to bypass the replay protections
 func (r *LineDisturbanceReport) ReplayProtected() bool {
 	return r.strongReplayProtection
+}
+
+// Time returns the creation time of this report
+func (r *LineDisturbanceReport) Time() time.Time {
+	return r.time
 }
 
 // Category returns the category of this report
