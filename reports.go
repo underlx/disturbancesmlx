@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"math"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/heetch/sqalx"
@@ -18,6 +20,7 @@ type ReportHandler struct {
 	reports      *cache.Cache
 	statsHandler *StatsHandler
 	node         sqalx.Node
+	thresholds   *sync.Map
 }
 
 // NewReportHandler initializes a new ReportHandler and returns it
@@ -26,6 +29,7 @@ func NewReportHandler(statsHandler *StatsHandler, node sqalx.Node) *ReportHandle
 		reports:      cache.New(cache.NoExpiration, 30*time.Second),
 		statsHandler: statsHandler,
 		node:         node,
+		thresholds:   new(sync.Map),
 	}
 	h.reports.OnEvicted(func(string, interface{}) {
 		h.evaluateSituation()
@@ -131,10 +135,25 @@ func (r *ReportHandler) clearVotesForLine(line *dataobjects.Line) {
 
 func (r *ReportHandler) getThresholdForLine(line *dataobjects.Line) int {
 	numUsers := r.statsHandler.OITInLine(line, 0)
+	var newValue int
 	if numUsers <= 1 {
-		return 15
+		newValue = 15
+	} else {
+		newValue = int(math.Round(56.8206*math.Log(float64(numUsers)) - 18.9))
 	}
-	return int(math.Round(56.8206*math.Log(float64(numUsers)) - 18.9))
+
+	data, _ := r.thresholds.LoadOrStore(line.ID, cache.New(5*time.Minute, 5*time.Minute))
+	cache := data.(*cache.Cache)
+	// only store one value per minute
+	cache.SetDefault(strconv.FormatInt(time.Now().Unix()/60, 16), newValue)
+
+	sum := 0
+	count := 0
+	for _, item := range cache.Items() {
+		sum += item.Object.(int)
+		count++
+	}
+	return sum / count
 }
 
 func (r *ReportHandler) lineHasEnoughVotesToStartDisturbance(line *dataobjects.Line) bool {
