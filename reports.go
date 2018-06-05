@@ -227,6 +227,7 @@ func (r *ReportHandler) startDisturbance(node sqalx.Node, line *dataobjects.Line
 					Automatic: false,
 					Official:  false,
 				},
+				MsgType: dataobjects.ReportBeginMessage,
 			}
 
 			handleNewStatus(status, false)
@@ -249,6 +250,7 @@ func (r *ReportHandler) startDisturbance(node sqalx.Node, line *dataobjects.Line
 				Automatic: false,
 				Official:  false,
 			},
+			MsgType: dataobjects.ReportConfirmMessage,
 		}
 
 		handleNewStatus(status, true)
@@ -268,6 +270,7 @@ func (r *ReportHandler) startDisturbance(node sqalx.Node, line *dataobjects.Line
 				Automatic: false,
 				Official:  false,
 			},
+			MsgType: dataobjects.ReportReconfirmMessage,
 		}
 
 		handleNewStatus(status, true)
@@ -293,6 +296,7 @@ func (r *ReportHandler) endDisturbance(line *dataobjects.Line) error {
 			Automatic: false,
 			Official:  false,
 		},
+		MsgType: dataobjects.ReportSolvedMessage,
 	}
 
 	handleNewStatus(status, true)

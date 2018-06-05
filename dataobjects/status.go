@@ -17,7 +17,24 @@ type Status struct {
 	IsDowntime bool
 	Status     string
 	Source     *Source
+	MsgType    StatusMessageType
 }
+
+// StatusMessageType indicates the type of the status message (to help with e.g. translation and disturbance categorization)
+type StatusMessageType string
+
+const (
+	// RawMessage is an untranslatable message
+	RawMessage StatusMessageType = "RAW"
+	// ReportBeginMessage is the message for when users begin reporting disturbances
+	ReportBeginMessage StatusMessageType = "REPORT_BEGIN"
+	// ReportConfirmMessage is the message for when users confirm disturbance reports
+	ReportConfirmMessage StatusMessageType = "REPORT_CONFIRM"
+	// ReportReconfirmMessage is the message for when users confirm disturbance reports shortly after a disturbance ended
+	ReportReconfirmMessage StatusMessageType = "REPORT_RECONFIRM"
+	// ReportSolvedMessage is the message for when reports of disturbances are gone
+	ReportSolvedMessage StatusMessageType = "REPORT_SOLVED"
+)
 
 // GetStatuses returns a slice with all registered statuses
 func GetStatuses(node sqalx.Node) ([]*Status, error) {
@@ -47,7 +64,7 @@ func getStatusesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Statu
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("id", "timestamp", "mline", "downtime", "status", "source").
+	rows, err := sbuilder.Columns("id", "timestamp", "mline", "downtime", "status", "source", "msgtype").
 		From("line_status").
 		OrderBy("timestamp ASC").
 		RunWith(tx).Query()
@@ -67,7 +84,8 @@ func getStatusesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Statu
 			&lineID,
 			&status.IsDowntime,
 			&status.Status,
-			&sourceID)
+			&sourceID,
+			&status.MsgType)
 		if err != nil {
 			return statuss, fmt.Errorf("getStatusesWithSelect: %s", err)
 		}
@@ -104,11 +122,15 @@ func (status *Status) Update(node sqalx.Node) error {
 		return errors.New("AddStatus: " + err.Error())
 	}
 
+	if status.MsgType == "" {
+		status.MsgType = RawMessage
+	}
+
 	_, err = sdb.Insert("line_status").
-		Columns("id", "timestamp", "mline", "downtime", "status", "source").
-		Values(status.ID, status.Time, status.Line.ID, status.IsDowntime, status.Status, status.Source.ID).
-		Suffix("ON CONFLICT (id) DO UPDATE SET timestamp = ?, mline = ?, downtime = ?, status = ?, source = ?",
-			status.Time, status.Line.ID, status.IsDowntime, status.Status, status.Source.ID).
+		Columns("id", "timestamp", "mline", "downtime", "status", "source", "msgtype").
+		Values(status.ID, status.Time, status.Line.ID, status.IsDowntime, status.Status, status.Source.ID, status.MsgType).
+		Suffix("ON CONFLICT (id) DO UPDATE SET timestamp = ?, mline = ?, downtime = ?, status = ?, source = ?, msgtype = ?",
+			status.Time, status.Line.ID, status.IsDowntime, status.Status, status.Source.ID, status.MsgType).
 		RunWith(tx).Exec()
 
 	if err != nil {

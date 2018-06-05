@@ -36,12 +36,13 @@ type apiDisturbanceWrapper struct {
 }
 
 type apiStatus struct {
-	ID         string              `msgpack:"id" json:"id"`
-	Time       time.Time           `msgpack:"time" json:"time"`
-	Line       *dataobjects.Line   `msgpack:"-" json:"-"`
-	IsDowntime bool                `msgpack:"downtime" json:"downtime"`
-	Status     string              `msgpack:"status" json:"status"`
-	Source     *dataobjects.Source `msgpack:"-" json:"-"`
+	ID         string                        `msgpack:"id" json:"id"`
+	Time       time.Time                     `msgpack:"time" json:"time"`
+	Line       *dataobjects.Line             `msgpack:"-" json:"-"`
+	IsDowntime bool                          `msgpack:"downtime" json:"downtime"`
+	Status     string                        `msgpack:"status" json:"status"`
+	Source     *dataobjects.Source           `msgpack:"-" json:"-"`
+	MsgType    dataobjects.StatusMessageType `msgpack:"msgType" json:"msgType"`
 }
 
 type apiStatusWrapper struct {

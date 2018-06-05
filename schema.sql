@@ -77,7 +77,8 @@ CREATE TABLE IF NOT EXISTS "line_status" (
     mline VARCHAR(36) NOT NULL REFERENCES mline (id),
     downtime BOOL NOT NULL,
     status TEXT NOT NULL,
-    source VARCHAR(36) NOT NULL REFERENCES source (id)
+    source VARCHAR(36) NOT NULL REFERENCES source (id),
+    msgtype VARCHAR(36) NOT NULL,
 );
 
 CREATE TABLE IF NOT EXISTS "line_disturbance" (
