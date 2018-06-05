@@ -34,7 +34,6 @@
 {{end}}
 
 {{template "header.html" . }}
-{{ $top := . }}
   <div class="content">
     <div class="pure-g">
       <div class="pure-u-1">
@@ -45,7 +44,9 @@
         <p>Velocidade média: {{ printf "%.02f" .AverageSpeed }} km/h</p>
         {{end}}
         {{ range $disturbance := .Disturbances }}
-          {{template "component-disturbance.html" $disturbance }}
+          {{ if (or (not $.OfficialOnly) $disturbance.Official) }}
+            {{template "component-disturbance.html" $disturbance }}
+          {{end}}
         {{else}}
           <p style="text-align: center; margin-top: 70px; margin-bottom: 70px;">Não foram registadas perturbações neste mês.</p>
         {{end}}
@@ -65,7 +66,7 @@
           x : 'x',
           columns: [
               ['x', {{ range $line := .Lines}}'{{ $line.Name }}',{{end}}],
-              ['Horas com perturbações', {{ range $line := .Lines}}{{ index $top.DowntimePerLine $line.ID }},{{end}}],
+              ['Horas com perturbações', {{ range $line := .Lines}}{{ index $.DowntimePerLine $line.ID }},{{end}}],
           ],
           groups: [
               ['Horas com perturbações']
@@ -83,4 +84,4 @@
     });
   </script>
   {{end}}
-{{template "footer.html"}}
+{{template "footer.html" . }}

@@ -41,6 +41,7 @@ type PageCommons struct {
 	LastChangeAgoHour int
 	LastUpdateAgoMin  int
 	LastUpdateAgoHour int
+	OfficialOnly      bool
 }
 
 // ConnectionData contains the HTML with the connection information for the station with ID ID
@@ -141,7 +142,7 @@ func WebServer() {
 }
 
 // InitPageCommons fills PageCommons with the info that is required by most page templates
-func InitPageCommons(node sqalx.Node, title string) (commons PageCommons, err error) {
+func InitPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, title string) (commons PageCommons, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return commons, err
@@ -153,6 +154,7 @@ func InitPageCommons(node sqalx.Node, title string) (commons PageCommons, err er
 	commons.LastChangeAgoHour = int(time.Since(lastChange).Hours())
 	commons.LastUpdateAgoMin = int(time.Since(mlxscr.LastUpdate()).Minutes()) % 60
 	commons.LastUpdateAgoHour = int(time.Since(mlxscr.LastUpdate()).Hours())
+	commons.OfficialOnly = ShowOfficialDataOnly(w, r)
 
 	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
@@ -196,8 +198,6 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
-	officialOnly := true
-
 	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		webLog.Println(err)
@@ -220,7 +220,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		DayNames []string
 	}{}
 
-	p.PageCommons, err = InitPageCommons(tx, "Perturbações do Metro de Lisboa")
+	p.PageCommons, err = InitPageCommons(tx, w, r, "Perturbações do Metro de Lisboa")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -251,7 +251,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		t = t.AddDate(0, 0, 1)
 	}
 
-	lastDisturbanceTime, err := MLlastDisturbanceTime(tx, officialOnly)
+	lastDisturbanceTime, err := MLlastDisturbanceTime(tx, p.OfficialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -284,7 +284,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 			p.Lines[i].Minutes = int(time.Since(d.UStartTime).Minutes())
 		}
 
-		p.LinesExtra[i].LastDisturbance, err = lines[i].LastDisturbance(tx, officialOnly)
+		p.LinesExtra[i].LastDisturbance, err = lines[i].LastDisturbance(tx, p.OfficialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -295,14 +295,14 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 			return p.LinesExtra[i].LastDisturbance.Statuses[j].Time.Before(p.LinesExtra[i].LastDisturbance.Statuses[k].Time)
 		})
 
-		p.LinesExtra[i].DayCounts, err = lines[i].CountDisturbancesByDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc), officialOnly)
+		p.LinesExtra[i].DayCounts, err = lines[i].CountDisturbancesByDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc), p.OfficialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		hourCounts, err := lines[i].CountDisturbancesByHourOfDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc), officialOnly)
+		hourCounts, err := lines[i].CountDisturbancesByHourOfDay(tx, time.Now().In(loc).AddDate(0, 0, -6), time.Now().In(loc), p.OfficialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -314,7 +314,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		}
 		p.LinesExtra[i].HourCounts = append(p.LinesExtra[i].HourCounts, hourCounts[0])
 
-		availability, avgd, err := lines[i].Availability(tx, time.Now().In(loc).Add(-24*7*time.Hour), time.Now().In(loc), officialOnly)
+		availability, avgd, err := lines[i].Availability(tx, time.Now().In(loc).Add(-24*7*time.Hour), time.Now().In(loc), p.OfficialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -345,7 +345,7 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
-	p, err := InitPageCommons(tx, "Perturbações do Metro de Lisboa")
+	p, err := InitPageCommons(tx, w, r, "Perturbações do Metro de Lisboa")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -439,7 +439,7 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 		CanEdit: hasSession && session.IsAdmin,
 	}
 
-	p.PageCommons, err = InitPageCommons(tx, "Perturbação do Metro de Lisboa")
+	p.PageCommons, err = InitPageCommons(tx, w, r, "Perturbação do Metro de Lisboa")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -496,7 +496,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		NextPageTime    time.Time
 	}{}
 
-	p.PageCommons, err = InitPageCommons(tx, "Perturbações do Metro de Lisboa")
+	p.PageCommons, err = InitPageCommons(tx, w, r, "Perturbações do Metro de Lisboa")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -539,22 +539,14 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.DowntimePerLine = make(map[string]float32)
-	for _, disturbance := range p.Disturbances {
-		if !disturbance.Official {
-			continue
+	for _, line := range p.Lines {
+		totalDuration, err := line.DisturbanceDuration(tx, startDate, endDate, p.OfficialOnly)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusNotFound)
+			return
 		}
-		endTime := disturbance.OEndTime
-		if !disturbance.OEnded {
-			endTime = time.Now()
-		}
-		if endTime.After(endDate) {
-			endTime = endDate
-		}
-		startTime := disturbance.OStartTime
-		if startTime.Before(startDate) {
-			startTime = startDate
-		}
-		p.DowntimePerLine[disturbance.Line.ID] += float32(endTime.Sub(startTime).Hours())
+		p.DowntimePerLine[line.ID] += float32(totalDuration.Hours())
 	}
 
 	p.AverageSpeed, err = ComputeAverageSpeedCached(tx, startDate, endDate.Truncate(24*time.Hour))
@@ -696,7 +688,7 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.PageCommons, err = InitPageCommons(tx, p.Station.Name+" - Estação do "+p.Station.Network.Name)
+	p.PageCommons, err = InitPageCommons(tx, w, r, p.Station.Name+" - Estação do "+p.Station.Network.Name)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -826,8 +818,6 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
-	officialOnly := true
-
 	p := struct {
 		PageCommons
 		Line              *dataobjects.Line
@@ -837,6 +827,13 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		MonthAvailability float64
 		MonthDuration     time.Duration
 	}{}
+
+	p.PageCommons, err = InitPageCommons(tx, w, r, fmt.Sprintf("Linha %s do %s", p.Line.Name, p.Line.Network.Name))
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	p.Line, err = dataobjects.GetLine(tx, mux.Vars(r)["id"])
 	if err != nil {
@@ -853,7 +850,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 
 	loc, _ := time.LoadLocation(p.Line.Network.Timezone)
 
-	p.MonthAvailability, p.MonthDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc), officialOnly)
+	p.MonthAvailability, p.MonthDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc), p.OfficialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -861,20 +858,13 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.MonthAvailability *= 100
 
-	p.WeekAvailability, p.WeekDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc), officialOnly)
+	p.WeekAvailability, p.WeekDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc), p.OfficialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	p.WeekAvailability *= 100
-
-	p.PageCommons, err = InitPageCommons(tx, fmt.Sprintf("Linha %s do %s", p.Line.Name, p.Line.Network.Name))
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 
 	err = webtemplate.ExecuteTemplate(w, "line.html", p)
 	if err != nil {
@@ -900,7 +890,7 @@ func MapPage(w http.ResponseWriter, r *http.Request) {
 		PageCommons
 	}{}
 
-	p.PageCommons, err = InitPageCommons(tx, "Mapa de rede")
+	p.PageCommons, err = InitPageCommons(tx, w, r, "Mapa de rede")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -931,7 +921,7 @@ func AboutPage(w http.ResponseWriter, r *http.Request) {
 		PageCommons
 	}{}
 
-	p.PageCommons, err = InitPageCommons(tx, "Sobre nós")
+	p.PageCommons, err = InitPageCommons(tx, w, r, "Sobre nós")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -962,7 +952,7 @@ func DonatePage(w http.ResponseWriter, r *http.Request) {
 		PageCommons
 	}{}
 
-	p.PageCommons, err = InitPageCommons(tx, "Donativos")
+	p.PageCommons, err = InitPageCommons(tx, w, r, "Donativos")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -994,9 +984,9 @@ func PrivacyPolicyPage(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	if mux.Vars(r)["lang"] != "en" {
-		p.PageCommons, err = InitPageCommons(tx, "Política de privacidade")
+		p.PageCommons, err = InitPageCommons(tx, w, r, "Política de privacidade")
 	} else {
-		p.PageCommons, err = InitPageCommons(tx, "Privacy Policy")
+		p.PageCommons, err = InitPageCommons(tx, w, r, "Privacy Policy")
 	}
 	if err != nil {
 		webLog.Println(err)
@@ -1033,9 +1023,9 @@ func TermsPage(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	if mux.Vars(r)["lang"] != "en" {
-		p.PageCommons, err = InitPageCommons(tx, "Termos e Condições")
+		p.PageCommons, err = InitPageCommons(tx, w, r, "Termos e Condições")
 	} else {
-		p.PageCommons, err = InitPageCommons(tx, "Terms")
+		p.PageCommons, err = InitPageCommons(tx, w, r, "Terms")
 	}
 	if err != nil {
 		webLog.Println(err)
@@ -1092,8 +1082,6 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
-	officialOnly := true
-
 	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		webLog.Println(err)
@@ -1127,7 +1115,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		TrainETAs:            []TrainETA{},
 	}
 
-	p.PageCommons, err = InitPageCommons(tx, "Página interna")
+	p.PageCommons, err = InitPageCommons(tx, w, r, "Página interna")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1163,7 +1151,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 	}, len(lines))
 
 	for i := range lines {
-		availability, avgd, err := lines[i].Availability(tx, p.StartTime, p.EndTime, officialOnly)
+		availability, avgd, err := lines[i].Availability(tx, p.StartTime, p.EndTime, p.OfficialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1172,7 +1160,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 
 		p.LinesExtra[i].Availability = fmt.Sprintf("%.03f%%", availability*100)
 		p.LinesExtra[i].AvgDuration = fmt.Sprintf("%.01f", avgd.Minutes())
-		totalDuration, err := lines[i].DisturbanceDuration(tx, p.StartTime, p.EndTime, officialOnly)
+		totalDuration, err := lines[i].DisturbanceDuration(tx, p.StartTime, p.EndTime, p.OfficialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -1269,4 +1257,31 @@ func RequestIsTLS(r *http.Request) bool {
 		return true
 	}
 	return r.TLS != nil
+}
+
+// ShowOfficialDataOnly analyzes and modifies a request to check if the user wants to see
+// official disturbance data only or not, and returns the result
+func ShowOfficialDataOnly(w http.ResponseWriter, r *http.Request) bool {
+	value, present := r.URL.Query()["officialonly"]
+	if present {
+		ret := false
+		if n, err := strconv.Atoi(value[0]); value[0] == "true" || (err == nil && n != 0) {
+			ret = true
+		}
+		// this is a silly preference, HttpOnly can be false
+		cookie := &http.Cookie{
+			Name:     "officialonly",
+			Value:    strconv.FormatBool(ret),
+			HttpOnly: false,
+			MaxAge:   60 * 60 * 24 * 365,
+		}
+		http.SetCookie(w, cookie)
+		return ret
+	}
+	cookie, err := r.Cookie("officialonly")
+	if err != nil {
+		return false
+	}
+
+	return cookie.Value == "true"
 }

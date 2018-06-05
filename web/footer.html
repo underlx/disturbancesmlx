@@ -4,7 +4,12 @@
         <p>
             Este <em>website</em> não tem qualquer ligação à <em>Metropolitano de Lisboa, E.P.E.</em><br>
             Não podemos garantir a correcção da informação fornecida.<br>
-            Só as autoridades competentes poderão fornecer dados oficiais.
+            Só as autoridades competentes poderão fornecer dados oficiais.<br>
+            {{ if .OfficialOnly }}
+            <a class="pure-button" style="font-size: 80%;" href="?officialonly=false">Mostrar dados da comunidade de utilizadores</a>
+            {{else}}
+            <a class="pure-button" style="font-size: 80%;" href="?officialonly=true">Ocultar dados da comunidade de utilizadores</a>
+            {{end}}
         </p>
       </div>
       <div class="pure-u-4-5 pure-u-md-1-2" style="padding-right: 5px; box-sizing: border-box;">
