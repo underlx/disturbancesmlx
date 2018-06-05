@@ -96,7 +96,7 @@ func WebServer() {
 		mainLog.Fatalf("Failed to create SSO client: %s\n", err)
 	}
 
-	recaptchakey, present := secrets.Get("recaptchakey")
+	recaptchakey, present := secrets.Get("recaptchaKey")
 	if !present {
 		mainLog.Fatal("reCAPTCHA key not present in keybox")
 	}
