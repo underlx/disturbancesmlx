@@ -41,6 +41,10 @@
   <div class="content">
     <div class="pure-g">
       <div class="pure-u-1">
+        <p style="text-align: center;">
+          <a class="pure-button pure-button-primary" style="margin-top: 5px; font-size: 110%;" href="/disturbances">Ver histórico de <em>perturbações</em></a>
+          <a class="button-warning pure-button" style="margin-top: 5px; font-size: 110%;" href="/report">Comunicar problemas na circulação</a>
+        </p>
         <h1><em>Perturbações</em> na última semana</h1>
         <table class="pure-table" style="width: 100%; text-align: center;">
           <thead>
@@ -119,7 +123,10 @@
         {{ range $line := .LinesExtra }}
           {{template "component-disturbance.html" $line.LastDisturbance }}
         {{end}}
-        <p style="margin-top: 50px; text-align: center;"><a class="pure-button pure-button-primary" style="font-size: 110%;" href="/disturbances">Ver histórico de <em>perturbações</em></a></p>
+        <p style="margin-top: 50px; text-align: center;">
+          <a class="pure-button pure-button-primary" style="margin-top: 5px; font-size: 110%;" href="/disturbances">Ver histórico de <em>perturbações</em></a>
+          <a class="button-warning pure-button" style="margin-top: 5px; font-size: 110%;" href="/report">Comunicar problemas na circulação</a>
+        </p>
       </div>
     </div>
   </div>

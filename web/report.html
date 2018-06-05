@@ -1,0 +1,26 @@
+{{template "header.html" . }}
+<div class="content">
+  <div class="pure-g">
+    <div class="pure-u-1">
+      <h1>Comunicar problemas na circulação</h1>
+      {{ if (gt (len .Message) 0) }}
+      <aside {{ if .MessageIsError }} style="background: rgb(202, 60, 60);" {{end}}><p>{{ .Message }}</p></aside>
+      {{end}}
+      {{ if (or (eq (len .Message) 0) .MessageIsError ) }}
+      <p>Se está a presenciar problemas no serviço do Metro, tais como tempos de espera demasiado elevados para a hora actual, sobrelotação das carruagens ou dos cais, ou incidentes com passageiros, seleccione as linhas afectadas:</p>
+      <form class="pure-form pure-form-stacked" method="POST">
+          <fieldset>
+              {{ range $index, $line := .Lines }}
+              <label for="line-{{ $line.ID }}" class="pure-checkbox" style="margin-top: 10px; font-size: 130%; font-weight: bold;">
+                  <input id="line-{{ $line.ID }}" name="lines" value="{{ $line.ID }}" type="checkbox"> Linha <a class="line" style="color: #{{ $line.Color }};">{{ .Line.Name | html }}</a>
+              </label>
+              {{end}}
+              <div class="g-recaptcha" data-sitekey="6LcQZV0UAAAAAKH7Q5GdUOvST3eDtCdgVBhb0jUq"></div>
+              <button type="submit" class="button-warning pure-button" style="margin-top: 10px; font-size: 110%;">Comunicar problemas</button>
+          </fieldset>
+      </form>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{template "footer.html" . }}

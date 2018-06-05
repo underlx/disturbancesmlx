@@ -12,6 +12,7 @@ import (
 
 	"github.com/gbl08ma/ssoclient"
 	"github.com/heetch/sqalx"
+	"github.com/medicalwei/recaptcha"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 
 	"encoding/json"
@@ -26,6 +27,7 @@ import (
 var webtemplate *template.Template
 var sessionStore *sessions.CookieStore
 var daClient *ssoclient.SSOClient
+var webcaptcha *recaptcha.R
 var websiteURL string
 
 // PageCommons contains information that is required by most page templates
@@ -94,11 +96,22 @@ func WebServer() {
 		mainLog.Fatalf("Failed to create SSO client: %s\n", err)
 	}
 
+	recaptchakey, present := secrets.Get("recaptchakey")
+	if !present {
+		mainLog.Fatal("reCAPTCHA key not present in keybox")
+	}
+
+	webcaptcha = &recaptcha.R{
+		Secret:             recaptchakey,
+		TrustXForwardedFor: true,
+	}
+
 	router := mux.NewRouter().StrictSlash(true)
 
 	webLog.Println("Starting Web server...")
 
 	router.HandleFunc("/", HomePage)
+	router.HandleFunc("/report", ReportPage)
 	router.HandleFunc("/lookingglass", LookingGlass)
 	router.HandleFunc("/lookingglass/heatmap", Heatmap)
 	router.HandleFunc("/internal", InternalPage)
@@ -326,6 +339,81 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "index.html", p)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+// ReportPage serves the disturbance reporting page
+func ReportPage(w http.ResponseWriter, r *http.Request) {
+	if DEBUG {
+		WebReloadTemplate()
+	}
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	p := struct {
+		PageCommons
+		Message        string
+		MessageIsError bool
+	}{}
+
+	p.PageCommons, err = InitPageCommons(tx, w, r, "Comunicar problemas na circulação")
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		err := r.ParseForm()
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !webcaptcha.Verify(*r) {
+			p.Message = "A verificação do reCAPTCHA falhou."
+			p.MessageIsError = true
+		} else {
+			oneSucceeded := false
+			for _, value := range r.Form["lines"] {
+				line, err := dataobjects.GetLine(tx, value)
+				if err != nil {
+					webLog.Println(err)
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+
+				report := dataobjects.NewLineDisturbanceReport(GetClientIP(r), line, "general")
+
+				err = reportHandler.HandleLineDisturbanceReport(report)
+				if err == nil {
+					oneSucceeded = true
+				}
+			}
+
+			if len(r.Form["lines"]) == 0 {
+				p.Message = "Seleccione as linhas em que verifica problemas. Se não verifica problemas em nenhuma linha, não comunique nada. Agradecemos a sua participação."
+				p.MessageIsError = true
+			} else if oneSucceeded {
+				p.Message = "Relato registado. Agradecemos a sua participação."
+				p.MessageIsError = false
+			} else {
+				p.Message = "O seu relato para este problema já tinha sido registado recentemente. Agradecemos a sua participação."
+				p.MessageIsError = true
+			}
+		}
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "report.html", p)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1211,6 +1299,9 @@ func WebReloadTemplate() {
 		"plus64": func(a, b int64) int64 {
 			return a + b
 		},
+		"stringContains": func(s, substr string) bool {
+			return strings.Contains(s, substr)
+		},
 		"formatDisturbanceTime": func(t time.Time) string {
 			loc, _ := time.LoadLocation("Europe/Lisbon")
 			return t.In(loc).Format("02 Jan 2006 15:04")
@@ -1284,4 +1375,41 @@ func ShowOfficialDataOnly(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	return cookie.Value == "true"
+}
+
+// GetClientIP retrieves the client IP address from the request information.
+// It detects common proxy headers to return the actual client's IP and not the proxy's.
+func GetClientIP(r *http.Request) (ip string) {
+	var pIPs string
+	var pIPList []string
+
+	if pIPs = r.Header.Get("X-Real-Ip"); pIPs != "" {
+		pIPList = strings.Split(pIPs, ",")
+		ip = strings.TrimSpace(pIPList[0])
+
+	} else if pIPs = r.Header.Get("Real-Ip"); pIPs != "" {
+		pIPList = strings.Split(pIPs, ",")
+		ip = strings.TrimSpace(pIPList[0])
+
+	} else if pIPs = r.Header.Get("X-Forwarded-For"); pIPs != "" {
+		pIPList = strings.Split(pIPs, ",")
+		ip = strings.TrimSpace(pIPList[0])
+
+	} else if pIPs = r.Header.Get("X-Forwarded"); pIPs != "" {
+		pIPList = strings.Split(pIPs, ",")
+		ip = strings.TrimSpace(pIPList[0])
+
+	} else if pIPs = r.Header.Get("Forwarded-For"); pIPs != "" {
+		pIPList = strings.Split(pIPs, ",")
+		ip = strings.TrimSpace(pIPList[0])
+
+	} else if pIPs = r.Header.Get("Forwarded"); pIPs != "" {
+		pIPList = strings.Split(pIPs, ",")
+		ip = strings.TrimSpace(pIPList[0])
+
+	} else {
+		ip = r.RemoteAddr
+	}
+
+	return strings.Split(ip, ":")[0]
 }
