@@ -918,6 +918,13 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		MonthDuration     time.Duration
 	}{}
 
+	p.Line, err = dataobjects.GetLine(tx, mux.Vars(r)["id"])
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	p.PageCommons, err = InitPageCommons(tx, w, r, fmt.Sprintf("Linha %s do %s", p.Line.Name, p.Line.Network.Name))
 	if err != nil {
 		webLog.Println(err)
@@ -925,12 +932,6 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.Line, err = dataobjects.GetLine(tx, mux.Vars(r)["id"])
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	p.Stations, err = p.Line.Stations(tx)
 	if err != nil {
 		webLog.Println(err)
