@@ -69,13 +69,17 @@ func SetUpScrapers(node sqalx.Node) error {
 		},
 		Period: 1 * time.Minute,
 	}
-	mlxscr.Init(l, handleNewStatus, handleTopologyChange)
+	mlxscr.Init(l, handleNewStatusNotify, handleTopologyChange)
 	mlxscr.Begin()
 	scrapers[mlxscr.ID()] = mlxscr
 	return tx.Commit()
 }
 
-func handleNewStatus(status *dataobjects.Status) {
+func handleNewStatusNotify(status *dataobjects.Status) {
+	handleNewStatus(status, true)
+}
+
+func handleNewStatus(status *dataobjects.Status, allowNotify bool) {
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		mainLog.Println(err)
@@ -89,7 +93,7 @@ func handleNewStatus(status *dataobjects.Status) {
 		log.Println("   Is disturbance!")
 	}
 
-	err = status.Line.AddStatus(tx, status, true)
+	err = status.Line.AddStatus(tx, status, allowNotify)
 	if err != nil {
 		mainLog.Println(err)
 		return

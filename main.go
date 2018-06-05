@@ -82,6 +82,8 @@ func main() {
 	if err != nil {
 		mainLog.Fatalln(err)
 	}
+	// done like this to ensure rootSqalxNode is not nil at this point
+	reportHandler = NewReportHandler(statsHandler, rootSqalxNode)
 
 	mainLog.Println("Database opened")
 

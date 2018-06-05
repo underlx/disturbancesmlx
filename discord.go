@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/underlx/disturbancesmlx/dataobjects"
 
 	"github.com/underlx/disturbancesmlx/discordbot"
 )
@@ -15,8 +18,15 @@ func DiscordBot() {
 		discordLog.Println("Discord token not found, Discord functions disabled")
 		return
 	}
-	err := discordbot.Start(rootSqalxNode, websiteURL, discordToken, discordLog,
-		schedulesToLines, handleBotCommands)
+
+	discordAdminChannel, present := secrets.Get("discordAdminChannel")
+	if !present {
+		discordLog.Println("Discord admin channel ID not present")
+		discordAdminChannel = ""
+	}
+
+	err := discordbot.Start(rootSqalxNode, websiteURL, discordToken,
+		discordAdminChannel, discordLog, schedulesToLines, handleBotCommands)
 	if err != nil {
 		discordLog.Println(err)
 		return
@@ -37,11 +47,28 @@ func DiscordBot() {
 func handleBotCommands(command discordbot.ParentCommand) {
 	switch t := command.Command().(type) {
 	case *discordbot.NewStatusCommand:
-		handleNewStatus(t.Status)
+		handleNewStatusNotify(t.Status)
 	case *discordbot.ControlScraperCommand:
 		handleControlScraper(t)
 	case *discordbot.ControlNotifsCommand:
 		handleControlNotifs(t.Type, t.Enable)
+	case *discordbot.ReportDisturbanceCommand:
+		err := reportHandler.addReport(dataobjects.NewLineDisturbanceReportDebug(t.Line, "discord"), t.Weight)
+		if err != nil {
+			discordLog.Println(err)
+		}
+	case *discordbot.ClearDisturbanceReportsCommand:
+		reportHandler.clearVotesForLine(t.Line)
+	case *discordbot.GetDisturbanceReportsCommand:
+		message := ""
+		lines, err := dataobjects.GetLines(rootSqalxNode)
+		if err != nil {
+			discordLog.Println(err)
+		}
+		for _, line := range lines {
+			message += fmt.Sprintf("`%s`: %d/%d\n", line.ID, reportHandler.countVotesForLine(line), reportHandler.getThresholdForLine(line))
+		}
+		t.MessageCallback(message)
 	default:
 		discordLog.Println("Unknown ParentCommand type")
 	}

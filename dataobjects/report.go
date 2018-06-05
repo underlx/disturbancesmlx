@@ -1,5 +1,7 @@
 package dataobjects
 
+import uuid "github.com/satori/go.uuid"
+
 // Report is a user report
 type Report interface {
 	Submitter() *APIPair // might be nil
@@ -40,6 +42,19 @@ func NewLineDisturbanceReport(ipAddr string, line *Line, category string) *LineD
 		BaseReport: BaseReport{
 			submitterKey:           ipAddr,
 			strongReplayProtection: false,
+		},
+		category: category,
+		line:     line,
+	}
+}
+
+// NewLineDisturbanceReportDebug creates a test LineDisturbanceReport for debugging
+func NewLineDisturbanceReportDebug(line *Line, category string) *LineDisturbanceReport {
+	uuid, _ := uuid.NewV4()
+	return &LineDisturbanceReport{
+		BaseReport: BaseReport{
+			submitterKey:           uuid.String(),
+			strongReplayProtection: true,
 		},
 		category: category,
 		line:     line,

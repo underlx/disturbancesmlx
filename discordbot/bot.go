@@ -3,6 +3,7 @@ package discordbot
 import (
 	"log"
 	"math/rand"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -28,6 +29,7 @@ var botLog *log.Logger
 var session *discordgo.Session
 var schedToLines func(schedules []*dataobjects.LobbySchedule) []string
 var cmdCallback func(command ParentCommand)
+var adminChannelID string
 
 type lightTrigger struct {
 	wordType wordType
@@ -70,11 +72,13 @@ const (
 )
 
 // Start starts the Discord bot
-func Start(snode sqalx.Node, swebsiteURL, discordToken string, log *log.Logger,
+func Start(snode sqalx.Node, swebsiteURL, discordToken, adminChannel string,
+	log *log.Logger,
 	schedulesToLines func(schedules []*dataobjects.LobbySchedule) []string,
 	cmdCb func(command ParentCommand)) error {
 	node = snode
 	websiteURL = swebsiteURL
+	adminChannelID = adminChannel
 	botLog = log
 	schedToLines = schedulesToLines
 	cmdCallback = cmdCb
@@ -260,7 +264,7 @@ func parseCommands(s *discordgo.Session, m *discordgo.MessageCreate, words []str
 		return true
 	}
 
-	if m.Author.ID == botOwnerUserID {
+	if m.Author.ID == botOwnerUserID || isAdminChannel(m.ChannelID) {
 		switch words[0] {
 		case "$setstatus":
 			handleStatus(s, m, words[1:])
@@ -273,6 +277,9 @@ func parseCommands(s *discordgo.Session, m *discordgo.MessageCreate, words []str
 			return true
 		case "$notifs":
 			handleControlNotifs(s, m, words[1:])
+			return true
+		case "$russia":
+			handleRUSSIA(s, m, words[1:])
 			return true
 		case "$permamute":
 			channelMute[m.ChannelID] = true
@@ -407,6 +414,76 @@ func handleControlNotifs(s *discordgo.Session, m *discordgo.MessageCreate, words
 	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 
+// RUSSIA: Remarkably Ubiquitous and Safe System for Intelligent Abetment
+func handleRUSSIA(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {
+	if len(words) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+
+	tx, err := node.Beginx()
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+	defer tx.Commit() // read-only tx
+
+	var line *dataobjects.Line
+	if words[0] == "cast" || words[0] == "empty" {
+		line, err = dataobjects.GetLine(tx, words[1])
+		if err != nil {
+			lines, err := dataobjects.GetLines(tx)
+			if err != nil {
+				s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+				return
+			}
+			lineIDs := make([]string, len(lines))
+			for i := range lines {
+				lineIDs[i] = "`" + lines[i].ID + "`"
+			}
+			s.ChannelMessageSend(m.ChannelID, "🆖 line ID must be one of ["+strings.Join(lineIDs, ",")+"]")
+			return
+		}
+	}
+
+	switch words[0] {
+	case "cast":
+		if len(words) < 3 {
+			s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+			return
+		}
+		weight, err := strconv.Atoi(words[2])
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			return
+		}
+		cmdCallback(&ReportDisturbanceCommand{
+			Line:   line,
+			Weight: weight,
+		})
+		s.ChannelMessageSend(m.ChannelID, "✅")
+	case "empty":
+		if len(words) < 2 {
+			s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+			return
+		}
+		cmdCallback(&ClearDisturbanceReportsCommand{
+			Line: line,
+		})
+		s.ChannelMessageSend(m.ChannelID, "✅")
+	case "show":
+		cmdCallback(&GetDisturbanceReportsCommand{
+			MessageCallback: func(message string) {
+				s.ChannelMessageSend(m.ChannelID, message)
+			},
+		})
+	default:
+		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `cast` or `empty`")
+		return
+	}
+
+}
+
 func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {
 	var err error
 	if len(words) == 0 {
@@ -488,4 +565,8 @@ func getEmojiForLine(id string) string {
 		return "<:ml_vermelha:410579362773991424>"
 	}
 	return ""
+}
+
+func isAdminChannel(channelID string) bool {
+	return adminChannelID != "" && channelID == adminChannelID
 }

@@ -437,6 +437,7 @@ func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime tim
 
 // CurrentlyClosed returns whether this line is closed right now
 func (line *Line) CurrentlyClosed(tx sqalx.Node) (bool, error) {
+	// this is a bit of a hack (trying to reuse existing code...), but should work
 	closedDuration, err := line.getClosedDuration(tx, time.Now(), time.Now().Add(1*time.Millisecond))
 	if err != nil {
 		return false, err

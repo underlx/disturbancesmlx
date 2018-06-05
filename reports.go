@@ -10,7 +10,7 @@ import (
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
-var reportHandler = NewReportHandler(statsHandler, rootSqalxNode)
+var reportHandler *ReportHandler
 
 // ReportHandler implements resource.ReportHandler
 type ReportHandler struct {
@@ -24,6 +24,7 @@ func NewReportHandler(statsHandler *StatsHandler, node sqalx.Node) *ReportHandle
 	h := &ReportHandler{
 		reports:      cache.New(cache.NoExpiration, 30*time.Second),
 		statsHandler: statsHandler,
+		node:         node,
 	}
 	h.reports.OnEvicted(func(string, interface{}) {
 		h.evaluateSituation()
@@ -47,13 +48,15 @@ func (r *ReportHandler) HandleLineDisturbanceReport(report *dataobjects.LineDist
 		return err
 	}
 
-	data := &reportData{report, weight}
+	return r.addReport(report, weight)
+}
 
-	err = r.reports.Add(report.RateLimiterKey(), data, 15*time.Minute)
+func (r *ReportHandler) addReport(report *dataobjects.LineDisturbanceReport, weight int) error {
+	data := &reportData{report, weight}
+	err := r.reports.Add(report.RateLimiterKey(), data, 15*time.Minute)
 	if err != nil {
 		return errors.New("HandleLineDisturbanceReport: report rate-limited")
 	}
-
 	go r.evaluateSituation()
 	return nil
 }
