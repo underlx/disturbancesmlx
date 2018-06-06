@@ -6,13 +6,14 @@
       {{ if (gt (len .Message) 0) }}
       <aside {{ if .MessageIsError }} style="background: rgb(202, 60, 60);" {{end}}><p>{{ .Message }}</p></aside>
       {{end}}
+      {{ if (gt (len .ReportableLines) 0) }}
       {{ if (or (eq (len .Message) 0) .MessageIsError ) }}
       <p>Se está a presenciar problemas no serviço do Metro, tais como tempos de espera demasiado elevados para a hora actual, sobrelotação das carruagens ou dos cais, ou incidentes com passageiros, seleccione as linhas afectadas:</p>
       <form class="pure-form pure-form-stacked" method="POST">
           <fieldset>
-              {{ range $index, $line := .Lines }}
+              {{ range $index, $line := .ReportableLines }}
               <label for="line-{{ $line.ID }}" class="pure-checkbox" style="margin-top: 10px; font-size: 130%; font-weight: bold;">
-                  <input id="line-{{ $line.ID }}" name="lines" value="{{ $line.ID }}" type="checkbox"> Linha <a class="line" style="color: #{{ $line.Color }};">{{ .Line.Name | html }}</a>
+                  <input id="line-{{ $line.ID }}" name="lines" value="{{ $line.ID }}" type="checkbox"> Linha <a class="line" style="color: #{{ $line.Color }};">{{ $line.Name | html }}</a>
               </label>
               {{end}}
               {{ if .DebugBuild }}
@@ -23,6 +24,9 @@
               <button type="submit" class="button-warning pure-button" style="margin-top: 10px; font-size: 110%;">Comunicar problemas</button>
           </fieldset>
       </form>
+      {{end}}
+      {{else}}
+      <p>Neste momento, todas as linhas estão encerradas.</p>
       {{end}}
     </div>
   </div>
