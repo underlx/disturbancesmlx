@@ -68,6 +68,12 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/transfers/:station/:from/:to", new(resource.Transfer).WithNode(rootSqalxNode))
 
 	v1.Add("/disturbances", new(resource.Disturbance).WithNode(rootSqalxNode))
+
+	v1.Add("/disturbances/reports", new(resource.DisturbanceReport).
+		WithNode(rootSqalxNode).
+		WithHashKey(getHashKey()).
+		WithReportHandler(reportHandler))
+
 	v1.Add("/disturbances/:id", new(resource.Disturbance).WithNode(rootSqalxNode))
 
 	v1.Add("/datasets", new(resource.Dataset).WithNode(rootSqalxNode).WithSquirrel(&sdb))
@@ -94,11 +100,6 @@ func APIserver(trustedClientCertPath string) {
 
 	v1.Add("/trips", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 	v1.Add("/trips/:id", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
-
-	v1.Add("/disturbances/reports", new(resource.DisturbanceReport).
-		WithNode(rootSqalxNode).
-		WithHashKey(getHashKey()).
-		WithReportHandler(reportHandler))
 
 	v1.Add("/rt", new(resource.Realtime).
 		WithNode(rootSqalxNode).
