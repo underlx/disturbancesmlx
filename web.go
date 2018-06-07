@@ -112,7 +112,7 @@ func WebServer() {
 	webLog.Println("Starting Web server...")
 
 	router.HandleFunc("/", HomePage)
-	router.HandleFunc("/report", r)
+	router.HandleFunc("/report", ReportPage)
 	router.HandleFunc("/lookingglass", LookingGlass)
 	router.HandleFunc("/lookingglass/heatmap", Heatmap)
 	router.HandleFunc("/internal", InternalPage)
@@ -347,8 +347,8 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// r serves the disturbance reporting page
-func r(w http.ResponseWriter, r *http.Request) {
+// ReportPage serves the disturbance reporting page
+func ReportPage(w http.ResponseWriter, r *http.Request) {
 	if DEBUG {
 		WebReloadTemplate()
 	}
