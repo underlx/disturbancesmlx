@@ -38,8 +38,8 @@
   name = "github.com/SaidinWoT/timespan"
 
 [[constraint]]
+  branch = "develop"
   name = "github.com/bwmarrin/discordgo"
-  version = "0.18.0"
 
 [[constraint]]
   branch = "master"

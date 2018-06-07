@@ -26,10 +26,10 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "develop"
   name = "github.com/bwmarrin/discordgo"
   packages = ["."]
-  revision = "4a33b9bc7c56cfdb9bb244e33e83cb3941fe2bdc"
-  version = "v0.18.0"
+  revision = "67729f3d95e80c3c60f97bd083d76f8244696f4d"
 
 [[projects]]
   branch = "master"
@@ -137,6 +137,12 @@
   revision = "90697d60dd844d5ef6ff15135d0203f65d2f53b8"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/medicalwei/recaptcha"
+  packages = ["."]
+  revision = "1a62da3baba8b3a1f745a10a722a917089f3a313"
+
+[[projects]]
   name = "github.com/mmcdole/gofeed"
   packages = [
     ".",
@@ -192,6 +198,12 @@
   name = "github.com/satori/go.uuid"
   packages = ["."]
   revision = "36e9d2ebbde5e3f13ab2e25625fd453271d6522e"
+
+[[projects]]
+  name = "github.com/thoas/go-funk"
+  packages = ["."]
+  revision = "14304e8530de7dbb909c8305591b3a8370dd9dbb"
+  version = "0.2"
 
 [[projects]]
   name = "github.com/yarf-framework/yarf"
@@ -282,6 +294,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0e549eae49741f184e8a362d349e548115d5bd61c321be60aacce4dac1e855e4"
+  inputs-digest = "9cd9532b7b36b07d5add52dc6be7ee60d36c677591dd6b736984cc12c3f1f15f"
   solver-name = "gps-cdcl"
   solver-version = 1
