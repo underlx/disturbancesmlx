@@ -3,6 +3,7 @@ package dataobjects
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	sq "github.com/gbl08ma/squirrel"
 	"github.com/heetch/sqalx"
@@ -73,7 +74,7 @@ func getLineSchedulesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*
 func (schedule *LineSchedule) Compare(s2 *LineSchedule) bool {
 	return (!schedule.Open && !s2.Open) ||
 		(schedule.Open == s2.Open &&
-			schedule.OpenTime == s2.OpenTime &&
+			time.Time(schedule.OpenTime).Equal(time.Time(s2.OpenTime)) &&
 			schedule.OpenDuration == s2.OpenDuration)
 }
 

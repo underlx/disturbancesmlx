@@ -451,6 +451,14 @@ func (line *Line) getClosedDuration(tx sqalx.Node, startTime time.Time, endTime 
 		return 0, err
 	}
 
+	location, err := time.LoadLocation(line.Network.Timezone)
+	if err != nil {
+		return 0, err
+	}
+
+	startTime = startTime.In(location)
+	endTime = endTime.In(location)
+
 	var openDuration time.Duration
 	wholeSpan := timespan.New(startTime, endTime.Sub(startTime))
 	// expand one day on both sides so we can be sure the schedule info captures everything
