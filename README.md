@@ -13,9 +13,11 @@ The website contains a heavily modified version of [cnanney's CSS flip counter](
 
 ## Installation
 
-`go get -u github.com/underlx/disturbancesmlx`, as is tradition with Go projects.
+We assume you already have a [Go](https://golang.org/) development environment set up. This project uses [dep](https://golang.github.io/dep/) for dependency management. Begin by [installing dep](https://golang.github.io/dep/docs/installation.html) (it's easy).
 
-Use the `schema.sql` file to create the schema on your PostgreSQL database, and edit the database connection string in `secrets-debug.json`.
+You should then clone this repo with `go get -u github.com/underlx/disturbancesmlx`, then use `dep ensure` to download and install the right versions of the dependencies in the vendor directory.
+
+Create a new PostgreSQL database and use the `schema.sql` file to create its schema. Edit the database connection string in `secrets-debug.json`.
 
 `go build`, run `disturbancesmlx` and wait for the "Scraper completed second fetch" log message to appear. The HTTP server should be available on localhost port 8089 by then.
 
