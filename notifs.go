@@ -36,6 +36,7 @@ func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.S
 		"status":      s.Status,
 		"downtime":    downtimeStr,
 		"official":    officialStr,
+		"msgType":     string(s.MsgType),
 	}
 
 	if fcmcl == nil {
