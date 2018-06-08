@@ -919,6 +919,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		PageCommons
 		Line              *dataobjects.Line
 		Stations          []*dataobjects.Station
+		ClosedStations    []bool
 		WeekAvailability  float64
 		WeekDuration      time.Duration
 		MonthAvailability float64
@@ -944,6 +945,13 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	p.ClosedStations = make([]bool, len(p.Stations))
+	for i, station := range p.Stations {
+		if closed, err := station.Closed(tx); err == nil && closed {
+			p.ClosedStations[i] = true
+		}
 	}
 
 	loc, _ := time.LoadLocation(p.Line.Network.Timezone)

@@ -10,7 +10,7 @@
         <ul class="pt-ml-line" style="background-color: #{{ .Line.Color }}">
         {{ range $index, $station := .Stations }}
           <li>
-            <a href="/stations/{{ $station.ID }}">{{ $station.Name }}</a>
+            <a href="/stations/{{ $station.ID }}" {{ if (index $.ClosedStations $index) }} style="text-decoration: line-through" {{end}}>{{ $station.Name }}</a>
             <span class="station-features">
               {{ range $tag := $station.Tags }}
                 {{ if (eq $tag "c_airport") }}<i class="fa fa-plane" aria-hidden="true"></i>{{end}}
