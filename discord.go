@@ -69,6 +69,12 @@ func handleBotCommands(command discordbot.ParentCommand) {
 			message += fmt.Sprintf("`%s`: %d/%d\n", line.ID, reportHandler.countVotesForLine(line), reportHandler.getThresholdForLine(line))
 		}
 		t.MessageCallback(message)
+	case *discordbot.ReportThresholdMultiplierCommand:
+		if t.Set {
+			reportHandler.SetThresholdMultiplier(t.Multiplier)
+		} else {
+			t.Multiplier = reportHandler.ThresholdMultiplier()
+		}
 	default:
 		discordLog.Println("Unknown ParentCommand type")
 	}

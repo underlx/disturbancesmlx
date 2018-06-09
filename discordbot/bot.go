@@ -477,8 +477,28 @@ func handleRUSSIA(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 				s.ChannelMessageSend(m.ChannelID, message)
 			},
 		})
+	case "multiplier":
+		if len(words) < 2 {
+			command := &ReportThresholdMultiplierCommand{}
+			cmdCallback(command)
+			s.ChannelMessageSend(m.ChannelID, strconv.FormatFloat(float64(command.Multiplier), 'f', 3, 32))
+		} else {
+			multiplier, err := strconv.ParseFloat(words[1], 32)
+			if err != nil {
+				s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+				return
+			} else if multiplier <= 0 {
+				s.ChannelMessageSend(m.ChannelID, "🆖 must be > 0")
+				return
+			}
+			cmdCallback(&ReportThresholdMultiplierCommand{
+				Set:        true,
+				Multiplier: float32(multiplier),
+			})
+			s.ChannelMessageSend(m.ChannelID, "✅")
+		}
 	default:
-		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `cast` or `empty`")
+		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `cast`, `empty`, `multiplier` or `show`")
 		return
 	}
 

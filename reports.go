@@ -21,6 +21,7 @@ type ReportHandler struct {
 	statsHandler *StatsHandler
 	node         sqalx.Node
 	thresholds   *sync.Map
+	multiplier   float32
 }
 
 // NewReportHandler initializes a new ReportHandler and returns it
@@ -30,6 +31,7 @@ func NewReportHandler(statsHandler *StatsHandler, node sqalx.Node) *ReportHandle
 		statsHandler: statsHandler,
 		node:         node,
 		thresholds:   new(sync.Map),
+		multiplier:   1,
 	}
 	h.reports.OnEvicted(func(string, interface{}) {
 		h.evaluateSituation()
@@ -153,7 +155,7 @@ func (r *ReportHandler) getThresholdForLine(line *dataobjects.Line) int {
 		sum += item.Object.(int)
 		count++
 	}
-	return sum / count
+	return int((float32(sum) / float32(count)) * r.multiplier)
 }
 
 func (r *ReportHandler) lineHasEnoughVotesToStartDisturbance(line *dataobjects.Line) bool {
@@ -320,4 +322,16 @@ func (r *ReportHandler) endDisturbance(line *dataobjects.Line) error {
 
 	handleNewStatus(status, true)
 	return nil
+}
+
+// ThresholdMultiplier returns the current threshold multiplier
+func (r *ReportHandler) ThresholdMultiplier() float32 {
+	return r.multiplier
+}
+
+// SetThresholdMultiplier sets the current threshold multiplier
+func (r *ReportHandler) SetThresholdMultiplier(m float32) {
+	if m > 0 {
+		r.multiplier = m
+	}
 }

@@ -70,3 +70,14 @@ type GetDisturbanceReportsCommand struct {
 func (c *GetDisturbanceReportsCommand) Command() interface{} {
 	return c
 }
+
+// ReportThresholdMultiplierCommand is sent when the bot wants to get or set the current threshold multiplier
+type ReportThresholdMultiplierCommand struct {
+	Set        bool
+	Multiplier float32
+}
+
+// Command returns a pointer to itself
+func (c *ReportThresholdMultiplierCommand) Command() interface{} {
+	return c
+}
