@@ -828,11 +828,11 @@ func schedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 	holidaysAllTheSame := schedulesByDay[-1].Compare(schedulesByDay[0]) && schedulesByDay[6].Compare(schedulesByDay[0])
 	allDaysTheSame := weekdaysAllTheSame && holidaysAllTheSame && schedulesByDay[-1].Compare(schedulesByDay[2])
 
-	if allDaysTheSame {
-		return []string{"Todos os dias: " + scheduleToString(schedulesByDay[0])}
-	}
 	scheduleString := []string{}
-	if weekdaysAllTheSame {
+
+	if allDaysTheSame {
+		scheduleString = []string{"Todos os dias: " + scheduleToString(schedulesByDay[0])}
+	} else if weekdaysAllTheSame {
 		scheduleString = append(scheduleString, "Dias úteis: "+scheduleToString(schedulesByDay[1]))
 	} else {
 		for i := 2; i < 6; i++ {
@@ -840,9 +840,9 @@ func schedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 		}
 	}
 
-	if holidaysAllTheSame {
+	if !allDaysTheSame && holidaysAllTheSame {
 		scheduleString = append(scheduleString, "Fins de semana e feriados: "+scheduleToString(schedulesByDay[0]))
-	} else {
+	} else if !allDaysTheSame {
 		scheduleString = append(scheduleString, time.Weekday(0).String()+": "+scheduleToString(schedulesByDay[0]))
 		scheduleString = append(scheduleString, time.Weekday(6).String()+": "+scheduleToString(schedulesByDay[6]))
 		scheduleString = append(scheduleString, "Feriados: "+scheduleToString(schedulesByDay[-1]))
