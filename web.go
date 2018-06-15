@@ -801,11 +801,20 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 
 func schedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 	schedulesByDay := make(map[int]*dataobjects.LobbySchedule)
+	exceptions := []struct {
+		day      int
+		schedule *dataobjects.LobbySchedule
+	}{}
 	for _, schedule := range schedules {
 		if schedule.Holiday && schedule.Day == 0 {
 			schedulesByDay[-1] = schedule
 		} else if !schedule.Holiday {
 			schedulesByDay[schedule.Day] = schedule
+		} else {
+			exceptions = append(exceptions, struct {
+				day      int
+				schedule *dataobjects.LobbySchedule
+			}{schedule.Day, schedule})
 		}
 	}
 
@@ -837,6 +846,32 @@ func schedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 		scheduleString = append(scheduleString, time.Weekday(0).String()+": "+scheduleToString(schedulesByDay[0]))
 		scheduleString = append(scheduleString, time.Weekday(6).String()+": "+scheduleToString(schedulesByDay[6]))
 		scheduleString = append(scheduleString, "Feriados: "+scheduleToString(schedulesByDay[-1]))
+	}
+
+	if len(exceptions) == 0 {
+		return scheduleString
+	}
+
+	sort.Slice(exceptions, func(i, j int) bool { return exceptions[i].day < exceptions[j].day })
+
+	location, err := time.LoadLocation(exceptions[0].schedule.Lobby.Station.Network.Timezone)
+	if err != nil {
+		return scheduleString
+	}
+
+	now := time.Now().In(location)
+	currentDay := now.YearDay()
+
+	for _, exception := range exceptions {
+		if exception.day >= currentDay-1 { // minus one, because schedules from previous days may extend past midnight
+			// time.Date takes care of overflowing day into month
+			date := time.Date(now.Year(), 1, exception.day, 0, 0, 0, 0, location)
+			scheduleString = append(scheduleString,
+				fmt.Sprintf("%d de %s: %s",
+					date.Day(),
+					formatPortugueseMonth(date.Month()),
+					scheduleToString(exception.schedule)))
+		}
 	}
 
 	return scheduleString
@@ -1324,36 +1359,7 @@ func WebReloadTemplate() {
 			loc, _ := time.LoadLocation("Europe/Lisbon")
 			return t.In(loc).Format("02 Jan 2006 15:04")
 		},
-		"formatPortugueseMonth": func(month time.Month) string {
-			switch month {
-			case time.January:
-				return "Janeiro"
-			case time.February:
-				return "Fevereiro"
-			case time.March:
-				return "Março"
-			case time.April:
-				return "Abril"
-			case time.May:
-				return "Maio"
-			case time.June:
-				return "Junho"
-			case time.July:
-				return "Julho"
-			case time.August:
-				return "Agosto"
-			case time.September:
-				return "Setembro"
-			case time.October:
-				return "Outubro"
-			case time.November:
-				return "Novembro"
-			case time.December:
-				return "Dezembro"
-			default:
-				return ""
-			}
-		},
+		"formatPortugueseMonth": formatPortugueseMonth,
 	}
 
 	webtemplate, _ = template.New("index.html").Funcs(funcMap).ParseGlob("web/*.html")
@@ -1430,4 +1436,35 @@ func GetClientIP(r *http.Request) (ip string) {
 	}
 
 	return strings.Split(ip, ":")[0]
+}
+
+func formatPortugueseMonth(month time.Month) string {
+	switch month {
+	case time.January:
+		return "Janeiro"
+	case time.February:
+		return "Fevereiro"
+	case time.March:
+		return "Março"
+	case time.April:
+		return "Abril"
+	case time.May:
+		return "Maio"
+	case time.June:
+		return "Junho"
+	case time.July:
+		return "Julho"
+	case time.August:
+		return "Agosto"
+	case time.September:
+		return "Setembro"
+	case time.October:
+		return "Outubro"
+	case time.November:
+		return "Novembro"
+	case time.December:
+		return "Dezembro"
+	default:
+		return ""
+	}
 }
