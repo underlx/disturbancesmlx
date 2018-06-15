@@ -883,7 +883,13 @@ func scheduleToString(schedule *dataobjects.LobbySchedule) string {
 	openString := time.Time(schedule.OpenTime).Format("15:04")
 	closeString := time.Time(schedule.OpenTime).
 		Add(time.Duration(schedule.OpenDuration)).Format("15:04")
-	return fmt.Sprintf("%s - %s", openString, closeString)
+	text := fmt.Sprintf("%s - %s", openString, closeString)
+	hours := time.Duration(schedule.OpenDuration).Hours()
+	if hours >= 24 {
+		text += fmt.Sprintf(" (%s horas)",
+			strings.TrimSuffix(fmt.Sprintf("%.2f", hours), ".00"))
+	}
+	return text
 }
 
 // ReadStationTrivia returns the contents of the HTML file
