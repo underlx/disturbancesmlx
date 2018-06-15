@@ -81,3 +81,14 @@ type ReportThresholdMultiplierCommand struct {
 func (c *ReportThresholdMultiplierCommand) Command() interface{} {
 	return c
 }
+
+// ReportThresholdOffsetCommand is sent when the bot wants to get or set the current threshold offset
+type ReportThresholdOffsetCommand struct {
+	Set    bool
+	Offset int
+}
+
+// Command returns a pointer to itself
+func (c *ReportThresholdOffsetCommand) Command() interface{} {
+	return c
+}

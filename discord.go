@@ -75,6 +75,12 @@ func handleBotCommands(command discordbot.ParentCommand) {
 		} else {
 			t.Multiplier = reportHandler.ThresholdMultiplier()
 		}
+	case *discordbot.ReportThresholdOffsetCommand:
+		if t.Set {
+			reportHandler.SetThresholdOffset(t.Offset)
+		} else {
+			t.Offset = reportHandler.ThresholdOffset()
+		}
 	default:
 		discordLog.Println("Unknown ParentCommand type")
 	}

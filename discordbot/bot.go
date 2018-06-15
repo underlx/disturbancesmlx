@@ -497,8 +497,25 @@ func handleRUSSIA(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 			})
 			s.ChannelMessageSend(m.ChannelID, "✅")
 		}
+	case "offset":
+		if len(words) < 2 {
+			command := &ReportThresholdOffsetCommand{}
+			cmdCallback(command)
+			s.ChannelMessageSend(m.ChannelID, strconv.FormatInt(int64(command.Offset), 10))
+		} else {
+			offset, err := strconv.ParseInt(words[1], 10, 64)
+			if err != nil {
+				s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+				return
+			}
+			cmdCallback(&ReportThresholdOffsetCommand{
+				Set:    true,
+				Offset: int(offset),
+			})
+			s.ChannelMessageSend(m.ChannelID, "✅")
+		}
 	default:
-		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `cast`, `empty`, `multiplier` or `show`")
+		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `cast`, `empty`, `multiplier`, `offset` or `show`")
 		return
 	}
 

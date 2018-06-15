@@ -22,6 +22,7 @@ type ReportHandler struct {
 	node         sqalx.Node
 	thresholds   *sync.Map
 	multiplier   float32
+	baseOffset   int
 }
 
 // NewReportHandler initializes a new ReportHandler and returns it
@@ -155,7 +156,7 @@ func (r *ReportHandler) getThresholdForLine(line *dataobjects.Line) int {
 		sum += item.Object.(int)
 		count++
 	}
-	return int((float32(sum) / float32(count)) * r.multiplier)
+	return r.baseOffset + int((float32(sum)/float32(count))*r.multiplier)
 }
 
 func (r *ReportHandler) lineHasEnoughVotesToStartDisturbance(line *dataobjects.Line) bool {
@@ -334,4 +335,14 @@ func (r *ReportHandler) SetThresholdMultiplier(m float32) {
 	if m > 0 {
 		r.multiplier = m
 	}
+}
+
+// ThresholdOffset returns the current threshold offset
+func (r *ReportHandler) ThresholdOffset() int {
+	return r.baseOffset
+}
+
+// SetThresholdOffset sets the current threshold offset
+func (r *ReportHandler) SetThresholdOffset(offset int) {
+	r.baseOffset = offset
 }
