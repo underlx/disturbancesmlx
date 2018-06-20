@@ -337,7 +337,7 @@ func buildLobbyMesage(id string) (*Embed, error) {
 	scheduleStr := ""
 	for i, line := range scheduleLines {
 		scheduleStr += line
-		if i < len(exits)-1 {
+		if i < len(scheduleLines)-1 {
 			scheduleStr += "\n"
 		}
 	}
