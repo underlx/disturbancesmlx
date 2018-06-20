@@ -593,13 +593,15 @@ func sendReply(s *discordgo.Session, m *discordgo.MessageCreate, trigger, origTr
 func getEmojiForLine(id string) string {
 	switch id {
 	case "pt-ml-azul":
-		return "<:ml_azul:410577265420795904>"
+		return "<:ml_azul:459100543240110091>"
 	case "pt-ml-amarela":
-		return "<:ml_amarela:410566925114933250>"
+		return "<:ml_amarela:459100497895227403>"
 	case "pt-ml-verde":
-		return "<:ml_verde:410577778862325764>"
+		return "<:ml_verde:459100596549451776>"
 	case "pt-ml-vermelha":
-		return "<:ml_vermelha:410579362773991424>"
+		return "<:ml_vermelha:459100637985112095>"
+	case "pt-ml-laranja":
+		return "<:ml_laranja:455786569446588446>"
 	}
 	return ""
 }
