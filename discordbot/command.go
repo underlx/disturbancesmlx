@@ -12,13 +12,13 @@ import (
 type Privilege int
 
 const (
-	// EveryonePrivilege commands can be used by anyone
-	EveryonePrivilege Privilege = iota
-	// AdminPrivilege commands can be user by the bot owner or by anyone in the
+	// PrivilegeEveryone commands can be used by anyone
+	PrivilegeEveryone Privilege = iota
+	// PrivilegeAdmin commands can be user by the bot owner or by anyone in the
 	// special admin channel
-	AdminPrivilege
-	// RootPrivilege commands can only be used by the bot owner
-	RootPrivilege
+	PrivilegeAdmin
+	// PrivilegeRoot commands can only be used by the bot owner
+	PrivilegeRoot
 )
 
 // Command represents a bot command
@@ -36,7 +36,7 @@ type CommandHandler func(s *discordgo.Session, m *discordgo.MessageCreate, args 
 func NewCommand(name string, handler CommandHandler) Command {
 	return Command{
 		Name:             name,
-		RequirePrivilege: EveryonePrivilege,
+		RequirePrivilege: PrivilegeEveryone,
 		IgnoreMute:       true,
 		Handler:          handler,
 	}
@@ -83,7 +83,7 @@ func NewCommandLibrary(prefix, botOwnerUserID string) *CommandLibrary {
 }
 
 // WithAdminChannel sets the admin channel for this command library (used with
-// AdminPrivilege)
+// PrivilegeAdmin)
 func (l *CommandLibrary) WithAdminChannel(channelID string) *CommandLibrary {
 	l.adminChannelID = channelID
 	return l
@@ -122,18 +122,18 @@ func (l *CommandLibrary) Handle(s *discordgo.Session, m *discordgo.MessageCreate
 	}
 
 	switch command.RequirePrivilege {
-	case AdminPrivilege:
+	case PrivilegeAdmin:
 		if m.Author.ID != l.botOwnerUserID && !l.isAdminChannel(m.ChannelID) {
 			return false
 		}
-	case RootPrivilege:
+	case PrivilegeRoot:
 		if m.Author.ID != l.botOwnerUserID {
 			return false
 		}
 	}
 
-	command.Handle(s, m, args[1:])
 	l.actedUponCount++
+	command.Handle(s, m, args[1:])
 	return true
 }
 

@@ -1,9 +1,8 @@
 package resource
 
 import (
-	"time"
-
 	"github.com/heetch/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 
 	sq "github.com/gbl08ma/squirrel"
@@ -16,10 +15,15 @@ type Dataset struct {
 	sdb *sq.StatementBuilderType
 }
 
+type apiDatasetWrapper struct {
+	Version string               `msgpack:"version" json:"version"`
+	Authors pq.StringArray       `msgpack:"authors" json:"authors"`
+	Network *dataobjects.Network `msgpack:"-" json:"-"`
+}
+
 type apiDataset struct {
-	NetworkID string         `msgpack:"network" json:"network"`
-	Version   string         `msgpack:"version" json:"version"`
-	Authors   pq.StringArray `msgpack:"authors" json:"authors"`
+	NetworkID string `msgpack:"network" json:"network"`
+	apiDatasetWrapper
 }
 
 // WithNode associates a sqalx Node with this resource
@@ -43,49 +47,31 @@ func (r *Dataset) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	if c.Param("id") != "" {
-		var dataset apiDataset
-		var version time.Time
-		err := r.sdb.Select("network_id", "version", "authors").
-			From("dataset_info").RunWith(tx).QueryRow().Scan(
-			&dataset.NetworkID,
-			&version,
-			&dataset.Authors)
+		dataset, err := dataobjects.GetDataset(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
 
-		dataset.Version = version.Format(time.RFC3339)
+		apidataset := apiDataset{
+			apiDatasetWrapper: apiDatasetWrapper(*dataset),
+			NetworkID:         dataset.Network.ID,
+		}
 
-		RenderData(c, dataset)
+		RenderData(c, apidataset)
 	} else {
-		datasets := []*apiDataset{}
-		rows, err := r.sdb.Select("network_id", "version", "authors").
-			From("dataset_info").RunWith(tx).Query()
+		datasets, err := dataobjects.GetDatasets(tx)
 		if err != nil {
 			return err
 		}
-		defer rows.Close()
-
-		for rows.Next() {
-			var dataset apiDataset
-			var version time.Time
-			err := rows.Scan(
-				&dataset.NetworkID,
-				&version,
-				&dataset.Authors)
-			if err != nil {
-				return err
+		apidatasets := make([]apiDataset, len(datasets))
+		for i := range datasets {
+			apidatasets[i] = apiDataset{
+				apiDatasetWrapper: apiDatasetWrapper(*datasets[i]),
+				NetworkID:         datasets[i].Network.ID,
 			}
-
-			dataset.Version = version.Format(time.RFC3339)
-
-			datasets = append(datasets, &dataset)
-		}
-		if err := rows.Err(); err != nil {
-			return err
 		}
 
-		RenderData(c, datasets)
+		RenderData(c, apidatasets)
 	}
 	return nil
 }

@@ -92,3 +92,25 @@ type ReportThresholdOffsetCommand struct {
 func (c *ReportThresholdOffsetCommand) Command() interface{} {
 	return c
 }
+
+// RequestVersionCommand is sent when the bot wants to get the current server version
+type RequestVersionCommand struct {
+	GitCommit string
+	BuildDate string
+}
+
+// Command returns a pointer to itself
+func (c *RequestVersionCommand) Command() interface{} {
+	return c
+}
+
+// RequestStatsCommand is sent when the bot wants to get the current server stats
+type RequestStatsCommand struct {
+	DBopenConnections int
+	APItotalRequests  int
+}
+
+// Command returns a pointer to itself
+func (c *RequestStatsCommand) Command() interface{} {
+	return c
+}

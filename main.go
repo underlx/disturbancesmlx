@@ -16,15 +16,21 @@ import (
 )
 
 var (
-	rdb           *sqlx.DB
-	sdb           sq.StatementBuilderType
-	rootSqalxNode sqalx.Node
-	secrets       *keybox.Keybox
-	fcmcl         *fcm.FcmClient
-	mainLog       = log.New(os.Stdout, "", log.Ldate|log.Ltime)
-	discordLog    = log.New(os.Stdout, "discord", log.Ldate|log.Ltime)
-	webLog        = log.New(os.Stdout, "web", log.Ldate|log.Ltime)
-	lastChange    time.Time
+	rdb              *sqlx.DB
+	sdb              sq.StatementBuilderType
+	rootSqalxNode    sqalx.Node
+	secrets          *keybox.Keybox
+	fcmcl            *fcm.FcmClient
+	mainLog          = log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	discordLog       = log.New(os.Stdout, "discord", log.Ldate|log.Ltime)
+	webLog           = log.New(os.Stdout, "web", log.Ldate|log.Ltime)
+	lastChange       time.Time
+	apiTotalRequests int
+
+	// GitCommit is provided by govvv at compile-time
+	GitCommit = "???"
+	// BuildDate is provided by govvv at compile-time
+	BuildDate = "???"
 )
 
 // MLlastDisturbanceTime returns the time of the latest Metro de Lisboa disturbance

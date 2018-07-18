@@ -1,7 +1,9 @@
 package discordbot
 
 import (
+	"fmt"
 	"log"
+	"math"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -23,11 +25,13 @@ var guildIDs sync.Map
 var botstats stats
 
 type stats struct {
-	startTime         time.Time
-	userCount         int
-	botCount          int
-	textChannelCount  int
-	voiceChannelCount int
+	startTime           time.Time
+	userCount           int
+	botCount            int
+	dmChannelCount      int
+	groupDMChannelCount int
+	textChannelCount    int
+	voiceChannelCount   int
 }
 
 var node sqalx.Node
@@ -63,17 +67,64 @@ func Start(snode sqalx.Node, swebsiteURL, discordToken, adminChannelID string,
 	commandLib = NewCommandLibrary("$", selfApp.Owner.ID).WithAdminChannel(adminChannelID)
 	messageHandlers = append(messageHandlers, commandLib)
 	commandLib.Register(NewCommand("ping", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		s.ChannelMessageSend(m.ChannelID, "🙌")
+		embed := NewEmbed()
+		addMuteEmbed(embed, m.ChannelID)
+		msg := &discordgo.MessageSend{
+			Content: "🙌",
+		}
+		if len(embed.Fields) > 0 {
+			msg.Embed = embed.MessageEmbed
+		}
+		s.ChannelMessageSendComplex(m.ChannelID, msg)
 	}))
 	commandLib.Register(NewCommand("stats", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		embed, err := buildStatsMessage()
+		embed, err := buildBotStatsMessage(m)
+		if err == nil {
+			s.ChannelMessageSendEmbed(m.ChannelID, embed.MessageEmbed)
+		}
+		if len(args) > 0 && args[0] == "full" &&
+			(commandLib.isAdminChannel(m.ChannelID) || m.Author.ID == selfApp.Owner.ID) {
+			embed, err = buildStatsMessage()
+			if err == nil {
+				s.ChannelMessageSendEmbed(m.ChannelID, embed.MessageEmbed)
+			}
+		}
+	}))
+	commandLib.Register(NewCommand("about", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+		embed, err := buildAboutMessage(m)
 		if err == nil {
 			s.ChannelMessageSendEmbed(m.ChannelID, embed.MessageEmbed)
 		}
 	}))
+	commandLib.Register(NewCommand("help", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+		showAll := len(args) > 0 && args[0] == "full" &&
+			(commandLib.isAdminChannel(m.ChannelID) || m.Author.ID == selfApp.Owner.ID)
+		msg := "**Comandos suportados**\n"
+		for _, command := range commandLib.commands {
+			if command.RequirePrivilege == PrivilegeEveryone || showAll {
+				msg += commandLib.prefix + command.Name + "\n"
+			}
+		}
+		if commandLib.isAdminChannel(m.ChannelID) {
+			msg += "_(`$help full` para ver os comandos todos)_"
+		}
+		s.ChannelMessageSend(m.ChannelID, msg)
+	}))
 	commandLib.Register(NewCommand("mute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		stopMute[m.ChannelID] = time.Now().Add(15 * time.Minute)
-		s.ChannelMessageSend(m.ChannelID, "🤐 por 15 minutos")
+		muteDuration := 15 * time.Minute
+		if len(args) > 0 {
+			if duration, err := time.ParseDuration(args[0]); err == nil {
+				muteDuration = duration
+			} else if mins, err := strconv.ParseUint(args[0], 10, 32); err == nil {
+				muteDuration = time.Duration(mins) * time.Minute
+			}
+		}
+		stopMute[m.ChannelID] = time.Now().Add(muteDuration)
+		if muteDuration.Minutes() < 60.0 {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🤐 por %d minutos", int(math.Round(muteDuration.Minutes()))))
+		} else {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🤐 por %s", muteDuration.String()))
+		}
 	}))
 	commandLib.Register(NewCommand("unmute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		stopMute[m.ChannelID] = time.Time{}
@@ -82,16 +133,16 @@ func Start(snode sqalx.Node, swebsiteURL, discordToken, adminChannelID string,
 	commandLib.Register(NewCommand("permamute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		channelMute[m.ChannelID] = true
 		s.ChannelMessageSend(m.ChannelID, "🤐💀")
-	}).WithRequirePrivilege(AdminPrivilege))
+	}).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("permaunmute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		channelMute[m.ChannelID] = false
 		s.ChannelMessageSend(m.ChannelID, "🤗🙌")
-	}).WithRequirePrivilege(AdminPrivilege))
-	commandLib.Register(NewCommand("setstatus", handleStatus).WithRequirePrivilege(AdminPrivilege))
-	commandLib.Register(NewCommand("addlinestatus", handleLineStatus).WithRequirePrivilege(AdminPrivilege))
-	commandLib.Register(NewCommand("scraper", handleControlScraper).WithRequirePrivilege(AdminPrivilege))
-	commandLib.Register(NewCommand("notifs", handleControlNotifs).WithRequirePrivilege(AdminPrivilege))
-	commandLib.Register(NewCommand("russia", handleRUSSIA).WithRequirePrivilege(AdminPrivilege))
+	}).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("setstatus", handleStatus).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("addlinestatus", handleLineStatus).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("scraper", handleControlScraper).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("notifs", handleControlNotifs).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("russia", handleRUSSIA).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("setprefix", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		if len(args) == 0 {
 			commandLib.SetPrefix("")
@@ -99,7 +150,7 @@ func Start(snode sqalx.Node, swebsiteURL, discordToken, adminChannelID string,
 			commandLib.SetPrefix(args[0])
 		}
 		s.ChannelMessageSend(m.ChannelID, "✅")
-	}).WithRequirePrivilege(RootPrivilege))
+	}).WithRequirePrivilege(PrivilegeRoot))
 
 	infoHandler, err := NewInfoHandler(node)
 	if err != nil {
@@ -124,6 +175,8 @@ func Start(snode sqalx.Node, swebsiteURL, discordToken, adminChannelID string,
 	dg.AddHandler(guildDelete)
 	dg.AddHandler(guildMemberAdded)
 	dg.AddHandler(guildMemberRemoved)
+	dg.AddHandler(channelCreate)
+	dg.AddHandler(channelDelete)
 	// Open a websocket connection to Discord and begin listening.
 	return dg.Open()
 }
@@ -171,6 +224,24 @@ func guildMemberAdded(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
 
 func guildMemberRemoved(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
 	botstats.userCount--
+}
+
+func channelCreate(s *discordgo.Session, m *discordgo.ChannelCreate) {
+	switch m.Channel.Type {
+	case discordgo.ChannelTypeDM:
+		botstats.dmChannelCount++
+	case discordgo.ChannelTypeGroupDM:
+		botstats.groupDMChannelCount++
+	}
+}
+
+func channelDelete(s *discordgo.Session, m *discordgo.ChannelDelete) {
+	switch m.Channel.Type {
+	case discordgo.ChannelTypeDM:
+		botstats.dmChannelCount--
+	case discordgo.ChannelTypeGroupDM:
+		botstats.groupDMChannelCount--
+	}
 }
 
 // This function will be called (due to AddHandler above) every time a new

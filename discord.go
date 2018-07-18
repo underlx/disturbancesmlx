@@ -81,6 +81,12 @@ func handleBotCommands(command discordbot.ParentCommand) {
 		} else {
 			t.Offset = reportHandler.ThresholdOffset()
 		}
+	case *discordbot.RequestVersionCommand:
+		t.GitCommit = GitCommit
+		t.BuildDate = BuildDate
+	case *discordbot.RequestStatsCommand:
+		t.APItotalRequests = apiTotalRequests
+		t.DBopenConnections = rdb.Stats().OpenConnections
 	default:
 		discordLog.Println("Unknown ParentCommand type")
 	}

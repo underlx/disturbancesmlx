@@ -4,7 +4,12 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"runtime"
+	"strings"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
+	"github.com/hako/durafmt"
 
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/resource"
@@ -372,10 +377,20 @@ func buildLobbyMesage(id string) (*Embed, error) {
 	return embed, nil
 }
 
-func buildStatsMessage() (*Embed, error) {
+func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
+	uptime := time.Now().Sub(botstats.startTime)
+	uptimenice := durafmt.Parse(uptime.Truncate(time.Second))
+	uptimestr := uptimenice.String()
+	uptimestr = strings.Replace(uptimestr, "year", "ano", 1)
+	uptimestr = strings.Replace(uptimestr, "week", "semana", 1)
+	uptimestr = strings.Replace(uptimestr, "day", "dia", 1)
+	uptimestr = strings.Replace(uptimestr, "hour", "hora", 1)
+	uptimestr = strings.Replace(uptimestr, "minute", "minuto", 1)
+	uptimestr = strings.Replace(uptimestr, "second", "segundo", 1)
+
 	embed := NewEmbed().
 		SetTitle("Estatísticas do bot").
-		SetDescription(fmt.Sprintf("A funcionar há %s", time.Now().Sub(botstats.startTime).String()))
+		SetDescription(fmt.Sprintf("A funcionar há %s", uptimestr))
 
 	guildIDlist := []string{}
 	guildIDs.Range(func(key, value interface{}) bool {
@@ -402,12 +417,97 @@ func buildStatsMessage() (*Embed, error) {
 
 	serversStr += fmt.Sprintf("%d canais de texto\n", botstats.textChannelCount)
 	serversStr += fmt.Sprintf("%d canais de voz\n", botstats.voiceChannelCount)
+	serversStr += fmt.Sprintf("%d canais de mensagens directas\n", botstats.dmChannelCount)
+	serversStr += fmt.Sprintf("%d canais de grupo\n", botstats.groupDMChannelCount)
 
 	embed.AddField("Entidades do Discord", serversStr)
 	for _, handler := range messageHandlers {
-		embed.AddField("Utilização do processador "+handler.Name(),
-			fmt.Sprintf("%d mensagens processadas\n%d mensagens atendidas\n", handler.MessagesHandled(), handler.MessagesActedUpon()))
+		handled := handler.MessagesHandled()
+		actedUpon := handler.MessagesActedUpon()
+
+		statsStr := fmt.Sprintf("%d mensagens processadas (%.02f/minuto)\n%d mensagens atendidas (%.02f/minuto)",
+			handled,
+			float64(handled)/uptime.Minutes(),
+			actedUpon,
+			float64(actedUpon)/uptime.Minutes())
+
+		if handled > 0 {
+			statsStr += fmt.Sprintf("\n%.02f%% de atendimento", float64(actedUpon)/float64(handled)*100.0)
+		}
+		embed.AddField("Utilização do processador "+handler.Name(), statsStr)
 	}
 
+	addMuteEmbed(embed, m.ChannelID)
+
 	return embed, nil
+}
+
+func buildStatsMessage() (*Embed, error) {
+	embed := NewEmbed().
+		SetTitle("Estatísticas do servidor")
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	memStr := fmt.Sprintf("Alloc: %d bytes (%.02f MiB)\n", m.Alloc, float64(m.Alloc)/(1024*1024))
+	memStr += fmt.Sprintf("TotalAlloc: %d bytes (%.02f MiB)\n", m.TotalAlloc, float64(m.TotalAlloc)/(1024*1024))
+	memStr += fmt.Sprintf("Sys: %d bytes (%.02f MiB)\n", m.Sys, float64(m.Sys)/(1024*1024))
+	memStr += fmt.Sprintf("PauseTotalNs: %d ns (%.04f s)\n", m.PauseTotalNs, float64(m.PauseTotalNs)/(1000000000))
+	memStr += fmt.Sprintf("HeapObjects: %d (%d mallocs, %d frees)", m.HeapObjects, m.Mallocs, m.Frees)
+
+	embed.AddField("MemStats", memStr)
+
+	command := &RequestStatsCommand{}
+	cmdCallback(command)
+
+	uptime := time.Now().Sub(botstats.startTime)
+
+	apiStr := fmt.Sprintf("%d pedidos (%.02f/minuto)", command.APItotalRequests, float64(command.APItotalRequests)/uptime.Minutes())
+	embed.AddField("API", apiStr)
+
+	dbStr := fmt.Sprintf("%d ligações abertas", command.DBopenConnections)
+	embed.AddField("Database", dbStr)
+
+	return embed, nil
+}
+
+func buildAboutMessage(m *discordgo.MessageCreate) (*Embed, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit() // read-only tx
+
+	command := &RequestVersionCommand{}
+	cmdCallback(command)
+
+	embed := NewEmbed().
+		SetTitle("Informação do serviço").
+		SetDescription(fmt.Sprintf("Servidor compilado a partir da commit [%s](https://github.com/underlx/disturbancesmlx/commit/%s) em %s.",
+			command.GitCommit, command.GitCommit, command.BuildDate))
+
+	datasets, err := dataobjects.GetDatasets(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	datasetsStr := ""
+	for _, dataset := range datasets {
+		datasetsStr += "__" + dataset.Network.Name + "__ (`" + dataset.Network.ID + "`)\n"
+		datasetsStr += "\tVersão: " + dataset.Version + "\n"
+		datasetsStr += "\tAutores: " + strings.Join(dataset.Authors, ", ") + "\n"
+	}
+
+	embed.AddField("Datasets (mapas de rede)", datasetsStr)
+
+	addMuteEmbed(embed, m.ChannelID)
+
+	return embed, nil
+}
+
+func addMuteEmbed(embed *Embed, channelID string) {
+	if channelMute[channelID] {
+		embed.AddField("Estou em modo silencioso permanente neste canal", "Apenas irei responder a comandos directos 🤐")
+	} else if !time.Now().After(stopMute[channelID]) {
+		embed.AddField("Estou em modo silencioso neste canal. Diga `"+commandLib.prefix+"unmute` para me deixar falar mais.", "Apenas irei responder a comandos directos 🤐")
+	}
 }
