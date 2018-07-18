@@ -371,3 +371,43 @@ func buildLobbyMesage(id string) (*Embed, error) {
 
 	return embed, nil
 }
+
+func buildStatsMessage() (*Embed, error) {
+	embed := NewEmbed().
+		SetTitle("Estatísticas do bot").
+		SetDescription(fmt.Sprintf("A funcionar há %s", time.Now().Sub(botstats.startTime).String()))
+
+	guildIDlist := []string{}
+	guildIDs.Range(func(key, value interface{}) bool {
+		guildIDlist = append(guildIDlist, key.(string))
+		return true
+	})
+
+	serversStr := fmt.Sprintf("%d servidor", len(guildIDlist))
+	if len(guildIDlist) != 1 {
+		serversStr += "es"
+	}
+	serversStr += "\n"
+	serversStr += fmt.Sprintf("%d utilizador", botstats.userCount)
+	if botstats.userCount != 1 {
+		serversStr += "es"
+	}
+	serversStr += fmt.Sprintf(", %d dos quais ", botstats.botCount)
+	if botstats.userCount != 1 {
+		serversStr += "são bots"
+	} else {
+		serversStr += "é bot"
+	}
+	serversStr += "\n"
+
+	serversStr += fmt.Sprintf("%d canais de texto\n", botstats.textChannelCount)
+	serversStr += fmt.Sprintf("%d canais de voz\n", botstats.voiceChannelCount)
+
+	embed.AddField("Entidades do Discord", serversStr)
+	for _, handler := range messageHandlers {
+		embed.AddField("Utilização do processador "+handler.Name(),
+			fmt.Sprintf("%d mensagens processadas\n%d mensagens atendidas\n", handler.MessagesHandled(), handler.MessagesActedUpon()))
+	}
+
+	return embed, nil
+}
