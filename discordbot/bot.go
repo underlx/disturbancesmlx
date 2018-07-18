@@ -18,6 +18,7 @@ import (
 
 var stopMute map[string]time.Time // maps channel IDs to the time when the bot can talk again
 var channelMute map[string]bool
+var tempMessages sync.Map
 
 var commandLib *CommandLibrary
 var messageHandlers []MessageHandler
@@ -105,7 +106,7 @@ func Start(snode sqalx.Node, swebsiteURL, discordToken, adminChannelID string,
 				msg += commandLib.prefix + command.Name + "\n"
 			}
 		}
-		if commandLib.isAdminChannel(m.ChannelID) {
+		if commandLib.isAdminChannel(m.ChannelID) || !showAll {
 			msg += "_(`$help full` para ver os comandos todos)_"
 		}
 		s.ChannelMessageSend(m.ChannelID, msg)
@@ -177,6 +178,7 @@ func Start(snode sqalx.Node, swebsiteURL, discordToken, adminChannelID string,
 	dg.AddHandler(guildMemberRemoved)
 	dg.AddHandler(channelCreate)
 	dg.AddHandler(channelDelete)
+	dg.AddHandler(messageReactionAdd)
 	// Open a websocket connection to Discord and begin listening.
 	return dg.Open()
 }
@@ -244,11 +246,21 @@ func channelDelete(s *discordgo.Session, m *discordgo.ChannelDelete) {
 	}
 }
 
+func messageReactionAdd(s *discordgo.Session, m *discordgo.MessageReactionAdd) {
+	v, ok := tempMessages.Load(m.MessageID)
+	if m.MessageReaction.UserID == s.State.User.ID || !ok {
+		return
+	}
+
+	ch := v.(chan interface{})
+	ch <- true
+}
+
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Ignore all messages created by the bot itself
-	if m.Author.ID == s.State.User.ID {
+	// Ignore all messages created by the bot itself and other bots
+	if m.Author.ID == s.State.User.ID || m.Author.Bot {
 		return
 	}
 
