@@ -35,7 +35,7 @@
   branch = "master"
   name = "github.com/gbl08ma/keybox"
   packages = ["."]
-  revision = "c4cfa6c97829a00d787916c50729727b0797c72d"
+  revision = "285a9d753c877e10619a4f4acecbc8325a72326d"
 
 [[projects]]
   branch = "v1"
@@ -96,6 +96,12 @@
   name = "github.com/govau/go-shellquote"
   packages = ["."]
   revision = "73e52bf8b7b93cc3df971043d546702ae8d85955"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hako/durafmt"
+  packages = ["."]
+  revision = "7b7ae1e72eade09dbc9c2cfba3e6c4bae7b8bcac"
 
 [[projects]]
   name = "github.com/heetch/sqalx"
@@ -300,6 +306,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "96d084f1b6c9324b95ffbef3f293e195f25b52359c9dfcd327914ebc04065595"
+  inputs-digest = "39022391cf99d19080758cab9df289cc2c8cdb142bd01cda441db5f8b51b32da"
   solver-name = "gps-cdcl"
   solver-version = 1

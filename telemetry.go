@@ -15,10 +15,16 @@ var APIrequestTelemetry = make(chan interface{}, 10)
 // StatsSender is meant to be called as a goroutine that handles sending telemetry
 // to a statsd (or compatible) server
 func StatsSender() {
-	statsdAddress, present := secrets.Get("statsdAddress")
-	statsdPrefix, present2 := secrets.Get("statsdPrefix")
-	if !present || !present2 {
+	telemetryKeybox, present := secrets.GetBox("telemetry")
+	if !present {
+		discordLog.Println("Telemetry Keybox not found, telemetry partially disabled")
 		return
+	}
+
+	statsdAddress, present := telemetryKeybox.Get("statsdAddress")
+	statsdPrefix, present2 := telemetryKeybox.Get("statsdPrefix")
+	if !present || !present2 {
+		mainLog.Fatal("statsd address/prefix not present in telemetry keybox")
 	}
 
 	network, err := dataobjects.GetNetwork(rootSqalxNode, MLnetworkID)

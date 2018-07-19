@@ -1,6 +1,7 @@
 package discordbot
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"math"
@@ -9,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gbl08ma/keybox"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/heetch/sqalx"
@@ -43,7 +46,7 @@ var schedToLines func(schedules []*dataobjects.LobbySchedule) []string
 var cmdCallback func(command ParentCommand)
 
 // Start starts the Discord bot
-func Start(snode sqalx.Node, swebsiteURL, discordToken, adminChannelID string,
+func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	log *log.Logger,
 	schedulesToLines func(schedules []*dataobjects.LobbySchedule) []string,
 	cmdCb func(command ParentCommand)) error {
@@ -54,6 +57,17 @@ func Start(snode sqalx.Node, swebsiteURL, discordToken, adminChannelID string,
 	cmdCallback = cmdCb
 	channelMute = make(map[string]bool)
 	rand.Seed(time.Now().Unix())
+
+	discordToken, present := keybox.Get("token")
+	if !present {
+		return errors.New("Discord bot token not present in keybox")
+	}
+
+	adminChannelID, _ := keybox.Get("adminChannel")
+	if !present {
+		adminChannelID = ""
+	}
+
 	dg, err := discordgo.New("Bot " + discordToken)
 	if err != nil {
 		return err

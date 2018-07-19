@@ -13,20 +13,14 @@ import (
 
 // DiscordBot starts the Discord bot if it is enabled in the settings
 func DiscordBot() {
-	discordToken, present := secrets.Get("discordToken")
+	discordBox, present := secrets.GetBox("discord")
 	if !present {
-		discordLog.Println("Discord token not found, Discord functions disabled")
+		discordLog.Println("Discord Keybox not found, Discord functions disabled")
 		return
 	}
 
-	discordAdminChannel, present := secrets.Get("discordAdminChannel")
-	if !present {
-		discordLog.Println("Discord admin channel ID not present")
-		discordAdminChannel = ""
-	}
-
-	err := discordbot.Start(rootSqalxNode, websiteURL, discordToken,
-		discordAdminChannel, discordLog, schedulesToLines, handleBotCommands)
+	err := discordbot.Start(rootSqalxNode, websiteURL, discordBox, discordLog,
+		schedulesToLines, handleBotCommands)
 	if err != nil {
 		discordLog.Println(err)
 		return

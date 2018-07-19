@@ -118,6 +118,10 @@
   name = "github.com/govau/go-shellquote"
   branch = "quote-testing"
 
+[[constraint]]
+  name = "github.com/hako/durafmt"
+  branch = "master"
+
 [prune]
   go-tests = true
   unused-packages = true

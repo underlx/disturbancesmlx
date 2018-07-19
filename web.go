@@ -62,31 +62,51 @@ type TrainETA struct {
 
 // WebServer starts the web server
 func WebServer() {
-	authKey, present := secrets.Get("cookieAuthKey")
-	cipherKey, present2 := secrets.Get("cookieCipherKey")
+	webKeybox, present := secrets.GetBox("web")
+	if !present {
+		mainLog.Fatal("Web keybox not present in keybox")
+	}
+
+	authKey, present := webKeybox.Get("cookieAuthKey")
+	cipherKey, present2 := webKeybox.Get("cookieCipherKey")
 	if !present || !present2 {
 		mainLog.Fatal("Cookie auth/cipher keys not present in keybox")
 	}
 
-	websiteURL, present = secrets.Get("websiteURL")
+	websiteURL, present = webKeybox.Get("websiteURL")
 	if !present {
 		mainLog.Fatal("Website URL not present in keybox")
+	}
+
+	recaptchakey, present := webKeybox.Get("recaptchaKey")
+	if !present {
+		mainLog.Fatal("reCAPTCHA key not present in keybox")
+	}
+
+	webcaptcha = &recaptcha.R{
+		Secret:             recaptchakey,
+		TrustXForwardedFor: true,
 	}
 
 	sessionStore = sessions.NewCookieStore(
 		[]byte(authKey),
 		[]byte(cipherKey))
 
-	ssoEndpointURL, present := secrets.Get("ssoEndpoint")
+	ssoKeybox, present := webKeybox.GetBox("sso")
+	if !present {
+		mainLog.Fatal("SSO keybox not present in web keybox")
+	}
+
+	ssoEndpointURL, present := ssoKeybox.Get("endpoint")
 	if !present {
 		mainLog.Fatal("SSO Endpoint URL not present in keybox")
 	}
-	ssoAPIkey, present := secrets.Get("ssoAPIkey")
+	ssoAPIkey, present := ssoKeybox.Get("key")
 	if !present {
 		mainLog.Fatal("SSO API key not present in keybox")
 	}
 
-	ssoAPIsecret, present := secrets.Get("ssoAPIsecret")
+	ssoAPIsecret, present := ssoKeybox.Get("secret")
 	if !present {
 		mainLog.Fatal("SSO API secret not present in keybox")
 	}
@@ -95,16 +115,6 @@ func WebServer() {
 	daClient, err = ssoclient.NewSSOClient(ssoEndpointURL, ssoAPIkey, ssoAPIsecret)
 	if err != nil {
 		mainLog.Fatalf("Failed to create SSO client: %s\n", err)
-	}
-
-	recaptchakey, present := secrets.Get("recaptchaKey")
-	if !present {
-		mainLog.Fatal("reCAPTCHA key not present in keybox")
-	}
-
-	webcaptcha = &recaptcha.R{
-		Secret:             recaptchakey,
-		TrustXForwardedFor: true,
 	}
 
 	router := mux.NewRouter().StrictSlash(true)
