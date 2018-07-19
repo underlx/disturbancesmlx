@@ -226,22 +226,32 @@ func (line *Line) DisturbancesBetween(node sqalx.Node, startTime time.Time, endT
 	s := sdb.Select().
 		Where(sq.Eq{"mline": line.ID})
 
+	forceIncludeOngoing := time.Now().Add(-1 * time.Second).Before(endTime)
+
 	if officialOnly {
-		s = s.Where(sq.Or{
+		cond := sq.Or{
 			sq.Expr("otime_start BETWEEN ? AND ?", startTime, endTime),
 			sq.And{
 				sq.Expr("otime_end IS NOT NULL"),
 				sq.Expr("otime_end BETWEEN ? AND ?", startTime, endTime),
 			},
-		}).OrderBy("otime_start ASC")
+		}
+		if forceIncludeOngoing {
+			cond = append(cond, sq.And{sq.Expr("otime_end IS NULL"), sq.Expr("time_end IS NULL")})
+		}
+		s = s.Where(cond).OrderBy("otime_start ASC")
 	} else {
-		s = s.Where(sq.Or{
+		cond := sq.Or{
 			sq.Expr("time_start BETWEEN ? AND ?", startTime, endTime),
 			sq.And{
 				sq.Expr("time_end IS NOT NULL"),
 				sq.Expr("time_end BETWEEN ? AND ?", startTime, endTime),
 			},
-		}).OrderBy("time_start ASC")
+		}
+		if forceIncludeOngoing {
+			cond = append(cond, sq.Expr("time_end IS NULL"))
+		}
+		s = s.Where(cond).OrderBy("time_start ASC")
 	}
 	return getDisturbancesWithSelect(node, s)
 }
@@ -538,6 +548,8 @@ func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endT
 			thisEnd = d.UEndTime
 			thisStart = d.UStartTime
 			ended = d.UEnded
+		} else {
+			continue
 		}
 		if !ended {
 			thisEnd = time.Now()
