@@ -106,7 +106,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		}
 	}))
 	commandLib.Register(NewCommand("about", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		embed, err := buildAboutMessage(m)
+		embed, err := buildAboutMessage(s, m)
 		if err == nil {
 			s.ChannelMessageSendEmbed(m.ChannelID, embed.MessageEmbed)
 		}
@@ -562,18 +562,27 @@ func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 	}
 }
 
-func getEmojiForLine(id string) string {
+func getEmojiSnowflakeForLine(id string) string {
 	switch id {
 	case "pt-ml-azul":
-		return "<:ml_azul:459100543240110091>"
+		return "459100543240110091"
 	case "pt-ml-amarela":
-		return "<:ml_amarela:459100497895227403>"
+		return "459100497895227403"
 	case "pt-ml-verde":
-		return "<:ml_verde:459100596549451776>"
+		return "459100596549451776"
 	case "pt-ml-vermelha":
-		return "<:ml_vermelha:459100637985112095>"
+		return "459100637985112095"
 	case "pt-ml-laranja":
-		return "<:ml_laranja:455786569446588446>"
+		return "455786569446588446"
 	}
 	return ""
+}
+
+func getEmojiForLine(id string) string {
+	p := strings.Split(id, "-")
+	return "<:ml_" + p[len(p)-1] + ":" + getEmojiSnowflakeForLine(id) + ">"
+}
+
+func getEmojiURLForLine(id string) string {
+	return "https://cdn.discordapp.com/emojis/" + getEmojiSnowflakeForLine(id) + ".png"
 }

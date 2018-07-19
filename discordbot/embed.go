@@ -59,6 +59,26 @@ func (e *Embed) AddField(name, value string) *Embed {
 
 }
 
+//AddInlineField [name] [value]
+func (e *Embed) AddInlineField(name, value string) *Embed {
+	if len(value) > 1024 {
+		value = value[:1024]
+	}
+
+	if len(name) > 1024 {
+		name = name[:1024]
+	}
+
+	e.Fields = append(e.Fields, &discordgo.MessageEmbedField{
+		Name:   name,
+		Value:  value,
+		Inline: true,
+	})
+
+	return e
+
+}
+
 //SetFooter [Text] [iconURL]
 func (e *Embed) SetFooter(args ...string) *Embed {
 	iconURL := ""

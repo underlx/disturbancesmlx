@@ -229,52 +229,60 @@ func (i *InfoHandler) sendReply(s *discordgo.Session, m *discordgo.MessageCreate
 		embed, err = buildLobbyMesage(trigger)
 	}
 
-	if err == nil && embed != nil {
-		embed.SetFooter(origTrigger + " | " +
-			strings.Replace(
-				footerMessages[rand.Intn(len(footerMessages))],
-				"{prefix}", commandLib.prefix, -1))
-		embed.Timestamp = time.Now().Format(time.RFC3339Nano)
-		msgSend := &discordgo.MessageSend{
-			Embed: embed.MessageEmbed,
-		}
-		if isTemp {
-			msgSend.Content = "Irei **eliminar** esta mensagem dentro de **10 segundos** a menos que um humano lhe adicione uma **reação** ⏰"
-		}
-
-		message, err := s.ChannelMessageSendComplex(m.ChannelID, msgSend)
-		if err == nil && isTemp {
-			go func() {
-				// pre-add some reactions to make it easier for people to keep the message
-				s.MessageReactionAdd(message.ChannelID, message.ID, "🇲")
-				s.MessageReactionAdd(message.ChannelID, message.ID, "🇦")
-				s.MessageReactionAdd(message.ChannelID, message.ID, "🇳")
-				s.MessageReactionAdd(message.ChannelID, message.ID, "🇹")
-				s.MessageReactionAdd(message.ChannelID, message.ID, "🇪")
-				s.MessageReactionAdd(message.ChannelID, message.ID, "🇷")
-			}()
-			ch := make(chan interface{}, 1)
-			tempMessages.Store(message.ID, ch)
-			go func() {
-				select {
-				case <-ch:
-					// users reacted, make message permanent
-					_, err := s.ChannelMessageEdit(message.ChannelID, message.ID, "")
-					if err != nil {
-						botLog.Println(err)
-					}
-					s.MessageReactionAdd(message.ChannelID, message.ID, "🤗")
-				case <-time.After(10 * time.Second):
-					// delete message and forget this existed
-					err := s.ChannelMessageDelete(message.ChannelID, message.ID)
-					if err != nil {
-						botLog.Println(err)
-					}
-				}
-				tempMessages.Delete(message.ID)
-			}()
-		}
-	} else {
+	if err != nil {
 		botLog.Println(err)
+		return
+	} else if embed == nil {
+		botLog.Println("sendReply nil embed")
+		return
 	}
+	embed.SetFooter(origTrigger+" | "+
+		strings.Replace(
+			footerMessages[rand.Intn(len(footerMessages))],
+			"{prefix}", commandLib.prefix, -1), "https://cdn.discordapp.com/emojis/368199195427078144.png")
+	embed.Timestamp = time.Now().Format(time.RFC3339Nano)
+	msgSend := &discordgo.MessageSend{
+		Embed: embed.MessageEmbed,
+	}
+	if isTemp {
+		msgSend.Content = "Irei **eliminar** esta mensagem dentro de **10 segundos** a menos que um humano lhe adicione uma **reação** ⏰"
+	}
+
+	message, err := s.ChannelMessageSendComplex(m.ChannelID, msgSend)
+	if err != nil {
+		botLog.Println(err)
+		return
+	}
+	if !isTemp {
+		return
+	}
+	go func() {
+		// pre-add some reactions to make it easier for people to keep the message
+		s.MessageReactionAdd(message.ChannelID, message.ID, "🇲")
+		s.MessageReactionAdd(message.ChannelID, message.ID, "🇦")
+		s.MessageReactionAdd(message.ChannelID, message.ID, "🇳")
+		s.MessageReactionAdd(message.ChannelID, message.ID, "🇹")
+		s.MessageReactionAdd(message.ChannelID, message.ID, "🇪")
+		s.MessageReactionAdd(message.ChannelID, message.ID, "🇷")
+	}()
+	ch := make(chan interface{}, 1)
+	tempMessages.Store(message.ID, ch)
+	go func() {
+		select {
+		case <-ch:
+			// users reacted, make message permanent
+			_, err := s.ChannelMessageEdit(message.ChannelID, message.ID, "")
+			if err != nil {
+				botLog.Println(err)
+			}
+			s.MessageReactionAdd(message.ChannelID, message.ID, "🤗")
+		case <-time.After(10 * time.Second):
+			// delete message and forget this existed
+			err := s.ChannelMessageDelete(message.ChannelID, message.ID)
+			if err != nil {
+				botLog.Println(err)
+			}
+		}
+		tempMessages.Delete(message.ID)
+	}()
 }

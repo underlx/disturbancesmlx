@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net/url"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -43,11 +44,16 @@ func buildNetworkMessage(id string) (*Embed, error) {
 	loc, _ := time.LoadLocation(network.Timezone)
 
 	embed := NewEmbed().
-		SetTitle("Rede "+network.Name).
-		AddField("Mapa de rede", websiteURL+"/map"). // TODO needs un-hardcoding
-		AddField("Horário", schedule).
-		AddField("Fuso horário", loc.String()+" ("+time.Now().In(loc).Format(time.RFC3339)+")").
-		AddField("Website", mainURL)
+		SetTitle("Rede __"+network.Name+"__").
+		AddInlineField("Horário", schedule).
+		AddInlineField("Fuso horário", loc.String()+" ("+time.Now().In(loc).Format(time.RFC3339)+")").
+		AddInlineField("Mapa de rede", websiteURL+"/map"). // TODO needs un-hardcoding
+		AddInlineField("Website", mainURL)
+
+	// TODO needs un-hardcoding
+	if network.ID == "pt-ml" {
+		embed.SetThumbnail("https://cdn.discordapp.com/attachments/334363158661824512/469500166433669120/Metropolitano_Lisboa_logo.png")
+	}
 
 	stations, err := network.Stations(tx)
 	if err != nil {
@@ -105,9 +111,24 @@ func buildLineMessage(id string) (*Embed, error) {
 		return nil, err
 	}
 
-	loc, _ := time.LoadLocation(line.Network.Timezone)
+	loc, err := time.LoadLocation(line.Network.Timezone)
+	if err != nil {
+		return nil, err
+	}
 
-	monthAvailability, monthDuration, err := line.Availability(tx, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc), true)
+	now := time.Now().In(loc)
+	start := now.Add(-1 * time.Hour)
+	disturbances, err := line.DisturbancesBetween(tx, start, now, false)
+	if err != nil {
+		return nil, err
+	}
+	for i := len(disturbances)/2 - 1; i >= 0; i-- {
+		opp := len(disturbances) - 1 - i
+		disturbances[i], disturbances[opp] = disturbances[opp], disturbances[i]
+	}
+
+	// official month availability
+	monthAvailability, monthDuration, err := line.Availability(tx, now.AddDate(0, -1, 0), now, true)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +138,20 @@ func buildLineMessage(id string) (*Embed, error) {
 		monthAvString += fmt.Sprintf(", as perturbações duraram em média %.01f minutos", monthDuration.Minutes())
 	}
 
-	weekAvailability, weekDuration, err := line.Availability(tx, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc), true)
+	// unofficial month availability
+	monthAvString += "\n__Com dados da comunidade:__\n"
+	monthAvailability, monthDuration, err = line.Availability(tx, now.AddDate(0, -1, 0), now, false)
+	if err != nil {
+		return nil, err
+	}
+	monthAvailability *= 100
+	monthAvString += fmt.Sprintf("%.03f%%", monthAvailability)
+	if monthAvailability < 100 {
+		monthAvString += fmt.Sprintf(", as perturbações duraram em média %.01f minutos", monthDuration.Minutes())
+	}
+
+	// official week availability
+	weekAvailability, weekDuration, err := line.Availability(tx, now.AddDate(0, 0, -7), now, true)
 	if err != nil {
 		return nil, err
 	}
@@ -127,12 +161,55 @@ func buildLineMessage(id string) (*Embed, error) {
 		weekAvString += fmt.Sprintf(", as perturbações duraram em média %.01f minutos", weekDuration.Minutes())
 	}
 
+	// unofficial week availability
+	weekAvString += "\n__Com dados da comunidade:__\n"
+	weekAvailability, weekDuration, err = line.Availability(tx, now.AddDate(0, 0, -7), now, false)
+	if err != nil {
+		return nil, err
+	}
+	weekAvailability *= 100
+	weekAvString += fmt.Sprintf("%.03f%%", weekAvailability)
+	if weekAvailability < 100 {
+		weekAvString += fmt.Sprintf(", as perturbações duraram em média %.01f minutos", weekDuration.Minutes())
+	}
+
+	color, err := strconv.ParseInt(line.Color, 16, 32)
+	if err != nil {
+		return nil, err
+	}
+
 	embed := NewEmbed().
-		SetTitle(getEmojiForLine(line.ID)+" Linha "+line.Name).
-		SetDescription("Linha do "+line.Network.Name+" (`"+line.Network.ID+"`)").
-		SetURL(websiteURL+"/l/"+line.ID).
-		AddField("Disponibilidade últimos 7 dias", weekAvString).
-		AddField("Disponibilidade últimos 30 dias", monthAvString)
+		SetTitle("Linha __" + line.Name + "__").
+		SetDescription("Linha do " + line.Network.Name + " (`" + line.Network.ID + "`)").
+		SetURL(websiteURL + "/l/" + line.ID).
+		SetThumbnail(getEmojiURLForLine(line.ID)).
+		SetColor(int(color))
+
+	for _, disturbance := range disturbances {
+		distStr := ""
+		for _, status := range disturbance.Statuses {
+			emoji := ""
+			if !status.Source.Official {
+				emoji = " 👨‍👩‍👧‍👦"
+			}
+			end := ""
+			if !status.IsDowntime {
+				end = " ✅"
+			}
+			distStr += fmt.Sprintf("%s%s - %s%s\n",
+				status.Time.In(loc).Format("15:04"),
+				emoji, status.Status, end)
+		}
+		distStr += "[ᴾᴱᴿᴹᴬᴸᴵᴺᴷ](" + websiteURL + "/d/" + disturbance.ID + ")"
+		if !disturbance.UEnded {
+			embed.AddField("Perturbação actual", distStr)
+		} else {
+			embed.AddField("Perturbação recente", distStr)
+		}
+	}
+
+	embed.AddInlineField("Disponibilidade últimos 7 dias", weekAvString).
+		AddInlineField("Disponibilidade últimos 30 dias", monthAvString)
 
 	stations, err := line.Stations(tx)
 	if err != nil {
@@ -199,8 +276,13 @@ func buildStationMessage(id string) (*Embed, error) {
 		description += "\n**Esta estação encontra-se encerrada por tempo indeterminado.**"
 	}
 
+	emojis := ""
+	for _, line := range lines {
+		emojis += getEmojiForLine(line.ID)
+	}
+
 	embed := NewEmbed().
-		SetTitle("Estação " + station.Name).
+		SetTitle(emojis + " Estação __" + station.Name + "__").
 		SetDescription(description).
 		SetURL(websiteURL + "/s/" + station.ID)
 
@@ -334,7 +416,7 @@ func buildLobbyMesage(id string) (*Embed, error) {
 	}
 
 	embed := NewEmbed().
-		SetTitle("Átrio " + lobby.Name + " de " + lobby.Station.Name).
+		SetTitle("Átrio **" + lobby.Name + "** de " + lobby.Station.Name).
 		SetDescription(description).
 		SetURL(websiteURL + "/s/" + lobby.Station.ID)
 
@@ -437,6 +519,8 @@ func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
 		embed.AddField("Utilização do processador "+handler.Name(), statsStr)
 	}
 
+	embed.Timestamp = time.Now().Format(time.RFC3339Nano)
+
 	addMuteEmbed(embed, m.ChannelID)
 
 	return embed, nil
@@ -467,10 +551,12 @@ func buildStatsMessage() (*Embed, error) {
 	dbStr := fmt.Sprintf("%d ligações abertas", command.DBopenConnections)
 	embed.AddField("Database", dbStr)
 
+	embed.Timestamp = time.Now().Format(time.RFC3339Nano)
+
 	return embed, nil
 }
 
-func buildAboutMessage(m *discordgo.MessageCreate) (*Embed, error) {
+func buildAboutMessage(s *discordgo.Session, m *discordgo.MessageCreate) (*Embed, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return nil, err
@@ -483,7 +569,8 @@ func buildAboutMessage(m *discordgo.MessageCreate) (*Embed, error) {
 	embed := NewEmbed().
 		SetTitle("Informação do serviço").
 		SetDescription(fmt.Sprintf("Servidor compilado a partir da commit [%s](https://github.com/underlx/disturbancesmlx/commit/%s) em %s.",
-			command.GitCommit, command.GitCommit, command.BuildDate))
+			command.GitCommit, command.GitCommit, command.BuildDate)).
+		SetThumbnail(s.State.User.AvatarURL("128"))
 
 	datasets, err := dataobjects.GetDatasets(tx)
 	if err != nil {
@@ -498,6 +585,7 @@ func buildAboutMessage(m *discordgo.MessageCreate) (*Embed, error) {
 	}
 
 	embed.AddField("Datasets (mapas de rede)", datasetsStr)
+	embed.Timestamp = time.Now().Format(time.RFC3339Nano)
 
 	addMuteEmbed(embed, m.ChannelID)
 

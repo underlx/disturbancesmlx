@@ -19,7 +19,17 @@ func DiscordBot() {
 		return
 	}
 
-	err := discordbot.Start(rootSqalxNode, websiteURL, discordBox, discordLog,
+	webKeybox, present := secrets.GetBox("web")
+	if !present {
+		discordLog.Fatal("Web keybox not present in keybox")
+	}
+
+	url, present := webKeybox.Get("websiteURL")
+	if !present {
+		discordLog.Fatal("Website URL not present in keybox")
+	}
+
+	err := discordbot.Start(rootSqalxNode, url, discordBox, discordLog,
 		schedulesToLines, handleBotCommands)
 	if err != nil {
 		discordLog.Println(err)
