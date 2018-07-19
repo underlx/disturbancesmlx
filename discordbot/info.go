@@ -86,11 +86,13 @@ func (i *InfoHandler) Handle(s *discordgo.Session, m *discordgo.MessageCreate, m
 	if muted {
 		return false
 	}
+	actedUpon := false
 
 	words := strings.Split(m.Content, " ")
 	for _, word := range words {
 		if wordType, ok := i.wordMap[word]; ok {
 			i.sendReply(s, m, word, word, wordType, false)
+			actedUpon = true
 		}
 	}
 
@@ -124,7 +126,11 @@ func (i *InfoHandler) Handle(s *discordgo.Session, m *discordgo.MessageCreate, m
 			}
 			i.lightTriggersLastUsage[key] = time.Now()
 			i.sendReply(s, m, triggerInfo.id, triggerWord, triggerInfo.wordType, true)
+			actedUpon = true
 		}
+	}
+	if actedUpon {
+		i.actedUponCount++
 	}
 
 	return false
@@ -268,8 +274,6 @@ func (i *InfoHandler) sendReply(s *discordgo.Session, m *discordgo.MessageCreate
 				tempMessages.Delete(message.ID)
 			}()
 		}
-
-		i.actedUponCount++
 	} else {
 		botLog.Println(err)
 	}
