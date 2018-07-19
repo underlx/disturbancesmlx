@@ -120,7 +120,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 				msg += commandLib.prefix + command.Name + "\n"
 			}
 		}
-		if commandLib.isAdminChannel(m.ChannelID) || !showAll {
+		if commandLib.isAdminChannel(m.ChannelID) && !showAll {
 			msg += "_(`$help full` para ver os comandos todos)_"
 		}
 		s.ChannelMessageSend(m.ChannelID, msg)
