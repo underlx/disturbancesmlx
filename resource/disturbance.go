@@ -79,12 +79,12 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 
 		data.APIstatuses = []apiStatusWrapper{}
 		prevStatusText := ""
-		for _, status := range disturbance.Statuses {
+		for i, status := range disturbance.Statuses {
 			sw := apiStatusWrapper{
 				apiStatus: apiStatus(*status),
 				SourceID:  status.Source.ID,
 			}
-			if !omitDuplicateStatus || prevStatusText != status.Status {
+			if !omitDuplicateStatus || prevStatusText != status.Status || i == 0 {
 				prevStatusText = status.Status
 				data.APIstatuses = append(data.APIstatuses, sw)
 			}
@@ -131,12 +131,12 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 
 			apidisturbances[i].APIstatuses = []apiStatusWrapper{}
 			prevStatusText := ""
-			for _, status := range disturbances[i].Statuses {
+			for j, status := range disturbances[i].Statuses {
 				sw := apiStatusWrapper{
 					apiStatus: apiStatus(*status),
 					SourceID:  status.Source.ID,
 				}
-				if !omitDuplicateStatus || prevStatusText != status.Status {
+				if !omitDuplicateStatus || prevStatusText != status.Status || j == 0 {
 					prevStatusText = status.Status
 					apidisturbances[i].APIstatuses = append(apidisturbances[i].APIstatuses, sw)
 				}
