@@ -26,13 +26,15 @@ var tempMessages sync.Map
 var commandLib *CommandLibrary
 var messageHandlers []MessageHandler
 var guildIDs sync.Map
-var botstats stats
+var botstats = stats{
+	dmChannels: make(map[string]bool),
+}
 
 type stats struct {
 	startTime           time.Time
 	userCount           int
 	botCount            int
-	dmChannelCount      int
+	dmChannels          map[string]bool
 	groupDMChannelCount int
 	textChannelCount    int
 	voiceChannelCount   int
@@ -245,7 +247,7 @@ func guildMemberRemoved(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
 func channelCreate(s *discordgo.Session, m *discordgo.ChannelCreate) {
 	switch m.Channel.Type {
 	case discordgo.ChannelTypeDM:
-		botstats.dmChannelCount++
+		botstats.dmChannels[m.Channel.ID] = true
 	case discordgo.ChannelTypeGroupDM:
 		botstats.groupDMChannelCount++
 	}
@@ -254,7 +256,7 @@ func channelCreate(s *discordgo.Session, m *discordgo.ChannelCreate) {
 func channelDelete(s *discordgo.Session, m *discordgo.ChannelDelete) {
 	switch m.Channel.Type {
 	case discordgo.ChannelTypeDM:
-		botstats.dmChannelCount--
+		delete(botstats.dmChannels, m.Channel.ID)
 	case discordgo.ChannelTypeGroupDM:
 		botstats.groupDMChannelCount--
 	}

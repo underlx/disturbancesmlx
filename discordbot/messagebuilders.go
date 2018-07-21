@@ -499,7 +499,7 @@ func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
 
 	serversStr += fmt.Sprintf("%d canais de texto\n", botstats.textChannelCount)
 	serversStr += fmt.Sprintf("%d canais de voz\n", botstats.voiceChannelCount)
-	serversStr += fmt.Sprintf("%d canais de mensagens directas\n", botstats.dmChannelCount)
+	serversStr += fmt.Sprintf("%d canais de mensagens directas\n", len(botstats.dmChannels))
 	serversStr += fmt.Sprintf("%d canais de grupo\n", botstats.groupDMChannelCount)
 
 	embed.AddField("Entidades do Discord", serversStr)
