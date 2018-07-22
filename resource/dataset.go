@@ -22,8 +22,8 @@ type apiDatasetWrapper struct {
 }
 
 type apiDataset struct {
-	NetworkID string `msgpack:"network" json:"network"`
-	apiDatasetWrapper
+	NetworkID         string `msgpack:"network" json:"network"`
+	apiDatasetWrapper `msgpack:",inline"`
 }
 
 // WithNode associates a sqalx Node with this resource
