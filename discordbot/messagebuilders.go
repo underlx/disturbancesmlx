@@ -420,7 +420,7 @@ func buildLobbyMesage(id string) (*Embed, error) {
 		SetDescription(description).
 		SetURL(websiteURL + "/s/" + lobby.Station.ID)
 
-	scheduleLines := schedToLines(schedules)
+	scheduleLines := cmdReceiver.SchedulesToLines(schedules)
 	scheduleStr := ""
 	for i, line := range scheduleLines {
 		scheduleStr += line
@@ -540,15 +540,14 @@ func buildStatsMessage() (*Embed, error) {
 
 	embed.AddField("MemStats", memStr)
 
-	command := &RequestStatsCommand{}
-	cmdCallback(command)
+	dbConnections, apiRequests := cmdReceiver.GetStats()
 
 	uptime := time.Now().Sub(botstats.startTime)
 
-	apiStr := fmt.Sprintf("%d pedidos (%.02f/minuto)", command.APItotalRequests, float64(command.APItotalRequests)/uptime.Minutes())
+	apiStr := fmt.Sprintf("%d pedidos (%.02f/minuto)", apiRequests, float64(apiRequests)/uptime.Minutes())
 	embed.AddField("API", apiStr)
 
-	dbStr := fmt.Sprintf("%d ligações abertas", command.DBopenConnections)
+	dbStr := fmt.Sprintf("%d ligações abertas", dbConnections)
 	embed.AddField("Database", dbStr)
 
 	embed.Timestamp = time.Now().Format(time.RFC3339Nano)
@@ -563,13 +562,12 @@ func buildAboutMessage(s *discordgo.Session, m *discordgo.MessageCreate) (*Embed
 	}
 	defer tx.Commit() // read-only tx
 
-	command := &RequestVersionCommand{}
-	cmdCallback(command)
+	gitCommit, buildDate := cmdReceiver.GetVersion()
 
 	embed := NewEmbed().
 		SetTitle("Informação do serviço").
 		SetDescription(fmt.Sprintf("Servidor compilado a partir da commit [%s](https://github.com/underlx/disturbancesmlx/commit/%s) em %s.",
-			command.GitCommit, command.GitCommit, command.BuildDate)).
+			gitCommit, gitCommit, buildDate)).
 		SetThumbnail(s.State.User.AvatarURL("128"))
 
 	datasets, err := dataobjects.GetDatasets(tx)

@@ -6,8 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/discordbot"
-
 	"github.com/heetch/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/scraper"
@@ -192,16 +190,16 @@ func TearDownAnnouncements() {
 	}
 }
 
-func handleControlScraper(command *discordbot.ControlScraperCommand) {
-	if scraper, ok := scrapers[command.Scraper]; ok {
-		if command.Enable && !scraper.Running() {
+func handleControlScraper(scraperID string, enable bool, messageCallback func(message string)) {
+	if scraper, ok := scrapers[scraperID]; ok {
+		if enable && !scraper.Running() {
 			scraper.Begin()
-			command.MessageCallback("✅")
+			messageCallback("✅")
 		} else if scraper.Running() {
 			scraper.End()
-			command.MessageCallback("✅")
+			messageCallback("✅")
 		} else {
-			command.MessageCallback("❌ already started/stopped")
+			messageCallback("❌ already started/stopped")
 		}
 		return
 	}
@@ -211,5 +209,5 @@ func handleControlScraper(command *discordbot.ControlScraperCommand) {
 		scraperIDs[i] = "`" + id + "`"
 		i++
 	}
-	command.MessageCallback("🆖 second argument must be one of [" + strings.Join(scraperIDs, ",") + "]")
+	messageCallback("🆖 second argument must be one of [" + strings.Join(scraperIDs, ",") + "]")
 }

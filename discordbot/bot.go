@@ -44,19 +44,16 @@ var node sqalx.Node
 var websiteURL string
 var botLog *log.Logger
 var session *discordgo.Session
-var schedToLines func(schedules []*dataobjects.LobbySchedule) []string
-var cmdCallback func(command ParentCommand)
+var cmdReceiver CommandReceiver
 
 // Start starts the Discord bot
 func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	log *log.Logger,
-	schedulesToLines func(schedules []*dataobjects.LobbySchedule) []string,
-	cmdCb func(command ParentCommand)) error {
+	cmdRecv CommandReceiver) error {
 	node = snode
 	websiteURL = swebsiteURL
 	botLog = log
-	schedToLines = schedulesToLines
-	cmdCallback = cmdCb
+	cmdReceiver = cmdRecv
 	channelMute = make(map[string]bool)
 	rand.Seed(time.Now().Unix())
 
@@ -346,9 +343,7 @@ func handleLineStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []
 	status.Line = line
 	status.Status = strings.Join(words[2:], " ")
 
-	cmdCallback(&NewStatusCommand{
-		Status: status,
-	})
+	cmdReceiver.NewLineStatus(status)
 	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 
@@ -369,12 +364,8 @@ func handleControlScraper(s *discordgo.Session, m *discordgo.MessageCreate, word
 		return
 	}
 
-	cmdCallback(&ControlScraperCommand{
-		Scraper: words[1],
-		Enable:  enabled,
-		MessageCallback: func(message string) {
-			s.ChannelMessageSend(m.ChannelID, message)
-		},
+	cmdReceiver.ControlScraper(words[1], enabled, func(message string) {
+		s.ChannelMessageSend(m.ChannelID, message)
 	})
 }
 
@@ -404,10 +395,8 @@ func handleControlNotifs(s *discordgo.Session, m *discordgo.MessageCreate, words
 		return
 	}
 
-	cmdCallback(&ControlNotifsCommand{
-		Type:   words[1],
-		Enable: enabled,
-	})
+	cmdReceiver.ControlNotifs(words[1], enabled)
+
 	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 
@@ -454,31 +443,23 @@ func handleRUSSIA(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 			return
 		}
-		cmdCallback(&ReportDisturbanceCommand{
-			Line:   line,
-			Weight: weight,
-		})
+		cmdReceiver.CastDisturbanceVote(line, weight)
 		s.ChannelMessageSend(m.ChannelID, "✅")
 	case "empty":
 		if len(words) < 2 {
 			s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
 			return
 		}
-		cmdCallback(&ClearDisturbanceReportsCommand{
-			Line: line,
-		})
+		cmdReceiver.ClearDisturbanceVotes(line)
 		s.ChannelMessageSend(m.ChannelID, "✅")
 	case "show":
-		cmdCallback(&GetDisturbanceReportsCommand{
-			MessageCallback: func(message string) {
-				s.ChannelMessageSend(m.ChannelID, message)
-			},
+		cmdReceiver.GetDisturbanceVotes(func(message string) {
+			s.ChannelMessageSend(m.ChannelID, message)
 		})
 	case "multiplier":
 		if len(words) < 2 {
-			command := &ReportThresholdMultiplierCommand{}
-			cmdCallback(command)
-			s.ChannelMessageSend(m.ChannelID, strconv.FormatFloat(float64(command.Multiplier), 'f', 3, 32))
+			multiplier := cmdReceiver.GetThresholdMultiplier()
+			s.ChannelMessageSend(m.ChannelID, strconv.FormatFloat(float64(multiplier), 'f', 3, 32))
 		} else {
 			multiplier, err := strconv.ParseFloat(words[1], 32)
 			if err != nil {
@@ -488,27 +469,20 @@ func handleRUSSIA(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 				s.ChannelMessageSend(m.ChannelID, "🆖 must be > 0")
 				return
 			}
-			cmdCallback(&ReportThresholdMultiplierCommand{
-				Set:        true,
-				Multiplier: float32(multiplier),
-			})
+			cmdReceiver.SetThresholdMultiplier(float32(multiplier))
 			s.ChannelMessageSend(m.ChannelID, "✅")
 		}
 	case "offset":
 		if len(words) < 2 {
-			command := &ReportThresholdOffsetCommand{}
-			cmdCallback(command)
-			s.ChannelMessageSend(m.ChannelID, strconv.FormatInt(int64(command.Offset), 10))
+			offset := cmdReceiver.GetThresholdOffset()
+			s.ChannelMessageSend(m.ChannelID, strconv.FormatInt(int64(offset), 10))
 		} else {
 			offset, err := strconv.ParseInt(words[1], 10, 64)
 			if err != nil {
 				s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 				return
 			}
-			cmdCallback(&ReportThresholdOffsetCommand{
-				Set:    true,
-				Offset: int(offset),
-			})
+			cmdReceiver.SetThresholdOffset(int(offset))
 			s.ChannelMessageSend(m.ChannelID, "✅")
 		}
 	default:

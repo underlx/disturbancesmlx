@@ -30,7 +30,7 @@ func DiscordBot() {
 	}
 
 	err := discordbot.Start(rootSqalxNode, url, discordBox, discordLog,
-		schedulesToLines, handleBotCommands)
+		new(BotCommandReceiver))
 	if err != nil {
 		discordLog.Println(err)
 		return
@@ -48,50 +48,81 @@ func DiscordBot() {
 	os.Exit(0)
 }
 
-func handleBotCommands(command discordbot.ParentCommand) {
-	switch t := command.Command().(type) {
-	case *discordbot.NewStatusCommand:
-		handleNewStatusNotify(t.Status)
-	case *discordbot.ControlScraperCommand:
-		handleControlScraper(t)
-	case *discordbot.ControlNotifsCommand:
-		handleControlNotifs(t.Type, t.Enable)
-	case *discordbot.ReportDisturbanceCommand:
-		err := reportHandler.addReport(dataobjects.NewLineDisturbanceReportDebug(t.Line, "discord"), t.Weight)
-		if err != nil {
-			discordLog.Println(err)
-		}
-	case *discordbot.ClearDisturbanceReportsCommand:
-		reportHandler.clearVotesForLine(t.Line)
-	case *discordbot.GetDisturbanceReportsCommand:
-		message := ""
-		lines, err := dataobjects.GetLines(rootSqalxNode)
-		if err != nil {
-			discordLog.Println(err)
-		}
-		for _, line := range lines {
-			message += fmt.Sprintf("`%s`: %d/%d\n", line.ID, reportHandler.countVotesForLine(line), reportHandler.getThresholdForLine(line))
-		}
-		t.MessageCallback(message)
-	case *discordbot.ReportThresholdMultiplierCommand:
-		if t.Set {
-			reportHandler.SetThresholdMultiplier(t.Multiplier)
-		} else {
-			t.Multiplier = reportHandler.ThresholdMultiplier()
-		}
-	case *discordbot.ReportThresholdOffsetCommand:
-		if t.Set {
-			reportHandler.SetThresholdOffset(t.Offset)
-		} else {
-			t.Offset = reportHandler.ThresholdOffset()
-		}
-	case *discordbot.RequestVersionCommand:
-		t.GitCommit = GitCommit
-		t.BuildDate = BuildDate
-	case *discordbot.RequestStatsCommand:
-		t.APItotalRequests = apiTotalRequests
-		t.DBopenConnections = rdb.Stats().OpenConnections
-	default:
-		discordLog.Println("Unknown ParentCommand type")
+// BotCommandReceiver implements discordbot.CommandReceiver
+type BotCommandReceiver struct{}
+
+// NewLineStatus is called when the bot wants to add a new line status
+func (r *BotCommandReceiver) NewLineStatus(status *dataobjects.Status) {
+	handleNewStatusNotify(status)
+}
+
+// ControlScraper is called when the bot wants to start/stop/change a scraper
+func (r *BotCommandReceiver) ControlScraper(scraper string, enable bool, messageCallback func(message string)) {
+	handleControlScraper(scraper, enable, messageCallback)
+}
+
+// ControlNotifs is caled when the bot wants to block/unblock sending of push notifications
+func (r *BotCommandReceiver) ControlNotifs(notifType string, enable bool) {
+	handleControlNotifs(notifType, enable)
+}
+
+// CastDisturbanceVote is called when the bot wants to cast a disturbance vote
+func (r *BotCommandReceiver) CastDisturbanceVote(line *dataobjects.Line, weight int) {
+	err := reportHandler.addReport(dataobjects.NewLineDisturbanceReportDebug(line, "discord"), weight)
+	if err != nil {
+		discordLog.Println(err)
 	}
+}
+
+// ClearDisturbanceVotes is called when the bot wants to clear disturbance votes
+func (r *BotCommandReceiver) ClearDisturbanceVotes(line *dataobjects.Line) {
+	reportHandler.clearVotesForLine(line)
+}
+
+// GetDisturbanceVotes is called when the bot wants to show current disturbance report status
+func (r *BotCommandReceiver) GetDisturbanceVotes(messageCallback func(message string)) {
+	message := ""
+	lines, err := dataobjects.GetLines(rootSqalxNode)
+	if err != nil {
+		discordLog.Println(err)
+	}
+	for _, line := range lines {
+		message += fmt.Sprintf("`%s`: %d/%d\n", line.ID, reportHandler.countVotesForLine(line), reportHandler.getThresholdForLine(line))
+	}
+	messageCallback(message)
+}
+
+// GetThresholdMultiplier is called when the bot wants to know the current vote threshold multiplier
+func (r *BotCommandReceiver) GetThresholdMultiplier() float32 {
+	return reportHandler.ThresholdMultiplier()
+}
+
+// SetThresholdMultiplier is called when the bot wants to set the current vote threshold multiplier
+func (r *BotCommandReceiver) SetThresholdMultiplier(multiplier float32) {
+	reportHandler.SetThresholdMultiplier(multiplier)
+}
+
+// GetThresholdOffset is called when the bot wants to know the current vote threshold offset
+func (r *BotCommandReceiver) GetThresholdOffset() int {
+	return reportHandler.ThresholdOffset()
+}
+
+// SetThresholdOffset is called when the bot wants to set the current vote threshold offset
+func (r *BotCommandReceiver) SetThresholdOffset(offset int) {
+	reportHandler.SetThresholdOffset(offset)
+}
+
+// GetVersion is called when the bot wants to get the current server version
+func (r *BotCommandReceiver) GetVersion() (gitCommit string, buildDate string) {
+	return GitCommit, BuildDate
+}
+
+// GetStats is called when the bot wants to get the current server stats
+func (r *BotCommandReceiver) GetStats() (dbOpenConnections, apiTotalRequests int) {
+	return apiTotalRequests, rdb.Stats().OpenConnections
+}
+
+// SchedulesToLines turns the provided schedule array into a human-readable list of strings
+func (r *BotCommandReceiver) SchedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
+	return schedulesToLines(schedules)
 }
