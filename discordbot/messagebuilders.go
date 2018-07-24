@@ -591,9 +591,9 @@ func buildAboutMessage(s *discordgo.Session, m *discordgo.MessageCreate) (*Embed
 }
 
 func addMuteEmbed(embed *Embed, channelID string) {
-	if channelMute[channelID] {
+	if muteManager.MutedPermanently(channelID) {
 		embed.AddField("Estou em modo silencioso permanente neste canal", "Apenas irei responder a comandos directos 🤐")
-	} else if !time.Now().After(stopMute[channelID]) {
+	} else if muteManager.MutedTemporarily(channelID) {
 		embed.AddField("Estou em modo silencioso neste canal. Diga `"+commandLib.prefix+"unmute` para me deixar falar mais.", "Apenas irei responder a comandos directos 🤐")
 	}
 }

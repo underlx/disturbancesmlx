@@ -19,10 +19,8 @@ import (
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
-var stopMute map[string]time.Time // maps channel IDs to the time when the bot can talk again
-var channelMute map[string]bool
 var tempMessages sync.Map
-
+var muteManager = NewMuteManager()
 var commandLib *CommandLibrary
 var messageHandlers []MessageHandler
 var guildIDs sync.Map
@@ -54,7 +52,6 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	websiteURL = swebsiteURL
 	botLog = log
 	cmdReceiver = cmdRecv
-	channelMute = make(map[string]bool)
 	rand.Seed(time.Now().Unix())
 
 	discordToken, present := keybox.Get("token")
@@ -137,7 +134,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 				muteDuration = time.Duration(mins) * time.Minute
 			}
 		}
-		stopMute[m.ChannelID] = time.Now().Add(muteDuration)
+		muteManager.MuteChannel(m.ChannelID, muteDuration)
 		if muteDuration.Minutes() < 60.0 {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🤐 por %d minutos", int(math.Round(muteDuration.Minutes()))))
 		} else {
@@ -145,15 +142,15 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		}
 	}))
 	commandLib.Register(NewCommand("unmute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		stopMute[m.ChannelID] = time.Time{}
+		muteManager.UnmuteChannel(m.ChannelID)
 		s.ChannelMessageSend(m.ChannelID, "🤗")
 	}))
 	commandLib.Register(NewCommand("permamute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		channelMute[m.ChannelID] = true
+		muteManager.PermaMuteChannel(m.ChannelID)
 		s.ChannelMessageSend(m.ChannelID, "🤐💀")
 	}).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("permaunmute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		channelMute[m.ChannelID] = false
+		muteManager.PermaUnmuteChannel(m.ChannelID)
 		s.ChannelMessageSend(m.ChannelID, "🤗🙌")
 	}).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("setstatus", handleStatus).WithRequirePrivilege(PrivilegeAdmin))
@@ -177,8 +174,6 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		return err
 	}
 	messageHandlers = append(messageHandlers, infoHandler)
-
-	stopMute = make(map[string]time.Time)
 
 	user, err := dg.User("@me")
 	if err != nil {
@@ -283,13 +278,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	muted := !time.Now().After(stopMute[m.ChannelID]) || channelMute[m.ChannelID]
+	muted := muteManager.MutedAny(m.ChannelID)
 	for _, handler := range messageHandlers {
 		if handler.Handle(s, m, muted) {
 			return
 		}
 	}
-
 }
 
 func handleLineStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {
