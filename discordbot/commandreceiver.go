@@ -42,4 +42,7 @@ type CommandReceiver interface {
 
 	// SchedulesToLines turns the provided schedule array into a human-readable list of strings
 	SchedulesToLines(schedules []*dataobjects.LobbySchedule) []string
+
+	// SendNotificationMetaBroadcast sends a FCM message containing a notification to show on all clients
+	SendNotificationMetaBroadcast(versionFilter, localeFilter, title, body, url string)
 }

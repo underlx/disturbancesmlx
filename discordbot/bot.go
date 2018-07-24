@@ -157,6 +157,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("scraper", handleControlScraper).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("notifs", handleControlNotifs).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("russia", handleRUSSIA).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("sendbroadcast", handleSendBroadcast).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("setprefix", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		if len(args) == 0 {
 			commandLib.SetPrefix("")
@@ -536,6 +537,22 @@ func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 	} else {
 		s.ChannelMessageSend(m.ChannelID, "✅")
 	}
+}
+
+func handleSendBroadcast(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 2 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	} else if len(args) < 3 {
+		cmdReceiver.SendNotificationMetaBroadcast("", "", args[0], args[1], "")
+	} else if len(args) < 4 {
+		cmdReceiver.SendNotificationMetaBroadcast("", "", args[0], args[1], args[2])
+	} else if len(args) < 5 {
+		cmdReceiver.SendNotificationMetaBroadcast("", args[0], args[1], args[2], args[3])
+	} else {
+		cmdReceiver.SendNotificationMetaBroadcast(args[0], args[1], args[2], args[3], args[4])
+	}
+	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 
 func getEmojiSnowflakeForLine(id string) string {

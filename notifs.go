@@ -91,6 +91,44 @@ func SendNotificationForAnnouncement(a *dataobjects.Announcement) {
 	}
 }
 
+// SendMetaBroadcast sends a FCM message containing actions to execute on all clients
+func SendMetaBroadcast(id, broadcastType, forVersions, forLocales string, args ...[2]string) {
+	if fcmcl == nil {
+		// too soon
+		return
+	}
+
+	data := map[string]string{
+		"id":   id,
+		"type": broadcastType,
+	}
+
+	if forVersions != "" {
+		data["versions"] = forVersions
+	}
+
+	if forLocales != "" {
+		data["locales"] = forLocales
+	}
+
+	for _, arg := range args {
+		data[arg[0]] = arg[1]
+	}
+
+	mainLog.Println("Sending meta-broadcast " + id)
+
+	if DEBUG {
+		fcmcl.NewFcmMsgTo("/topics/broadcasts-debug", data)
+	} else {
+		fcmcl.NewFcmMsgTo("/topics/broadcasts", data)
+	}
+	fcmcl.SetPriority(fcm.Priority_HIGH)
+	_, err := fcmcl.Send()
+	if err != nil {
+		mainLog.Println(err)
+	}
+}
+
 func handleControlNotifs(notiftype string, enable bool) {
 	switch notiftype {
 	case "status":

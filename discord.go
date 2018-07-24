@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 
 	"github.com/underlx/disturbancesmlx/discordbot"
@@ -125,4 +126,17 @@ func (r *BotCommandReceiver) GetStats() (dbOpenConnections, apiTotalRequests int
 // SchedulesToLines turns the provided schedule array into a human-readable list of strings
 func (r *BotCommandReceiver) SchedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 	return schedulesToLines(schedules)
+}
+
+// SendNotificationMetaBroadcast sends a FCM message containing a notification to show on all clients
+func (r *BotCommandReceiver) SendNotificationMetaBroadcast(versionFilter, localeFilter, title, body, url string) {
+	id, err := uuid.NewV4()
+	if err != nil {
+		return
+	}
+
+	SendMetaBroadcast(id.String(), "notification", versionFilter, localeFilter,
+		[2]string{"title", title},
+		[2]string{"body", body},
+		[2]string{"url", url})
 }
