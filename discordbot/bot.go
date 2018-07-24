@@ -158,6 +158,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("notifs", handleControlNotifs).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("russia", handleRUSSIA).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendbroadcast", handleSendBroadcast).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("sendcommand", handleSendCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("setprefix", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		if len(args) == 0 {
 			commandLib.SetPrefix("")
@@ -552,6 +553,15 @@ func handleSendBroadcast(s *discordgo.Session, m *discordgo.MessageCreate, args 
 	} else {
 		cmdReceiver.SendNotificationMetaBroadcast(args[0], args[1], args[2], args[3], args[4])
 	}
+	s.ChannelMessageSend(m.ChannelID, "✅")
+}
+
+func handleSendCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 3 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+	cmdReceiver.SendCommandMetaBroadcast(args[0], args[1], args[2], args[3:]...)
 	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 

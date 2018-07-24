@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	uuid "github.com/satori/go.uuid"
@@ -128,7 +129,7 @@ func (r *BotCommandReceiver) SchedulesToLines(schedules []*dataobjects.LobbySche
 	return schedulesToLines(schedules)
 }
 
-// SendNotificationMetaBroadcast sends a FCM message containing a notification to show on all clients
+// SendNotificationMetaBroadcast sends a FCM message containing a notification to show on some/all clients
 func (r *BotCommandReceiver) SendNotificationMetaBroadcast(versionFilter, localeFilter, title, body, url string) {
 	id, err := uuid.NewV4()
 	if err != nil {
@@ -139,4 +140,16 @@ func (r *BotCommandReceiver) SendNotificationMetaBroadcast(versionFilter, locale
 		[2]string{"title", title},
 		[2]string{"body", body},
 		[2]string{"url", url})
+}
+
+// SendCommandMetaBroadcast sends a FCM message containing a command to run on some/all clients
+func (r *BotCommandReceiver) SendCommandMetaBroadcast(versionFilter, localeFilter, command string, args ...string) {
+	id, err := uuid.NewV4()
+	if err != nil {
+		return
+	}
+
+	SendMetaBroadcast(id.String(), "command", versionFilter, localeFilter,
+		[2]string{"command", command},
+		[2]string{"args", strings.Join(args, "|")})
 }
