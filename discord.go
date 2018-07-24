@@ -120,8 +120,8 @@ func (r *BotCommandReceiver) GetVersion() (gitCommit string, buildDate string) {
 }
 
 // GetStats is called when the bot wants to get the current server stats
-func (r *BotCommandReceiver) GetStats() (dbOpenConnections, apiTotalRequests int) {
-	return apiTotalRequests, rdb.Stats().OpenConnections
+func (r *BotCommandReceiver) GetStats() (dbOpenConnections, apiTR int) {
+	return rdb.Stats().OpenConnections, apiTotalRequests
 }
 
 // SchedulesToLines turns the provided schedule array into a human-readable list of strings
