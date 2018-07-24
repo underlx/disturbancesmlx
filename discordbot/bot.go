@@ -83,13 +83,17 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("ping", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		embed := NewEmbed()
 		addMuteEmbed(embed, m.ChannelID)
-		msg := &discordgo.MessageSend{
+		msgSend := &discordgo.MessageSend{
 			Content: "🙌",
 		}
 		if len(embed.Fields) > 0 {
-			msg.Embed = embed.MessageEmbed
+			msgSend.Embed = embed.MessageEmbed
 		}
-		s.ChannelMessageSendComplex(m.ChannelID, msg)
+		beforeSend := time.Now()
+		msg, err := s.ChannelMessageSendComplex(m.ChannelID, msgSend)
+		if err == nil {
+			s.ChannelMessageEdit(m.ChannelID, msg.ID, fmt.Sprintf("🙌 RTT mensagem: %d ms", time.Now().Sub(beforeSend).Nanoseconds()/1000000))
+		}
 	}))
 	commandLib.Register(NewCommand("stats", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		embed, err := buildBotStatsMessage(m)
