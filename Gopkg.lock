@@ -33,6 +33,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/gbl08ma/disduper"
+  packages = ["bot"]
+  revision = "a0f170131d62fe75ca55e6a9cbc7496ba407e92d"
+
+[[projects]]
+  branch = "master"
   name = "github.com/gbl08ma/keybox"
   packages = ["."]
   revision = "285a9d753c877e10619a4f4acecbc8325a72326d"
@@ -306,6 +312,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "39022391cf99d19080758cab9df289cc2c8cdb142bd01cda441db5f8b51b32da"
+  inputs-digest = "423e6358ff3f6a5e3e0742e5129b190ee66b76f6b74aeca92165756bccbaa7a3"
   solver-name = "gps-cdcl"
   solver-version = 1
