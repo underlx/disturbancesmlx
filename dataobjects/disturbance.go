@@ -35,6 +35,14 @@ func GetDisturbances(node sqalx.Node) ([]*Disturbance, error) {
 	return getDisturbancesWithSelect(node, s)
 }
 
+// GetLatestNDisturbances returns up to `limit` most recent disturbances
+func GetLatestNDisturbances(node sqalx.Node, limit uint64) ([]*Disturbance, error) {
+	s := sdb.Select().
+		OrderBy("time_start DESC").
+		Limit(limit)
+	return getDisturbancesWithSelect(node, s)
+}
+
 // GetOngoingDisturbances returns a slice with all ongoing disturbances
 func GetOngoingDisturbances(node sqalx.Node) ([]*Disturbance, error) {
 	s := sdb.Select().

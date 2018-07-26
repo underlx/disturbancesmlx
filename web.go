@@ -19,6 +19,7 @@ import (
 
 	"sort"
 
+	"github.com/gorilla/feeds"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/rickb777/date"
@@ -143,6 +144,7 @@ func WebServer() {
 	router.HandleFunc("/privacy/{lang:[a-z]{2}}", PrivacyPolicyPage)
 	router.HandleFunc("/terms", TermsPage)
 	router.HandleFunc("/terms/{lang:[a-z]{2}}", TermsPage)
+	router.HandleFunc("/feed", RSSFeed)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 
 	router.HandleFunc("/auth", AuthHandler)
@@ -1351,6 +1353,59 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+// RSSFeed serves the RSS feed
+func RSSFeed(w http.ResponseWriter, r *http.Request) {
+	tx, err := rootSqalxNode.Beginx()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+	defer tx.Commit()
+
+	feed := &feeds.Feed{
+		Title:       "Perturbações do Metro de Lisboa",
+		Link:        &feeds.Link{Href: websiteURL},
+		Description: "Últimas perturbações do Metro de Lisboa conforme registadas pelo Perturbações.pt",
+		Author:      &feeds.Author{Name: "Equipa do UnderLX", Email: "underlx@tny.im"},
+		Updated:     time.Now(),
+	}
+
+	feed.Items = []*feeds.Item{}
+
+	disturbances, err := dataobjects.GetLatestNDisturbances(tx, 20)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		webLog.Println(err)
+		return
+	}
+
+	loc, _ := time.LoadLocation("Europe/Lisbon")
+	for _, disturbance := range disturbances {
+		description := ""
+		for _, status := range disturbance.Statuses {
+			description += status.Time.In(loc).Format("02 Jan 2006 15:04")
+			if !status.Source.Official {
+				description += " (dados da comunidade)"
+			}
+			description += " - " + status.Status + "\n\n"
+		}
+		feed.Items = append(feed.Items, &feeds.Item{
+			Title:       "Perturbação do " + disturbance.Line.Network.Name + " - Linha " + disturbance.Line.Name,
+			Link:        &feeds.Link{Href: websiteURL + "/d/" + disturbance.ID},
+			Description: description,
+			Created:     disturbance.UStartTime,
+		})
+	}
+
+	rss, err := feed.ToRss()
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	w.Write([]byte(rss))
 }
 
 // WebReloadTemplate reloads the templates for the website
