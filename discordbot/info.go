@@ -6,7 +6,10 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/bwmarrin/discordgo"
+	"github.com/cloudflare/ahocorasick"
 	"github.com/heetch/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"golang.org/x/text/runes"
@@ -14,9 +17,12 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-type lightTrigger struct {
+type trigger struct {
 	wordType wordType
 	id       string
+	light    bool
+	needle   string
+	original string
 }
 
 type lastUsageKey struct {
@@ -58,8 +64,8 @@ const (
 type InfoHandler struct {
 	handledCount           int
 	actedUponCount         int
-	wordMap                map[string]wordType
-	lightTriggersMap       map[string]lightTrigger
+	triggerMatcher         *ahocorasick.Matcher
+	triggers               []trigger
 	lightTriggersLastUsage map[lastUsageKey]time.Time // maps lightTrigger IDs to the last time they were used
 	node                   sqalx.Node
 }
@@ -67,8 +73,6 @@ type InfoHandler struct {
 // NewInfoHandler returns a new InfoHandler
 func NewInfoHandler(snode sqalx.Node) (*InfoHandler, error) {
 	i := &InfoHandler{
-		wordMap:                make(map[string]wordType),
-		lightTriggersMap:       make(map[string]lightTrigger),
 		lightTriggersLastUsage: make(map[lastUsageKey]time.Time),
 		node: snode,
 	}
@@ -88,52 +92,54 @@ func (i *InfoHandler) Handle(s *discordgo.Session, m *discordgo.MessageCreate, m
 	}
 	actedUpon := false
 
-	words := strings.Split(m.Content, " ")
-	for _, word := range words {
-		if wordType, ok := i.wordMap[word]; ok {
-			i.sendReply(s, m, word, word, wordType, false)
-			actedUpon = true
-		}
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	content, _, err := transform.String(t, strings.ToLower(m.Content))
+	if err != nil {
+		botLog.Println(err)
+		return false
 	}
+	matches := i.triggerMatcher.Match([]byte(content))
+	for _, match := range matches {
+		trigger := i.triggers[match]
+		startIdx := strings.Index(content, trigger.needle)
+		if startIdx < 0 {
+			// this should never happen
+			botLog.Println("Match not found in message")
+			continue
+		}
+		endIdx := startIdx + len(trigger.needle)
 
-	for lightTrigger, triggerInfo := range i.lightTriggersMap {
-		if !strings.Contains(lightTrigger, " ") && len(m.Content) > len(lightTrigger) {
-			lightTrigger = " " + lightTrigger + " "
+		if startIdx > 0 && !i.isWordSeparator(content[startIdx-1:startIdx]) {
+			// case like "abcpt-ml"
+			continue
 		}
-		t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-		noDiacriticsResult, _, _ := transform.String(t, lightTrigger)
-		noDiacriticsMessage, _, _ := transform.String(t, strings.ToLower(m.Content))
-		triggerWord := ""
-		if strings.Contains(m.Content, lightTrigger) {
-			triggerWord = strings.TrimSpace(lightTrigger)
-		} else if needle := strings.ToLower(lightTrigger); strings.Contains(m.Content, needle) {
-			triggerWord = strings.TrimSpace(needle)
-		} else if needle := strings.ToLower(noDiacriticsResult); strings.Contains(m.Content, needle) {
-			triggerWord = strings.TrimSpace(needle)
-		} else if needle := strings.ToLower(noDiacriticsResult); strings.Contains(noDiacriticsMessage, needle) {
-			triggerWord = strings.TrimSpace(needle)
-		} else if needle := strings.ToLower(strings.TrimRight(noDiacriticsResult, " ")); strings.HasSuffix(noDiacriticsMessage, needle) {
-			triggerWord = strings.TrimSpace(needle)
-		} else if needle := strings.ToLower(strings.TrimLeft(noDiacriticsResult, " ")); strings.HasPrefix(noDiacriticsMessage, needle) {
-			triggerWord = strings.TrimSpace(needle)
+		if endIdx < len(content) && !i.isWordSeparator(content[endIdx:endIdx+1]) {
+			// case like "pt-mlabc" or "pt-ml-verde" (we want to trigger on pt-ml-verde, not just pt-ml)
+			continue
 		}
-		if triggerWord != "" {
+
+		if trigger.light {
 			key := lastUsageKey{
 				channelID: m.ChannelID,
-				id:        triggerInfo.id}
+				id:        trigger.id}
 			if t, ok := i.lightTriggersLastUsage[key]; ok && time.Since(t) < 10*time.Minute {
 				continue
 			}
 			i.lightTriggersLastUsage[key] = time.Now()
-			i.sendReply(s, m, triggerInfo.id, triggerWord, triggerInfo.wordType, true)
-			actedUpon = true
 		}
+
+		i.sendReply(s, m, trigger.id, trigger.original, trigger.wordType, trigger.light)
+		actedUpon = true
 	}
 	if actedUpon {
 		i.actedUponCount++
 	}
 
 	return false
+}
+
+func (i *InfoHandler) isWordSeparator(seq string) bool {
+	return funk.ContainsString([]string{" ", ".", ",", ":", "!", "?", "\n", "\""}, seq)
 }
 
 // MessagesHandled returns the number of messages handled by this InfoHandler
@@ -158,12 +164,18 @@ func (i *InfoHandler) buildWordMap() error {
 	}
 	defer tx.Commit() // read-only tx
 
+	triggerDict := []string{}
+
 	networks, err := dataobjects.GetNetworks(tx)
 	if err != nil {
 		return err
 	}
+
 	for _, network := range networks {
-		i.wordMap[network.ID] = wordTypeNetwork
+		i.populateTriggers(&triggerDict, trigger{
+			wordType: wordTypeNetwork,
+			id:       network.ID},
+			network.ID)
 	}
 
 	lines, err := dataobjects.GetLines(tx)
@@ -171,10 +183,16 @@ func (i *InfoHandler) buildWordMap() error {
 		return err
 	}
 	for _, line := range lines {
-		i.wordMap[line.ID] = wordTypeLine
-		i.lightTriggersMap["linha "+line.Name] = lightTrigger{
+		i.populateTriggers(&triggerDict, trigger{
 			wordType: wordTypeLine,
-			id:       line.ID}
+			id:       line.ID},
+			line.ID)
+
+		i.populateTriggers(&triggerDict, trigger{
+			wordType: wordTypeLine,
+			id:       line.ID,
+			light:    true},
+			"linha "+line.Name)
 	}
 
 	stations, err := dataobjects.GetStations(tx)
@@ -182,18 +200,22 @@ func (i *InfoHandler) buildWordMap() error {
 		return err
 	}
 	for _, station := range stations {
-		i.wordMap[station.ID] = wordTypeStation
-		triggers := []string{
+		i.populateTriggers(&triggerDict, trigger{
+			wordType: wordTypeStation,
+			id:       station.ID},
+			station.ID)
+
+		wtriggers := []string{
 			"estação do " + station.Name,
 			"estação da " + station.Name,
 			"estação de " + station.Name,
 			"estação " + station.Name,
 		}
-		for _, trigger := range triggers {
-			i.lightTriggersMap[trigger] = lightTrigger{
-				wordType: wordTypeStation,
-				id:       station.ID}
-		}
+		i.populateTriggers(&triggerDict, trigger{
+			wordType: wordTypeStation,
+			id:       station.ID,
+			light:    true},
+			wtriggers...)
 	}
 
 	lobbies, err := dataobjects.GetLobbies(tx)
@@ -201,7 +223,10 @@ func (i *InfoHandler) buildWordMap() error {
 		return err
 	}
 	for _, lobby := range lobbies {
-		i.wordMap[lobby.ID] = wordTypeLobby
+		i.populateTriggers(&triggerDict, trigger{
+			wordType: wordTypeLobby,
+			id:       lobby.ID},
+			lobby.ID)
 	}
 
 	pois, err := dataobjects.GetPOIs(tx)
@@ -209,10 +234,26 @@ func (i *InfoHandler) buildWordMap() error {
 		return err
 	}
 	for _, poi := range pois {
-		i.wordMap[poi.ID] = wordTypePOI
+		i.populateTriggers(&triggerDict, trigger{
+			wordType: wordTypePOI,
+			id:       poi.ID},
+			poi.ID)
 	}
 
+	i.triggerMatcher = ahocorasick.NewStringMatcher(triggerDict)
+
 	return nil
+}
+
+func (i *InfoHandler) populateTriggers(triggerDict *[]string, t trigger, words ...string) {
+	tr := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	for _, word := range words {
+		lowered, _, _ := transform.String(tr, strings.ToLower(word))
+		*triggerDict = append(*triggerDict, lowered)
+		t.needle = lowered
+		t.original = word
+		i.triggers = append(i.triggers, t)
+	}
 }
 
 func (i *InfoHandler) sendReply(s *discordgo.Session, m *discordgo.MessageCreate, trigger, origTrigger string, triggerType wordType, isTemp bool) {

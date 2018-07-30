@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gbl08ma/disduper/bot"
-
 	"github.com/gbl08ma/keybox"
 
 	"github.com/bwmarrin/discordgo"
@@ -177,12 +175,12 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	}
 	messageHandlers = append(messageHandlers, infoHandler)
 
-	disduper := new(bot.Disduper)
+	/*disduper := new(bot.Disduper)
 	err = disduper.InitIntegrated(log, session)
 	if err != nil {
 		return err
 	}
-	messageHandlers = append(messageHandlers, disduper)
+	messageHandlers = append(messageHandlers, disduper)*/
 
 	user, err := dg.User("@me")
 	if err != nil {
