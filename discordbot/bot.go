@@ -1,11 +1,13 @@
 package discordbot
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"math"
 	"math/rand"
+	"net/http"
 	"strconv"
 	"strings"
 	"sync"
@@ -160,6 +162,8 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("russia", handleRUSSIA).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendbroadcast", handleSendBroadcast).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendcommand", handleSendCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("sendtochannel", handleSendToChannel).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("emptychannel", handleEmptyChannel).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("setprefix", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		if len(args) == 0 {
 			commandLib.SetPrefix("")
@@ -568,6 +572,78 @@ func handleSendCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []
 	}
 	cmdReceiver.SendCommandMetaBroadcast(args[0], args[1], args[2], args[3:]...)
 	s.ChannelMessageSend(m.ChannelID, "✅")
+}
+
+func handleSendToChannel(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 2 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+
+	var netClient = &http.Client{
+		Timeout: time.Second * 10,
+	}
+	response, err := netClient.Get(args[1])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+	defer response.Body.Close()
+	var messages []*discordgo.MessageSend
+	err = json.NewDecoder(response.Body).Decode(&messages)
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+
+	for _, message := range messages {
+		_, err = s.ChannelMessageSendComplex(args[0], message)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			return
+		}
+	}
+	s.ChannelMessageSend(m.ChannelID, "✅")
+}
+
+func handleEmptyChannel(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+
+	before := ""
+	messageIDs := []string{}
+	for {
+		messages, err := s.ChannelMessages(args[0], 100, before, "", "")
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			return
+		}
+		if len(messages) == 0 {
+			break
+		}
+		for _, message := range messages {
+			if len(args) > 1 && args[1] != message.Author.ID {
+				continue
+			}
+			messageIDs = append(messageIDs, message.ID)
+			before = message.ID
+		}
+	}
+
+	for i, id := range messageIDs {
+		err := s.ChannelMessageDelete(args[0], id)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			return
+		}
+		if (i+1)%10 == 0 {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🗑 %d/%d (%.00f%%) on `%s`. You can keep using the bot.",
+				i+1, len(messageIDs), float64(i+1)/float64(len(messageIDs))*100, args[0]))
+		}
+	}
+	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🗑 %d messages on `%s`", len(messageIDs), args[0]))
 }
 
 func getEmojiSnowflakeForLine(id string) string {
