@@ -100,22 +100,18 @@ func (i *InfoHandler) Handle(s *discordgo.Session, m *discordgo.MessageCreate, m
 		botLog.Println(err)
 		return false
 	}
-	matches := i.triggerMatcher.Match([]byte(content))
+	cbytes := []byte(content)
+	matches := i.triggerMatcher.Match(cbytes)
 	for _, match := range matches {
 		trigger := match.Value.(trigger)
-		startIdx := strings.Index(content, trigger.needle)
-		if startIdx < 0 {
-			// this should never happen
-			botLog.Println("Match not found in message")
-			continue
-		}
-		endIdx := startIdx + len(trigger.needle)
+		startIdx := match.At - match.KLen + 1
+		endIdx := match.At + 1
 
-		if startIdx > 0 && !i.isWordSeparator(content[startIdx-1:startIdx]) {
+		if startIdx > 0 && !i.isWordSeparator(string(cbytes[startIdx-1:startIdx])) {
 			// case like "abcpt-ml"
 			continue
 		}
-		if endIdx < len(content) && !i.isWordSeparator(content[endIdx:endIdx+1]) {
+		if endIdx < len(cbytes) && !i.isWordSeparator(string(cbytes[endIdx:endIdx+1])) {
 			// case like "pt-mlabc" or "pt-ml-verde" (we want to trigger on pt-ml-verde, not just pt-ml)
 			continue
 		}

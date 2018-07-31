@@ -33,18 +33,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/cloudflare/ahocorasick"
-  packages = ["."]
-  revision = "1ce46e42b741851faf33c1bf283eeae6676f70a8"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/gbl08ma/disduper"
-  packages = ["bot"]
-  revision = "a0f170131d62fe75ca55e6a9cbc7496ba407e92d"
-
-[[projects]]
-  branch = "master"
   name = "github.com/gbl08ma/keybox"
   packages = ["."]
   revision = "285a9d753c877e10619a4f4acecbc8325a72326d"
@@ -126,6 +114,12 @@
   packages = ["."]
   revision = "e40536072f95235446bdd63325902f82373774cc"
   version = "v0.2.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/iohub/Ahocorasick"
+  packages = ["."]
+  revision = "9c34010b2b7e75be8b84cfbdd65b16c3de863f35"
 
 [[projects]]
   name = "github.com/jackc/pgx"
@@ -324,6 +318,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e442aa575e93dc363aa1349c013224599d3611fa09db4ee56a22620a0ea58d39"
+  inputs-digest = "bcdfe2f4b065c3d0449847348fc17194b35f7415658486241173dcde0454e830"
   solver-name = "gps-cdcl"
   solver-version = 1

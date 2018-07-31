@@ -132,4 +132,4 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/cloudflare/ahocorasick"
+  name = "github.com/iohub/Ahocorasick"
