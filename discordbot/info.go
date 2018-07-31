@@ -9,8 +9,9 @@ import (
 	"github.com/thoas/go-funk"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/cloudflare/ahocorasick"
+
 	"github.com/heetch/sqalx"
+	cedar "github.com/iohub/Ahocorasick"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
@@ -64,8 +65,7 @@ const (
 type InfoHandler struct {
 	handledCount           int
 	actedUponCount         int
-	triggerMatcher         *ahocorasick.Matcher
-	triggers               []trigger
+	triggerMatcher         *cedar.Matcher
 	lightTriggersLastUsage map[lastUsageKey]time.Time // maps lightTrigger IDs to the last time they were used
 	node                   sqalx.Node
 }
@@ -74,8 +74,10 @@ type InfoHandler struct {
 func NewInfoHandler(snode sqalx.Node) (*InfoHandler, error) {
 	i := &InfoHandler{
 		lightTriggersLastUsage: make(map[lastUsageKey]time.Time),
-		node: snode,
+		node:           snode,
+		triggerMatcher: cedar.NewMatcher(),
 	}
+
 	err := i.buildWordMap()
 	if err != nil {
 		return nil, err
@@ -100,7 +102,7 @@ func (i *InfoHandler) Handle(s *discordgo.Session, m *discordgo.MessageCreate, m
 	}
 	matches := i.triggerMatcher.Match([]byte(content))
 	for _, match := range matches {
-		trigger := i.triggers[match]
+		trigger := match.Value.(trigger)
 		startIdx := strings.Index(content, trigger.needle)
 		if startIdx < 0 {
 			// this should never happen
@@ -164,15 +166,13 @@ func (i *InfoHandler) buildWordMap() error {
 	}
 	defer tx.Commit() // read-only tx
 
-	triggerDict := []string{}
-
 	networks, err := dataobjects.GetNetworks(tx)
 	if err != nil {
 		return err
 	}
 
 	for _, network := range networks {
-		i.populateTriggers(&triggerDict, trigger{
+		i.populateTriggers(trigger{
 			wordType: wordTypeNetwork,
 			id:       network.ID},
 			network.ID)
@@ -183,12 +183,12 @@ func (i *InfoHandler) buildWordMap() error {
 		return err
 	}
 	for _, line := range lines {
-		i.populateTriggers(&triggerDict, trigger{
+		i.populateTriggers(trigger{
 			wordType: wordTypeLine,
 			id:       line.ID},
 			line.ID)
 
-		i.populateTriggers(&triggerDict, trigger{
+		i.populateTriggers(trigger{
 			wordType: wordTypeLine,
 			id:       line.ID,
 			light:    true},
@@ -200,7 +200,7 @@ func (i *InfoHandler) buildWordMap() error {
 		return err
 	}
 	for _, station := range stations {
-		i.populateTriggers(&triggerDict, trigger{
+		i.populateTriggers(trigger{
 			wordType: wordTypeStation,
 			id:       station.ID},
 			station.ID)
@@ -211,7 +211,7 @@ func (i *InfoHandler) buildWordMap() error {
 			"estação de " + station.Name,
 			"estação " + station.Name,
 		}
-		i.populateTriggers(&triggerDict, trigger{
+		i.populateTriggers(trigger{
 			wordType: wordTypeStation,
 			id:       station.ID,
 			light:    true},
@@ -223,7 +223,7 @@ func (i *InfoHandler) buildWordMap() error {
 		return err
 	}
 	for _, lobby := range lobbies {
-		i.populateTriggers(&triggerDict, trigger{
+		i.populateTriggers(trigger{
 			wordType: wordTypeLobby,
 			id:       lobby.ID},
 			lobby.ID)
@@ -234,25 +234,23 @@ func (i *InfoHandler) buildWordMap() error {
 		return err
 	}
 	for _, poi := range pois {
-		i.populateTriggers(&triggerDict, trigger{
+		i.populateTriggers(trigger{
 			wordType: wordTypePOI,
 			id:       poi.ID},
 			poi.ID)
 	}
 
-	i.triggerMatcher = ahocorasick.NewStringMatcher(triggerDict)
+	i.triggerMatcher.Compile()
 
 	return nil
 }
 
-func (i *InfoHandler) populateTriggers(triggerDict *[]string, t trigger, words ...string) {
+func (i *InfoHandler) populateTriggers(t trigger, words ...string) {
 	tr := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	for _, word := range words {
-		lowered, _, _ := transform.String(tr, strings.ToLower(word))
-		*triggerDict = append(*triggerDict, lowered)
-		t.needle = lowered
+		t.needle, _, _ = transform.String(tr, strings.ToLower(word))
 		t.original = word
-		i.triggers = append(i.triggers, t)
+		i.triggerMatcher.Insert([]byte(t.needle), t)
 	}
 }
 
