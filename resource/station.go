@@ -143,8 +143,7 @@ func (r *Station) Get(c *yarf.Context) error {
 // ComputeStationTriviaURLs returns a mapping from locales to URLs of the HTML file containing the trivia for the given station
 func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 	m := make(map[string]string)
-	supportedLocales := []string{"pt", "en", "es", "fr"}
-	for _, locale := range supportedLocales {
+	for _, locale := range SupportedLocales {
 		m[locale] = "stationkb/" + locale + "/trivia/" + station.ID + ".html"
 	}
 	return m
@@ -154,9 +153,8 @@ func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 // of the HTML files containing the connection info for the given station
 func ComputeStationConnectionURLs(station *dataobjects.Station) map[string]map[string]string {
 	m := make(map[string]map[string]string)
-	locales := []string{"pt", "en", "es", "fr"}
 	connections := []string{"boat", "bus", "train", "park", "bike"}
-	for _, locale := range locales {
+	for _, locale := range SupportedLocales {
 		for _, connection := range connections {
 			path := "stationkb/" + locale + "/connections/" + connection + "/" + station.ID + ".html"
 			if info, err := os.Stat(path); err == nil && !info.IsDir() {

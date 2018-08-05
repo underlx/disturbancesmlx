@@ -45,6 +45,8 @@ func APIserver(trustedClientCertPath string) {
 
 	v1.Add("/meta", new(resource.Meta).WithNode(rootSqalxNode))
 
+	v1.Add("/meta/backers", new(resource.Backers))
+
 	v1.Add("/networks", new(resource.Network).WithNode(rootSqalxNode))
 	v1.Add("/networks/:id", new(resource.Network).WithNode(rootSqalxNode))
 
