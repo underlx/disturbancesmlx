@@ -247,10 +247,16 @@ func guildDelete(s *discordgo.Session, m *discordgo.GuildDelete) {
 
 func guildMemberAdded(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
 	botstats.userCount++
+	if m.Member.User.Bot {
+		botstats.botCount++
+	}
 }
 
 func guildMemberRemoved(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
 	botstats.userCount--
+	if m.Member.User.Bot {
+		botstats.botCount--
+	}
 }
 
 func channelCreate(s *discordgo.Session, m *discordgo.ChannelCreate) {
