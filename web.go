@@ -1433,7 +1433,8 @@ func WebReloadTemplate() {
 		"formatPortugueseMonth": formatPortugueseMonth,
 	}
 
-	webtemplate, _ = template.New("index.html").Funcs(funcMap).ParseGlob("web/*.html")
+	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("web/*.html"))
+	webtemplate = template.Must(webtemplate.ParseFiles("stationkb/backers.html"))
 }
 
 // RequestIsTLS returns whether a request was made over a HTTPS channel
