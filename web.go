@@ -650,7 +650,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 
 	p.DowntimePerLine = make(map[string]float32)
 	for _, line := range p.Lines {
-		totalDuration, err := line.DisturbanceDuration(tx, startDate, endDate, p.OfficialOnly)
+		totalDuration, _, err := line.DisturbanceDuration(tx, startDate, endDate, p.OfficialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusNotFound)
@@ -1321,7 +1321,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 
 		p.LinesExtra[i].Availability = fmt.Sprintf("%.03f%%", availability*100)
 		p.LinesExtra[i].AvgDuration = fmt.Sprintf("%.01f", avgd.Minutes())
-		totalDuration, err := lines[i].DisturbanceDuration(tx, p.StartTime, p.EndTime, p.OfficialOnly)
+		totalDuration, _, err := lines[i].DisturbanceDuration(tx, p.StartTime, p.EndTime, p.OfficialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
