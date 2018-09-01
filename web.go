@@ -614,8 +614,9 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 
 	var startDate time.Time
 	loc, _ := time.LoadLocation("Europe/Lisbon")
+	now := time.Now().In(loc)
 	if mux.Vars(r)["month"] == "" {
-		startDate = time.Date(time.Now().Year(), time.Now().Month(), 1, 0, 0, 0, 0, loc)
+		startDate = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, loc)
 	} else {
 		year, err := strconv.Atoi(mux.Vars(r)["year"])
 		if err != nil {
@@ -638,7 +639,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 	p.NextPageTime = endDate
 	p.PrevPageTime = startDate.AddDate(0, 0, -1)
 	p.HasPrevPage = p.PrevPageTime.After(time.Date(2017, 3, 1, 0, 0, 0, 0, loc))
-	p.HasNextPage = p.NextPageTime.Before(time.Now())
+	p.HasNextPage = p.NextPageTime.Before(now)
 
 	p.Disturbances, err = dataobjects.GetDisturbancesBetween(tx, startDate, endDate)
 	if err != nil {
@@ -1008,8 +1009,9 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	loc, _ := time.LoadLocation(p.Line.Network.Timezone)
+	now := time.Now().In(loc)
 
-	p.MonthAvailability, p.MonthDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, -1, 0), time.Now().In(loc), p.OfficialOnly)
+	p.MonthAvailability, p.MonthDuration, err = p.Line.Availability(tx, now.AddDate(0, -1, 0), now, p.OfficialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1017,7 +1019,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.MonthAvailability *= 100
 
-	p.WeekAvailability, p.WeekDuration, err = p.Line.Availability(tx, time.Now().In(loc).AddDate(0, 0, -7), time.Now().In(loc), p.OfficialOnly)
+	p.WeekAvailability, p.WeekDuration, err = p.Line.Availability(tx, now.AddDate(0, 0, -7), now, p.OfficialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
