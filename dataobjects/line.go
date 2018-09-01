@@ -422,18 +422,13 @@ func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime tim
 	}
 	defer tx.Commit() // read-only tx
 
-	disturbances, err := line.DisturbancesBetween(tx, startTime, endTime, officialOnly)
+	downTime, numDisturbances, err := line.DisturbanceDuration(tx, startTime, endTime, officialOnly)
 	if err != nil {
 		return 100.0, 0, err
 	}
 
-	downTime, err := line.DisturbanceDuration(tx, startTime, endTime, officialOnly)
-	if err != nil {
-		return 100.0, 0, err
-	}
-
-	if len(disturbances) > 0 {
-		avgDuration = downTime / time.Duration(len(disturbances))
+	if numDisturbances > 0 {
+		avgDuration = downTime / time.Duration(numDisturbances)
 	}
 
 	closedDuration, err := line.getClosedDuration(tx, startTime, endTime)
@@ -524,16 +519,16 @@ func (line *Line) getScheduleForDay(day time.Time, schedules []*LineSchedule) *L
 }
 
 // DisturbanceDuration returns the total duration of the disturbances in this line between the specified times
-func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endTime time.Time, officialOnly bool) (avgDuration time.Duration, err error) {
+func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endTime time.Time, officialOnly bool) (avgDuration time.Duration, count int, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	defer tx.Commit() // read-only tx
 
 	disturbances, err := line.DisturbancesBetween(tx, startTime, endTime, officialOnly)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	var downTime time.Duration
@@ -562,7 +557,7 @@ func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endT
 		}
 		downTime += thisEnd.Sub(thisStart)
 	}
-	return downTime, nil
+	return downTime, len(disturbances), nil
 }
 
 // Schedules returns the schedules of this line
