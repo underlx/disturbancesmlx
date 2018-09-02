@@ -30,9 +30,10 @@ type apiDisturbance struct {
 
 type apiDisturbanceWrapper struct {
 	apiDisturbance `msgpack:",inline"`
-	NetworkID      string             `msgpack:"network" json:"network"`
-	LineID         string             `msgpack:"line" json:"line"`
-	APIstatuses    []apiStatusWrapper `msgpack:"statuses" json:"statuses"`
+	NetworkID      string                            `msgpack:"network" json:"network"`
+	LineID         string                            `msgpack:"line" json:"line"`
+	Categories     []dataobjects.DisturbanceCategory `msgpack:"categories" json:"categories"`
+	APIstatuses    []apiStatusWrapper                `msgpack:"statuses" json:"statuses"`
 }
 
 type apiStatus struct {
@@ -75,6 +76,7 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 			apiDisturbance: apiDisturbance(*disturbance),
 			NetworkID:      disturbance.Line.Network.ID,
 			LineID:         disturbance.Line.ID,
+			Categories:     disturbance.Categories(),
 		}
 
 		data.APIstatuses = []apiStatusWrapper{}
@@ -127,6 +129,7 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 				apiDisturbance: apiDisturbance(*disturbances[i]),
 				NetworkID:      disturbances[i].Line.Network.ID,
 				LineID:         disturbances[i].Line.ID,
+				Categories:     disturbances[i].Categories(),
 			}
 
 			apidisturbances[i].APIstatuses = []apiStatusWrapper{}

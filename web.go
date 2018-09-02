@@ -10,8 +10,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/gbl08ma/ssoclient"
 	"github.com/gbl08ma/sqalx"
+	"github.com/gbl08ma/ssoclient"
 	"github.com/medicalwei/recaptcha"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 
@@ -1226,15 +1226,6 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	message := ""
-	if r.Method == http.MethodPost && r.ParseForm() == nil {
-		if r.Form.Get("action") == "reloadTemplates" {
-			connectionDurationCache = make(map[string]int)
-			WebReloadTemplate()
-			message = "Templates reloaded"
-		}
-	}
-
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1242,6 +1233,19 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer tx.Commit()
+
+	message := ""
+	if r.Method == http.MethodPost && r.ParseForm() == nil {
+		switch r.Form.Get("action") {
+		case "reloadTemplates":
+			connectionDurationCache = make(map[string]int)
+			WebReloadTemplate()
+			message = "Templates reloaded"
+		case "computeMsgTypes":
+			ComputeStatusMsgTypes(tx)
+			message = "Line status types recomputed"
+		}
+	}
 
 	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {

@@ -1,24 +1,2 @@
-<div>
-    <span class="permalink"><a href="/d/{{ .ID }}">permalink</a></span>
-    <h3>Linha <a class="line" href="/l/{{ .Line.ID }}" style="color: #{{ .Line.Color }};">{{ .Line.Name | html }}</a></h3>
-  </div>
-<div style="padding-left: 40px;">
-  {{ $statuses := .Statuses }}
-  {{ range $index, $s := .Statuses }}
-    {{if (eq $index 0) }}
-    <p>{{ formatDisturbanceTime $s.Time }} {{ if not $s.Source.Official }}<i class="fa fa-users" aria-hidden="true" title="Informação fornecida pela comunidade de utilizadores"></i> {{end}}<span style="color: #777;">- {{ $s.Status | html }}</span>
-    {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
-    {{else}}
-      {{if (ne (index $statuses (minus $index 1)).Status $s.Status)}}
-      <p>{{ formatDisturbanceTime $s.Time }} {{ if not $s.Source.Official }}<i class="fa fa-users" aria-hidden="true" title="Informação fornecida pela comunidade de utilizadores"></i> {{end}}<span style="color: #777;">- {{ $s.Status | html }}</span>
-      {{if not $s.IsDowntime}}<i style="color: limegreen;" class="fa fa-check" aria-hidden="true"></i>{{end}}</p>
-      {{end}}
-    {{end}}
-  {{end}}
-  {{ if not .UEnded }}
-    <p><em>Por resolver</em> <i style="color: red;" class="fa fa-times" aria-hidden="true"></i></p>
-  {{end}}
-  {{ if (gt (len .Notes) 0) }}
-    <blockquote class="disturbance-note"><span class="disturbance-note-title">Notas da equipa do UnderLX:</span> {{ .Notes }}</blockquote>
-  {{end}}
-</div>
+{{template "component-disturbancealtheader.html" . }}
+{{template "component-disturbancebody.html" . }}

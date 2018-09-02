@@ -3,10 +3,11 @@ package dataobjects
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
-	sq "github.com/gbl08ma/squirrel"
 	"github.com/gbl08ma/sqalx"
+	sq "github.com/gbl08ma/squirrel"
 )
 
 // Status represents the status of a Line at a certain point in time
@@ -34,6 +35,28 @@ const (
 	ReportReconfirmMessage StatusMessageType = "REPORT_RECONFIRM"
 	// ReportSolvedMessage is the message for when reports of disturbances are gone
 	ReportSolvedMessage StatusMessageType = "REPORT_SOLVED"
+
+	// MLGenericMessage corresponds to the format "existem perturbações na circulação. O tempo de espera pode ser superior ao normal. Pedimos desculpa pelo incómodo causado"
+	MLGenericMessage StatusMessageType = "ML_GENERIC"
+	// MLSolvedMessage corresponds to the format "Circulação normal"
+	MLSolvedMessage StatusMessageType = "ML_SOLVED"
+	// MLClosedMessage corresponds to the format "Serviço encerrado"
+	MLClosedMessage StatusMessageType = "ML_CLOSED"
+	// MLCompositeMessage corresponds to the format:
+	// "[d|D]evido a $1$2"
+	// $1 may be one of:
+	// - "avaria na sinalização" (SIGNAL)
+	// - "avaria de comboio" (TRAIN)
+	// - "falha de energia" (POWER)
+	// - "causa alheia ao Metro" (3RDPARTY)
+	// - "incidente com passageiro" (PASSENGER)
+	// - "anomalia na estação" (STATION)
+	// $2 may be one of:
+	// - ", a circulação está interrompida desde as XX:XX. O tempo de reposição poderá ser superior a 15 minutos. Pedimos desculpa pelo incómodo" (SINCE)
+	// - " está interrompida a circulação. Não é possível prever a duração da interrupção, que poderá ser prolongada. Pedimos desculpa pelo incómodo causado" (NO_OUTLOOK)
+	// - " está interrompida a circulação na linha entre as estações XXXXXX e YYYYYY. Não é possível prever a duração da interrupção, que poderá ser prolongada. Pedimos desculpa pelo incómodo causado" (BETWEEN)
+	// - ", a circulação encontra-se com perturbações. O tempo de espera pode ser superior ao normal. Pedimos desculpa pelo incómodo" (DELAYED)
+	MLCompositeMessage StatusMessageType = "ML_%s_%s"
 )
 
 // GetStatuses returns a slice with all registered statuses
@@ -107,6 +130,55 @@ func getStatusesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Statu
 		}
 	}
 	return statuss, nil
+}
+
+// ComputeMsgType analyses the status message to assign the correct MsgType
+func (status *Status) ComputeMsgType() {
+	switch {
+	case strings.Contains(status.Status, "existem perturbações na circulação"):
+		status.MsgType = MLGenericMessage
+		return
+	case strings.Contains(status.Status, "Circulação normal"):
+		status.MsgType = MLSolvedMessage
+		return
+	case strings.Contains(status.Status, "Serviço encerrado"):
+		status.MsgType = MLClosedMessage
+		return
+	}
+
+	cause := ""
+	switch {
+	case strings.Contains(status.Status, "avaria na sinalização"):
+		cause = "SIGNAL"
+	case strings.Contains(status.Status, "avaria de comboio"):
+		cause = "TRAIN"
+	case strings.Contains(status.Status, "falha de energia"):
+		cause = "POWER"
+	case strings.Contains(status.Status, "causa alheia ao Metro"):
+		cause = "3RDPARTY"
+	case strings.Contains(status.Status, "incidente com passageiro"):
+		cause = "PASSENGER"
+	case strings.Contains(status.Status, "anomalia na estação"):
+		cause = "STATION"
+	}
+
+	state := ""
+	switch {
+	case strings.Contains(status.Status, "a circulação está interrompida desde as"):
+		state = "SINCE"
+	case strings.Contains(status.Status, "está interrompida a circulação. Não é possível prever a duração da interrupção"):
+		state = "NO_OUTLOOK"
+	case strings.Contains(status.Status, "está interrompida a circulação na linha entre as estações"):
+		state = "BETWEEN"
+	case strings.Contains(status.Status, "a circulação encontra-se com perturbações"):
+		state = "DELAYED"
+	}
+
+	if cause == "" || state == "" {
+		status.MsgType = "RAW"
+		return
+	}
+	status.MsgType = StatusMessageType(fmt.Sprintf(string(MLCompositeMessage), cause, state))
 }
 
 // Update adds or updates the status

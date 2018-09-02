@@ -617,6 +617,28 @@ func ComputeAllTrainETAs(node sqalx.Node) ([]TrainETA, error) {
 	return trainETAs, nil
 }
 
+// ComputeStatusMsgTypes updates the MsgTypes of existing line statuses
+func ComputeStatusMsgTypes(node sqalx.Node) error {
+	tx, err := node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	statuses, err := dataobjects.GetStatuses(tx)
+	if err != nil {
+		return err
+	}
+	for _, status := range statuses {
+		status.ComputeMsgType()
+		err = status.Update(tx)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
 func init() {
 	avgSpeedCache = make(map[avgSpeedCacheKey]float64)
 	avgSpeedComputeInProgress = make(map[avgSpeedCacheKey]bool)

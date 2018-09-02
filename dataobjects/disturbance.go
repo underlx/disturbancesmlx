@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"time"
 
-	sq "github.com/gbl08ma/squirrel"
 	"github.com/gbl08ma/sqalx"
+	sq "github.com/gbl08ma/squirrel"
 	"github.com/lib/pq"
 )
 
@@ -27,6 +28,26 @@ type Disturbance struct {
 	Notes       string
 	Statuses    []*Status
 }
+
+// DisturbanceCategory is a disturbance category
+type DisturbanceCategory string
+
+const (
+	// SignalFailureCategory is attributed to disturbances involving signal failures
+	SignalFailureCategory DisturbanceCategory = "SIGNAL_FAILURE"
+	// TrainFailureCategory is attributed to disturbances involving train failures
+	TrainFailureCategory DisturbanceCategory = "TRAIN_FAILURE"
+	// PowerOutageCategory is attributed to disturbances involving power outages
+	PowerOutageCategory DisturbanceCategory = "POWER_OUTAGE"
+	// ThirdPartyFaultCategory is attributed to disturbances involving 3rd party causes
+	ThirdPartyFaultCategory DisturbanceCategory = "3RD_PARTY_FAULT"
+	// PassengerIncidentCategory is attributed to disturbances involving incidents with passengers
+	PassengerIncidentCategory DisturbanceCategory = "PASSENGER_INCIDENT"
+	// StationAnomalyCategory is attributed to disturbances involving station anomalies
+	StationAnomalyCategory DisturbanceCategory = "STATION_ANOMALY"
+	// CommunityReportedCategory is attributed to disturbances reported by the community
+	CommunityReportedCategory DisturbanceCategory = "COMMUNITY_REPORTED"
+)
 
 // GetDisturbances returns a slice with all registered disturbances
 func GetDisturbances(node sqalx.Node) ([]*Disturbance, error) {
@@ -189,6 +210,47 @@ func (disturbance *Disturbance) LatestStatus() *Status {
 		}
 	}
 	return latest
+}
+
+var mlCompositeMessageMatcher = regexp.MustCompile("^ML_([0-9A-Z]+)_([0-9A-Z_]+)$")
+
+// Categories returns the categories for this disturbance
+func (disturbance *Disturbance) Categories() []DisturbanceCategory {
+	categories := []DisturbanceCategory{}
+	deduplicator := make(map[DisturbanceCategory]bool)
+	for _, status := range disturbance.Statuses {
+		matches := mlCompositeMessageMatcher.FindStringSubmatch(string(status.MsgType))
+		if len(matches) == 3 {
+			var possibleCategory DisturbanceCategory
+			switch matches[1] {
+			case "SIGNAL":
+				possibleCategory = SignalFailureCategory
+			case "TRAIN":
+				possibleCategory = TrainFailureCategory
+			case "POWER":
+				possibleCategory = PowerOutageCategory
+			case "3RDPARTY":
+				possibleCategory = ThirdPartyFaultCategory
+			case "PASSENGER":
+				possibleCategory = PassengerIncidentCategory
+			case "STATION":
+				possibleCategory = StationAnomalyCategory
+			}
+			if len(possibleCategory) > 0 && !deduplicator[possibleCategory] {
+				categories = append(categories, possibleCategory)
+				deduplicator[possibleCategory] = true
+			}
+			continue
+		}
+		switch status.MsgType {
+		case ReportBeginMessage, ReportConfirmMessage, ReportReconfirmMessage, ReportSolvedMessage:
+			if !deduplicator[CommunityReportedCategory] {
+				categories = append(categories, CommunityReportedCategory)
+				deduplicator[CommunityReportedCategory] = true
+			}
+		}
+	}
+	return categories
 }
 
 // Update adds or updates the disturbance

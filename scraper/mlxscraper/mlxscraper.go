@@ -163,6 +163,7 @@ func (sc *Scraper) update() {
 						Status:     lstatus.Find("li").Text(),
 						Source:     sc.Source,
 					}
+					status.ComputeMsgType()
 					sc.statusCallback(status)
 				}
 			})
