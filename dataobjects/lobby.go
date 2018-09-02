@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/gbl08ma/sqalx"
 	sq "github.com/gbl08ma/squirrel"
-	"github.com/heetch/sqalx"
 )
 
 // Lobby is a station lobby
@@ -73,6 +73,9 @@ func getLobbiesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Lobby,
 
 // GetLobby returns the lobby with the given ID
 func GetLobby(node sqalx.Node, id string) (*Lobby, error) {
+	if value, present := node.Load(getCacheKey("lobby", id)); present {
+		return value.(*Lobby), nil
+	}
 	s := sdb.Select().
 		Where(sq.Eq{"id": id})
 	lobbies, err := getLobbiesWithSelect(node, s)
@@ -82,6 +85,7 @@ func GetLobby(node sqalx.Node, id string) (*Lobby, error) {
 	if len(lobbies) == 0 {
 		return nil, errors.New("Lobby not found")
 	}
+	node.Store(getCacheKey("lobby", id), lobbies[0])
 	return lobbies[0], nil
 }
 

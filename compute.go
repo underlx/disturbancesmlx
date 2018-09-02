@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 

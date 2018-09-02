@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/gbl08ma/sqalx"
 	sq "github.com/gbl08ma/squirrel"
-	"github.com/heetch/sqalx"
 	"github.com/lib/pq"
 )
 
@@ -81,6 +81,9 @@ func getStationsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Stati
 
 // GetStation returns the Station with the given ID
 func GetStation(node sqalx.Node, id string) (*Station, error) {
+	if value, present := node.Load(getCacheKey("station", id)); present {
+		return value.(*Station), nil
+	}
 	s := sdb.Select().
 		Where(sq.Eq{"id": id})
 	stations, err := getStationsWithSelect(node, s)
@@ -90,6 +93,7 @@ func GetStation(node sqalx.Node, id string) (*Station, error) {
 	if len(stations) == 0 {
 		return nil, errors.New("Station not found")
 	}
+	node.Store(getCacheKey("station", id), stations[0])
 	return stations[0], nil
 }
 

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	sq "github.com/gbl08ma/squirrel"
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 )
 
 // APIPair contains API auth credentials

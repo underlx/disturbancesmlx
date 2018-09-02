@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/ssoclient"
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	"github.com/medicalwei/recaptcha"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 

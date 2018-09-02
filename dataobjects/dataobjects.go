@@ -151,3 +151,7 @@ func (d *Duration) Scan(value interface{}) error {
 func (d Duration) Value() (driver.Value, error) {
 	return time.Duration(d).String(), nil
 }
+
+func getCacheKey(objtype, id string) string {
+	return fmt.Sprintf("dataobjects-%s-%s", objtype, id)
+}

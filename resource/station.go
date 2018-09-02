@@ -3,7 +3,7 @@ package resource
 import (
 	"os"
 
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )

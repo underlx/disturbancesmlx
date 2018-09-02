@@ -6,7 +6,7 @@ import (
 	"time"
 
 	fcm "github.com/NaySoftware/go-fcm"
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	"github.com/jmoiron/sqlx"
 
 	sq "github.com/gbl08ma/squirrel"

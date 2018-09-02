@@ -62,8 +62,8 @@
   version = "1.1.0"
 
 [[constraint]]
-  name = "github.com/heetch/sqalx"
-  version = "0.2.0"
+  branch = "master"
+  name = "github.com/gbl08ma/sqalx"
 
 [[constraint]]
   name = "github.com/jackc/pgx"

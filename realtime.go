@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 
 	altmath "github.com/pkg/math"

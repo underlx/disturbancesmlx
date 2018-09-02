@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/scraper"
 	"github.com/underlx/disturbancesmlx/scraper/mlxscraper"

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	sq "github.com/gbl08ma/squirrel"
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 )
 
 // AndroidPairRequest contains info for a pair request issued by an Android app

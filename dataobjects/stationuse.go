@@ -8,7 +8,7 @@ import (
 	"database/sql"
 
 	sq "github.com/gbl08ma/squirrel"
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 )
 
 // StationUse represents the stationUse of a Line at a certain point in time

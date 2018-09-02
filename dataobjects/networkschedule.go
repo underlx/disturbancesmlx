@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	sq "github.com/gbl08ma/squirrel"
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 )
 
 // NetworkSchedule is a Network schedule

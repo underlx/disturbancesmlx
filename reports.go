@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	cache "github.com/patrickmn/go-cache"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"

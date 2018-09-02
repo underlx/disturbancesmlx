@@ -7,8 +7,8 @@ import (
 
 	"sort"
 
+	"github.com/gbl08ma/sqalx"
 	sq "github.com/gbl08ma/squirrel"
-	"github.com/heetch/sqalx"
 	"github.com/lib/pq"
 )
 
@@ -33,6 +33,9 @@ func GetNetworks(node sqalx.Node) ([]*Network, error) {
 
 // GetNetwork returns the Line with the given ID
 func GetNetwork(node sqalx.Node, id string) (*Network, error) {
+	if value, present := node.Load(getCacheKey("network", id)); present {
+		return value.(*Network), nil
+	}
 	s := sdb.Select().
 		Where(sq.Eq{"network.id": id})
 	networks, err := getNetworksWithSelect(node, s)
@@ -42,6 +45,7 @@ func GetNetwork(node sqalx.Node, id string) (*Network, error) {
 	if len(networks) == 0 {
 		return nil, errors.New("Network not found")
 	}
+	node.Store(getCacheKey("network", id), networks[0])
 	return networks[0], nil
 }
 

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	sq "github.com/gbl08ma/squirrel"
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 )
 
 // Status represents the status of a Line at a certain point in time

@@ -10,7 +10,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	cedar "github.com/iohub/Ahocorasick"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"golang.org/x/text/runes"

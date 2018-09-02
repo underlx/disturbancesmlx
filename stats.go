@@ -7,7 +7,7 @@ import (
 
 	"github.com/thoas/go-funk"
 
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	cache "github.com/patrickmn/go-cache"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )

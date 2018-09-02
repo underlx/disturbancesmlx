@@ -16,7 +16,7 @@ import (
 	"github.com/gbl08ma/keybox"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/heetch/sqalx"
+	"github.com/gbl08ma/sqalx"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )

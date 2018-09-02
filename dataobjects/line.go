@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/SaidinWoT/timespan"
+	"github.com/gbl08ma/sqalx"
 	sq "github.com/gbl08ma/squirrel"
-	"github.com/heetch/sqalx"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -142,6 +142,9 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 
 // GetLine returns the Line with the given ID
 func GetLine(node sqalx.Node, id string) (*Line, error) {
+	if value, present := node.Load(getCacheKey("line", id)); present {
+		return value.(*Line), nil
+	}
 	s := sdb.Select().
 		Where(sq.Eq{"mline.id": id})
 	lines, err := getLinesWithSelect(node, s)
@@ -151,6 +154,7 @@ func GetLine(node sqalx.Node, id string) (*Line, error) {
 	if len(lines) == 0 {
 		return nil, errors.New("Line not found")
 	}
+	node.Store(getCacheKey("line", id), lines[0])
 	return lines[0], nil
 }
 
