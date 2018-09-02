@@ -424,7 +424,7 @@ func ComputeAverageSpeedCached(node sqalx.Node, fromTime time.Time, toTime time.
 		go func() {
 			mainLog.Println("Now computing average speed between " + fromTime.String() + " and " + toTime.String())
 			avgSpeedComputeInProgress[avgSpeedCacheKey{fromTime.Unix(), toTime.Unix()}] = true
-			val, err := ComputeAverageSpeed(rootSqalxNode, fromTime, toTime, 30*time.Millisecond)
+			val, err := ComputeAverageSpeed(rootSqalxNode, fromTime, toTime, 5*time.Millisecond)
 			if err != nil {
 				mainLog.Println("Error computing average speed between " + fromTime.String() + " and " + toTime.String() + ": " + err.Error())
 				return
