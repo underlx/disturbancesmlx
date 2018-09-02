@@ -978,6 +978,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		WeekDuration      time.Duration
 		MonthAvailability float64
 		MonthDuration     time.Duration
+		Disturbances      []*dataobjects.Disturbance
 	}{}
 
 	p.Line, err = dataobjects.GetLine(tx, mux.Vars(r)["id"])
@@ -1008,7 +1009,12 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	loc, _ := time.LoadLocation(p.Line.Network.Timezone)
+	loc, err := time.LoadLocation(p.Line.Network.Timezone)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	now := time.Now().In(loc)
 
 	p.MonthAvailability, p.MonthDuration, err = p.Line.Availability(tx, now.AddDate(0, -1, 0), now, p.OfficialOnly)
@@ -1026,6 +1032,15 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.WeekAvailability *= 100
+
+	weekAgo := now.AddDate(0, 0, -7)
+	weekAgo = time.Date(weekAgo.Year(), weekAgo.Month(), weekAgo.Day(), 0, 0, 0, 0, loc)
+	p.Disturbances, err = p.Line.DisturbancesBetween(tx, weekAgo, now, p.OfficialOnly)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	err = webtemplate.ExecuteTemplate(w, "line.html", p)
 	if err != nil {

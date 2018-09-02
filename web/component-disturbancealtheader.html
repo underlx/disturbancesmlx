@@ -1,0 +1,35 @@
+<div>
+  <span class="permalink"><a href="/d/{{ .ID }}">permalink</a></span>
+  <h3>
+    {{ $categories := .Categories }}
+    {{ $hadreason := false }}
+    {{ $islast := false }}
+    {{ $catcount := (minus (len $categories) 1) }}
+    {{ range $index, $category := $categories }}
+      {{ if (eq $index $catcount) }}{{ $islast = true }}{{end}}
+      {{ if (eq $category "SIGNAL_FAILURE") }}
+        {{ if not $hadreason }}Perturbação relacionada com{{end}} avaria na sinalização{{ if not $islast }},{{end}}
+        {{ $hadreason = true }}
+      {{ else if (eq $category "TRAIN_FAILURE") }}
+        {{ if not $hadreason }}Perturbação relacionada com{{end}} avaria de comboio{{ if not $islast }},{{end}}
+        {{ $hadreason = true }}
+      {{ else if (eq $category "POWER_OUTAGE") }}
+        {{ if not $hadreason }}Perturbação relacionada com{{end}} falha de energia{{ if not $islast }},{{end}}
+        {{ $hadreason = true }}
+      {{ else if (eq $category "3RD_PARTY_FAULT") }}
+        {{ if not $hadreason }}Perturbação relacionada com{{end}} causa alheia{{ if not $islast }},{{end}}
+        {{ $hadreason = true }}
+      {{ else if (eq $category "PASSENGER_INCIDENT") }}
+        {{ if not $hadreason }}Perturbação relacionada com{{end}} incidente com passageiro{{ if not $islast }},{{end}}
+        {{ $hadreason = true }}
+      {{ else if (eq $category "STATION_ANOMALY") }}
+        {{ if not $hadreason }}Perturbação relacionada com{{end}} anomalia na estação{{ if not $islast }},{{end}}
+        {{ $hadreason = true }}
+      {{ else if (eq $category "COMMUNITY_REPORTED") }}
+        comunicada pela comunidade de utilizadores{{ if not $islast }},{{end}}
+      {{end}}
+    {{else}}
+    Perturbação sem causa identificada
+    {{end}}
+  </h3>
+</div>

@@ -29,9 +29,17 @@
         </ul>
       </div>
       <div class="pure-u-1">
-          <h2><a id="availability">Disponibilidade</a></h2>
-          <p>Semana: {{ printf "%.03f%%" .WeekAvailability }}{{ if (ne .WeekAvailability 100.0) }}<small>, as perturbações duraram em média {{ printf "%.01f" .WeekDuration.Minutes }} minutos.{{end}}</small></p>
-          <p>Mês: {{ printf "%.03f%%" .MonthAvailability }}{{ if (ne .MonthAvailability 100.0) }}<small>, as perturbações duraram em média {{ printf "%.01f" .MonthDuration.Minutes }} minutos.{{end}}</small></p>
+        <h2><a id="availability">Disponibilidade</a></h2>
+        <p>Semana: {{ printf "%.03f%%" .WeekAvailability }}{{ if (ne .WeekAvailability 100.0) }}<small>, as perturbações duraram em média {{ printf "%.01f" .WeekDuration.Minutes }} minutos.{{end}}</small></p>
+        <p>Mês: {{ printf "%.03f%%" .MonthAvailability }}{{ if (ne .MonthAvailability 100.0) }}<small>, as perturbações duraram em média {{ printf "%.01f" .MonthDuration.Minutes }} minutos.{{end}}</small></p>
+      </div>
+      <div class="pure-u-1">
+        <h2>Perturbações nos últimos 7 dias</h2>
+        {{ range $disturbance := .Disturbances }}
+          {{template "component-altdisturbance.html" $disturbance }}
+        {{else}}
+          <p>Nesta linha, não foram registadas perturbações nos últimos 7 dias.</p>
+        {{end}}
       </div>
     </div>
   </div>
