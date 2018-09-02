@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	sq "github.com/gbl08ma/squirrel"
 	"github.com/gbl08ma/sqalx"
+	sq "github.com/gbl08ma/squirrel"
 )
 
 // Source represents a Status source
@@ -23,6 +23,9 @@ func GetSources(node sqalx.Node) ([]*Source, error) {
 
 // GetSource returns the Source with the given ID
 func GetSource(node sqalx.Node, id string) (*Source, error) {
+	if value, present := node.Load(getCacheKey("source", id)); present {
+		return value.(*Source), nil
+	}
 	s := sdb.Select().
 		Where(sq.Eq{"id": id})
 	sources, err := getSourcesWithSelect(node, s)
@@ -32,6 +35,7 @@ func GetSource(node sqalx.Node, id string) (*Source, error) {
 	if len(sources) == 0 {
 		return nil, errors.New("Source not found")
 	}
+	node.Store(getCacheKey("source", id), sources[0])
 	return sources[0], nil
 }
 

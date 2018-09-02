@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	sq "github.com/gbl08ma/squirrel"
 	"github.com/gbl08ma/sqalx"
+	sq "github.com/gbl08ma/squirrel"
 )
 
 // APIPair contains API auth credentials
@@ -25,6 +25,10 @@ type APIPair struct {
 
 // GetPair returns the API pair with the given ID
 func GetPair(node sqalx.Node, key string) (*APIPair, error) {
+	if value, present := node.Load(getCacheKey("pair", key)); present {
+		return value.(*APIPair), nil
+	}
+
 	var pair APIPair
 	tx, err := node.Beginx()
 	if err != nil {
@@ -39,6 +43,7 @@ func GetPair(node sqalx.Node, key string) (*APIPair, error) {
 	if err != nil {
 		return &pair, errors.New("GetPair: " + err.Error())
 	}
+	node.Store(getCacheKey("pair", key), &pair)
 	return &pair, nil
 }
 
