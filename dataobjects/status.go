@@ -144,6 +144,18 @@ func (status *Status) ComputeMsgType() {
 	case strings.Contains(status.Status, "Serviço encerrado"):
 		status.MsgType = MLClosedMessage
 		return
+	case strings.Contains(status.Status, "Os utilizadores comunicaram problemas na circulação"):
+		status.MsgType = ReportBeginMessage
+		return
+	case strings.Contains(status.Status, "Vários utilizadores confirmaram problemas na circulação"):
+		status.MsgType = ReportConfirmMessage
+		return
+	case strings.Contains(status.Status, "Vários utilizadores confirmaram mais problemas na circulação"):
+		status.MsgType = ReportReconfirmMessage
+		return
+	case strings.Contains(status.Status, "Já não existem relatos de problemas na circulação"):
+		status.MsgType = ReportSolvedMessage
+		return
 	}
 
 	cause := ""
@@ -175,7 +187,6 @@ func (status *Status) ComputeMsgType() {
 	}
 
 	if cause == "" || state == "" {
-		status.MsgType = "RAW"
 		return
 	}
 	status.MsgType = StatusMessageType(fmt.Sprintf(string(MLCompositeMessage), cause, state))
