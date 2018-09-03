@@ -32,27 +32,9 @@ func ComputeTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 
 	fmt.Printf("%d trip IDs\n", len(tripIDs))
 
-	type TransferKey struct {
-		Station string
-		From    string
-		To      string
-	}
-
-	transferCache := make(map[TransferKey]*dataobjects.Transfer)
-	getTransfer := func(station, from, to string) (*dataobjects.Transfer, error) {
-		transfer, cached := transferCache[TransferKey{station, from, to}]
-		if !cached {
-			var err error
-			transfer, err = dataobjects.GetTransfer(tx, station, from, to)
-			if err != nil {
-				return nil, err
-			}
-			transferCache[TransferKey{station, from, to}] = transfer
-		}
-		return transfer, nil
-	}
-	// we can use pointers as keys in the following maps because getTransfer and transferCache
-	// make sure only one instance of each transfer is created throughout the execution of this function
+	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
+	// that ensures the pointers to the transfers stay the same throughout this transaction
+	// (i.e. only one instance of each transfer is brought into memory)
 	transferAvgNumerator := make(map[*dataobjects.Transfer]float64)
 	transferAvgDenominator := make(map[*dataobjects.Transfer]float64)
 
@@ -61,21 +43,9 @@ func ComputeTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 		To   string
 	}
 
-	connectionCache := make(map[ConnectionKey]*dataobjects.Connection)
-	getConnection := func(from, to string) (*dataobjects.Connection, error) {
-		connection, cached := connectionCache[ConnectionKey{from, to}]
-		if !cached {
-			var err error
-			connection, err = dataobjects.GetConnection(tx, from, to)
-			if err != nil {
-				return nil, err
-			}
-			connectionCache[ConnectionKey{from, to}] = connection
-		}
-		return connection, nil
-	}
-	// we can use pointers as keys in the following maps because getConnection and connectionCache
-	// make sure only one instance of each connection is created throughout the execution of this function
+	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
+	// that ensures the pointers to the transfers stay the same throughout this transaction
+	// (i.e. only one instance of each connection is brought into memory)
 	connectionAvgNumerator := make(map[*dataobjects.Connection]float64)
 	connectionAvgDenominator := make(map[*dataobjects.Connection]float64)
 	connectionStopAvgNumerator := make(map[*dataobjects.Connection]float64)
@@ -134,7 +104,7 @@ func ComputeTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 
 			// if this is a transfer, process it
 			if sourceUse.Type == dataobjects.Interchange {
-				transfer, err := getTransfer(sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
+				transfer, err := dataobjects.GetTransfer(tx, sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
 				if err != nil {
 					// transfer might no longer exist (closed stations, etc.)
 					// move on
@@ -155,7 +125,7 @@ func ComputeTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 				continue
 			}
 
-			connection, err := getConnection(sourceUse.Station.ID, targetUse.Station.ID)
+			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID)
 			if err != nil {
 				// connection might no longer exist (closed stations, etc.)
 				// move on
@@ -304,25 +274,6 @@ func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time, 
 		return 0, nil
 	}
 
-	type ConnectionKey struct {
-		From string
-		To   string
-	}
-
-	connectionCache := make(map[ConnectionKey]*dataobjects.Connection)
-	getConnection := func(from, to string) (*dataobjects.Connection, error) {
-		connection, cached := connectionCache[ConnectionKey{from, to}]
-		if !cached {
-			var err error
-			connection, err = dataobjects.GetConnection(tx, from, to)
-			if err != nil {
-				return nil, err
-			}
-			connectionCache[ConnectionKey{from, to}] = connection
-		}
-		return connection, nil
-	}
-
 	var totalTime time.Duration
 	var totalDistance int64
 
@@ -356,7 +307,7 @@ func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time, 
 				continue
 			}
 
-			connection, err := getConnection(sourceUse.Station.ID, targetUse.Station.ID)
+			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID)
 			if err != nil {
 				// connection might no longer exist (closed stations, etc.)
 				// move on
@@ -470,25 +421,6 @@ func ComputeSimulatedRealtime(node sqalx.Node, fromTime time.Time, toTime time.T
 		return nil
 	}
 
-	type ConnectionKey struct {
-		From string
-		To   string
-	}
-
-	connectionCache := make(map[ConnectionKey]*dataobjects.Connection)
-	getConnection := func(from, to string) (*dataobjects.Connection, error) {
-		connection, cached := connectionCache[ConnectionKey{from, to}]
-		if !cached {
-			var err error
-			connection, err = dataobjects.GetConnection(tx, from, to)
-			if err != nil {
-				return nil, err
-			}
-			connectionCache[ConnectionKey{from, to}] = connection
-		}
-		return connection, nil
-	}
-
 	processTrip := func(trip *dataobjects.Trip) error {
 		nonManualCount := 0
 		for useIdx := 0; useIdx < len(trip.StationUses); useIdx++ {
@@ -519,7 +451,7 @@ func ComputeSimulatedRealtime(node sqalx.Node, fromTime time.Time, toTime time.T
 					continue
 				}
 
-				connection, err := getConnection(prevUse.Station.ID, curUse.Station.ID)
+				connection, err := dataobjects.GetConnection(tx, prevUse.Station.ID, curUse.Station.ID)
 				if err != nil {
 					// connection might no longer exist (closed stations, etc.)
 					// or it might be a transfer, or we messed up reading the station uses

@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	sq "github.com/gbl08ma/squirrel"
 	"github.com/gbl08ma/sqalx"
+	sq "github.com/gbl08ma/squirrel"
 )
 
 // Transfer represents a crossing between two lines at a station
@@ -84,7 +84,11 @@ func getTransfersWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Tran
 
 // GetTransfer returns the Transfer with the given ID
 func GetTransfer(node sqalx.Node, station string, from string, to string) (*Transfer, error) {
+	if value, present := node.Load(getCacheKey("transfer", station, from, to)); present {
+		return value.(*Transfer), nil
+	}
 	s := sdb.Select().
+		Where(sq.Eq{"station_id": station}).
 		Where(sq.Eq{"from_line": from}).
 		Where(sq.Eq{"to_line": to})
 	transfers, err := getTransfersWithSelect(node, s)
@@ -94,6 +98,7 @@ func GetTransfer(node sqalx.Node, station string, from string, to string) (*Tran
 	if len(transfers) == 0 {
 		return nil, errors.New("Transfer not found")
 	}
+	node.Store(getCacheKey("transfer", station, from, to), transfers[0])
 	return transfers[0], nil
 }
 

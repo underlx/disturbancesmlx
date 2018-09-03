@@ -152,6 +152,6 @@ func (d Duration) Value() (driver.Value, error) {
 	return time.Duration(d).String(), nil
 }
 
-func getCacheKey(objtype, id string) string {
-	return fmt.Sprintf("dataobjects-%s-%s", objtype, id)
+func getCacheKey(objtype, id string, other ...string) string {
+	return strings.Join(append([]string{"do", objtype, id}, other...), "-")
 }

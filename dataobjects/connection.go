@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	sq "github.com/gbl08ma/squirrel"
 	"github.com/gbl08ma/sqalx"
+	sq "github.com/gbl08ma/squirrel"
 )
 
 // Connection connects two stations in a single direction
@@ -86,6 +86,9 @@ func getConnectionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Co
 
 // GetConnection returns the Connection with the given ID
 func GetConnection(node sqalx.Node, from string, to string) (*Connection, error) {
+	if value, present := node.Load(getCacheKey("connection", from, to)); present {
+		return value.(*Connection), nil
+	}
 	s := sdb.Select().
 		Where(sq.Eq{"from_station": from}).
 		Where(sq.Eq{"to_station": to})
@@ -96,6 +99,7 @@ func GetConnection(node sqalx.Node, from string, to string) (*Connection, error)
 	if len(connections) == 0 {
 		return nil, errors.New("Connection not found")
 	}
+	node.Store(getCacheKey("connection", from, to), connections[0])
 	return connections[0], nil
 }
 
