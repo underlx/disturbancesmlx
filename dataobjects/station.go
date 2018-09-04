@@ -233,5 +233,6 @@ func (station *Station) Delete(node sqalx.Node) error {
 	if err != nil {
 		return fmt.Errorf("RemoveStation: %s", err)
 	}
+	tx.Delete(getCacheKey("station", station.ID))
 	return tx.Commit()
 }

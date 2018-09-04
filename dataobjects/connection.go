@@ -141,5 +141,6 @@ func (connection *Connection) Delete(node sqalx.Node) error {
 	if err != nil {
 		return fmt.Errorf("RemoveConnection: %s", err)
 	}
+	tx.Delete(getCacheKey("connection", connection.From.ID, connection.To.ID))
 	return tx.Commit()
 }

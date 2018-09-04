@@ -43,7 +43,7 @@ func GetPair(node sqalx.Node, key string) (*APIPair, error) {
 	if err != nil {
 		return &pair, errors.New("GetPair: " + err.Error())
 	}
-	node.Store(getCacheKey("pair", key), &pair)
+	tx.Store(getCacheKey("pair", key), &pair)
 	return &pair, nil
 }
 
@@ -128,6 +128,7 @@ func (pair *APIPair) Delete(node sqalx.Node) error {
 	if err != nil {
 		return fmt.Errorf("RemoveAPIPair: %s", err)
 	}
+	tx.Delete(getCacheKey("pair", pair.Key))
 	return tx.Commit()
 }
 

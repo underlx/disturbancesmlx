@@ -731,5 +731,6 @@ func (line *Line) Delete(node sqalx.Node) error {
 	if err != nil {
 		return fmt.Errorf("RemoveLine: %s", err)
 	}
+	tx.Delete(getCacheKey("line", line.ID))
 	return tx.Commit()
 }

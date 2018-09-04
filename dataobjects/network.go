@@ -294,5 +294,6 @@ func (network *Network) Delete(node sqalx.Node) error {
 	if err != nil {
 		return fmt.Errorf("RemoveNetwork: %s", err)
 	}
+	tx.Delete(getCacheKey("network", network.ID))
 	return tx.Commit()
 }

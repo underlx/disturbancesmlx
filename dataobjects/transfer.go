@@ -139,5 +139,6 @@ func (transfer *Transfer) Delete(node sqalx.Node) error {
 	if err != nil {
 		return fmt.Errorf("RemoveTransfer: %s", err)
 	}
+	tx.Delete(getCacheKey("transfer", transfer.Station.ID, transfer.From.ID, transfer.To.ID))
 	return tx.Commit()
 }

@@ -107,5 +107,6 @@ func (source *Source) Delete(node sqalx.Node) error {
 	if err != nil {
 		return fmt.Errorf("RemoveSource: %s", err)
 	}
+	tx.Delete(getCacheKey("source", source.ID))
 	return tx.Commit()
 }

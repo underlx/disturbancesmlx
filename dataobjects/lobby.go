@@ -162,5 +162,6 @@ func (lobby *Lobby) Delete(node sqalx.Node) error {
 	if err != nil {
 		return fmt.Errorf("RemoveLobby: %s", err)
 	}
+	tx.Delete(getCacheKey("lobby", lobby.ID))
 	return tx.Commit()
 }
