@@ -50,8 +50,8 @@ func webReloadTemplate() {
 		"stringContains": func(s, substr string) bool {
 			return strings.Contains(s, substr)
 		},
-		"formatDisturbanceTime": func(t time.Time) string {
-			loc, _ := time.LoadLocation("Europe/Lisbon")
+		"formatTime": func(t time.Time) string {
+			loc, _ := time.LoadLocation(GameTimezone)
 			return t.In(loc).Format("02 Jan 2006 15:04")
 		},
 		"uuid": func() string {
@@ -61,6 +61,7 @@ func webReloadTemplate() {
 			}
 			return ""
 		},
+		"xpTxDescription":       descriptionForXPTransaction,
 		"formatPortugueseMonth": utils.FormatPortugueseMonth,
 	}
 
@@ -133,6 +134,7 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 		Level            int
 		LevelProgression float64
 		XPthisWeek       int
+		XPTransactions   []*dataobjects.PPXPTransaction
 		JoinedServer     bool
 	}{
 		AvatarURL:    session.DiscordInfo.AvatarURL("256"),
@@ -153,6 +155,13 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 	}
 
 	p.XPthisWeek, err = player.XPBalanceBetween(tx, getWeekStart(), time.Now())
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.XPTransactions, err = player.XPTransactionsLimit(tx, 10)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

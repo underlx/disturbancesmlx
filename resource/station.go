@@ -1,10 +1,9 @@
 package resource
 
 import (
-	"os"
-
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/utils"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -120,8 +119,8 @@ func (r *Station) Get(c *yarf.Context) error {
 		for _, poi := range pois {
 			apistations[i].POIs = append(apistations[i].POIs, poi.ID)
 		}
-		apistations[i].TriviaURLs = ComputeStationTriviaURLs(stations[i])
-		apistations[i].ConnectionURLs = ComputeStationConnectionURLs(stations[i])
+		apistations[i].TriviaURLs = utils.ComputeStationTriviaURLs(stations[i])
+		apistations[i].ConnectionURLs = utils.ComputeStationConnectionURLs(stations[i])
 
 		// compatibility with old clients: set station features
 		// TODO remove this once old clients are no longer supported
@@ -138,32 +137,4 @@ func (r *Station) Get(c *yarf.Context) error {
 		RenderData(c, apistations)
 	}
 	return nil
-}
-
-// ComputeStationTriviaURLs returns a mapping from locales to URLs of the HTML file containing the trivia for the given station
-func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
-	m := make(map[string]string)
-	for _, locale := range SupportedLocales {
-		m[locale] = "stationkb/" + locale + "/trivia/" + station.ID + ".html"
-	}
-	return m
-}
-
-// ComputeStationConnectionURLs returns a mapping from locales to connection types to URLs
-// of the HTML files containing the connection info for the given station
-func ComputeStationConnectionURLs(station *dataobjects.Station) map[string]map[string]string {
-	m := make(map[string]map[string]string)
-	connections := []string{"boat", "bus", "train", "park", "bike"}
-	for _, locale := range SupportedLocales {
-		for _, connection := range connections {
-			path := "stationkb/" + locale + "/connections/" + connection + "/" + station.ID + ".html"
-			if info, err := os.Stat(path); err == nil && !info.IsDir() {
-				if m[connection] == nil {
-					m[connection] = make(map[string]string)
-				}
-				m[connection][locale] = path
-			}
-		}
-	}
-	return m
 }

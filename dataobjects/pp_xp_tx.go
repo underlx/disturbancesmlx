@@ -1,6 +1,7 @@
 package dataobjects
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -90,6 +91,24 @@ func GetPPXPTransaction(node sqalx.Node, id string) (*PPXPTransaction, error) {
 	}
 	node.Store(getCacheKey("pp_xp_tx", id), transactions[0])
 	return transactions[0], nil
+}
+
+// UnmarshalExtra decodes the Extra field for this transaction as JSON
+func (transaction *PPXPTransaction) UnmarshalExtra() map[string]interface{} {
+	var f interface{}
+	err := json.Unmarshal([]byte(transaction.Extra), &f)
+	if err != nil {
+		return make(map[string]interface{})
+	}
+	return f.(map[string]interface{})
+}
+
+// MarshalExtra encodes the parameter as JSON and places the result in the Extra field
+func (transaction *PPXPTransaction) MarshalExtra(f map[string]interface{}) {
+	b, err := json.Marshal(f)
+	if err == nil {
+		transaction.Extra = string(b)
+	}
 }
 
 // Update adds or updates the PPXPTransaction

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/thoas/go-funk"
+	"github.com/underlx/disturbancesmlx/utils"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -28,7 +29,7 @@ func (r *Backers) headOrGet(c *yarf.Context) error {
 	if locale == "" {
 		locale = "en"
 	}
-	if !funk.ContainsString(SupportedLocales[:], locale) {
+	if !funk.ContainsString(utils.SupportedLocales[:], locale) {
 		return yarf.ErrorNotFound()
 	}
 	filename := "stationkb/" + locale + "/backers.html"

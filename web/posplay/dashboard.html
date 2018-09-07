@@ -21,6 +21,26 @@
       <div class="pure-u-1 pure-u-md-2-3">
         <h1>PosPlay <small>O jogo do UnderLX</small></h1>
         <p>Blah blah blah</p>
+        <h2>Recompensas recentes</h2>
+        <table class="pure-table pure-table-horizontal" style="width: 100%">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Motivo</th>
+              <th>Valor</th>
+            </tr>
+          </thead>
+      
+          <tbody>
+            {{ range $transaction := .XPTransactions }}
+            <tr>
+              <td>{{ formatTime $transaction.Time }}</td>
+              <td>{{ xpTxDescription $transaction }}</td>
+              <td>{{ $transaction.Value }} XP</td>
+            </tr>
+            {{ end }}
+          </tbody>
+        </table>
         {{ if .JoinedServer }}
         <h2>Está a ganhar mais pontos</h2>
         <p>Por participar no nosso servidor de Discord, está a receber um bónus de 10% de XP com todas as viagens.</p>

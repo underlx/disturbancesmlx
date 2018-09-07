@@ -16,9 +16,6 @@ import (
 	"github.com/yarf-framework/yarf"
 )
 
-// SupportedLocales contains the supported locales for extra and meta content
-var SupportedLocales = [...]string{"pt", "en", "es", "fr"}
-
 type resource struct {
 	yarf.Resource
 	node    sqalx.Node

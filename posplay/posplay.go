@@ -3,10 +3,13 @@ package posplay
 import (
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"html/template"
 	"log"
 	"strconv"
 	"time"
+
+	"github.com/underlx/disturbancesmlx/dataobjects"
 
 	"github.com/gbl08ma/sqalx"
 	"github.com/gorilla/sessions"
@@ -17,6 +20,9 @@ import (
 
 var oauthConfig *oauth2.Config
 var webtemplate *template.Template
+
+var tripSubmissionsChan = make(chan string, 100)
+var tripEditsChan = make(chan string, 100)
 
 const (
 	// PrivateLBPrivacy is used when users don't want to appear in leaderboards
@@ -74,7 +80,36 @@ func Initialize(ppconfig Config) error {
 
 	webReloadTemplate()
 
+	go serialProcessor()
+
 	return nil
+}
+
+// RegisterTripSubmission schedules a trip submission for analysis
+func RegisterTripSubmission(trip *dataobjects.Trip) {
+	tripSubmissionsChan <- trip.ID
+}
+
+// RegisterTripFirstEdit schedules a trip resubmission (edit, confirmation) for analysis
+func RegisterTripFirstEdit(trip *dataobjects.Trip) {
+	tripEditsChan <- trip.ID
+}
+
+func serialProcessor() {
+	for {
+		select {
+		case id := <-tripSubmissionsChan:
+			err := processTripForReward(id)
+			if err != nil {
+				config.Log.Println(err)
+			}
+		case id := <-tripEditsChan:
+			err := processTripEditForReward(id)
+			if err != nil {
+				config.Log.Println(err)
+			}
+		}
+	}
 }
 
 func uidConvS(uid string) uint64 {
@@ -100,4 +135,38 @@ func getWeekStart() time.Time {
 		endTime = endTime.AddDate(0, 0, -7)
 	}
 	return endTime.AddDate(0, 0, -7)
+}
+
+func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
+	extra := tx.UnmarshalExtra()
+	switch tx.Type {
+	case "SIGNUP_BONUS":
+		return "Oferta de boas-vindas"
+	case "TRIP_SUBMIT_REWARD":
+		numstations, ok := extra["station_count"].(int)
+		numexchanges, ok2 := extra["interchange_count"].(int)
+		offpeak, ok3 := extra["offpeak"].(bool)
+		if ok && ok2 && ok3 {
+			excstr := ""
+			switch numexchanges {
+			case 0:
+				excstr = ""
+			case 1:
+				excstr = ", com 1 troca de linha"
+			default:
+				excstr = fmt.Sprintf(", com %d trocas de linha", numexchanges)
+			}
+			ofpstr := ""
+			if offpeak {
+				ofpstr = ", fora das horas de ponta"
+			}
+			return fmt.Sprintf("Viagem por %d estações%s%s", numstations, excstr, ofpstr)
+		}
+		return "Viagem"
+	case "TRIP_CONFIRM_REWARD":
+		return "Confirmação/correcção de registo de viagem"
+	default:
+		// ideally this should never show
+		return "Bónus genérico"
+	}
 }

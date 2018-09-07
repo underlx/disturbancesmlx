@@ -154,9 +154,9 @@ func (player *PPPlayer) Level(node sqalx.Node) (int, int, float64, error) {
 		return 0, 0, 0, err
 	}
 	// progression = (xp/c)^(1/b)
-	// c = 17.2563531130954
-	// b = 1.58138911016788, 1/b = 0.63235543584453
-	progression := math.Pow(float64(xp)/17.2563531130954, 0.63235543584453)
+	// c = 22.8376671827315
+	// b = 1.62265355291952, 1/b = 0.6162744956869
+	progression := math.Pow(float64(xp)/22.8376671827315, 0.6162744956869)
 	level, part := math.Modf(progression)
 	return xp, int(level), part * 100, nil
 }

@@ -13,7 +13,7 @@ import (
 	"github.com/hako/durafmt"
 
 	"github.com/underlx/disturbancesmlx/dataobjects"
-	"github.com/underlx/disturbancesmlx/resource"
+	"github.com/underlx/disturbancesmlx/utils"
 )
 
 func buildNetworkMessage(id string) (*Embed, error) {
@@ -354,7 +354,7 @@ func buildStationMessage(id string) (*Embed, error) {
 	}
 	embed.AddField("Átrios", lobbiesStr)
 
-	connectionURLs := resource.ComputeStationConnectionURLs(station)
+	connectionURLs := utils.ComputeStationConnectionURLs(station)
 
 	if len(connectionURLs) != 0 {
 		connectionStr := "Esta estação tem ligação a "

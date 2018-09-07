@@ -2,9 +2,15 @@ package utils
 
 import (
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	"github.com/underlx/disturbancesmlx/dataobjects"
 )
+
+// SupportedLocales contains the supported locales for extra and meta content
+var SupportedLocales = [...]string{"pt", "en", "es", "fr"}
 
 // RequestIsTLS returns whether a request was made over a HTTPS channel
 // Looks at the appropriate headers if the server is behind a proxy
@@ -82,4 +88,32 @@ func FormatPortugueseMonth(month time.Month) string {
 	default:
 		return ""
 	}
+}
+
+// ComputeStationTriviaURLs returns a mapping from locales to URLs of the HTML file containing the trivia for the given station
+func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
+	m := make(map[string]string)
+	for _, locale := range SupportedLocales {
+		m[locale] = "stationkb/" + locale + "/trivia/" + station.ID + ".html"
+	}
+	return m
+}
+
+// ComputeStationConnectionURLs returns a mapping from locales to connection types to URLs
+// of the HTML files containing the connection info for the given station
+func ComputeStationConnectionURLs(station *dataobjects.Station) map[string]map[string]string {
+	m := make(map[string]map[string]string)
+	connections := []string{"boat", "bus", "train", "park", "bike"}
+	for _, locale := range SupportedLocales {
+		for _, connection := range connections {
+			path := "stationkb/" + locale + "/connections/" + connection + "/" + station.ID + ".html"
+			if info, err := os.Stat(path); err == nil && !info.IsDir() {
+				if m[connection] == nil {
+					m[connection] = make(map[string]string)
+				}
+				m[connection][locale] = path
+			}
+		}
+	}
+	return m
 }

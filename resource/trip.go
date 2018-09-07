@@ -6,6 +6,7 @@ import (
 
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/posplay"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -226,6 +227,8 @@ func (r *Trip) Post(c *yarf.Context) error {
 	c.Response.WriteHeader(http.StatusCreated)
 	c.Response.Header().Set("Location", "/v1/trips/"+trip.ID)
 	r.render(c, &trip)
+
+	posplay.RegisterTripSubmission(&trip)
 	return nil
 }
 
@@ -249,7 +252,7 @@ func (r *Trip) Put(c *yarf.Context) error {
 	}
 	defer tx.Rollback()
 
-	trip, err := r.getTripToEdit(tx, &request, pair)
+	trip, hadBeenEdited, err := r.getTripToEdit(tx, &request, pair)
 	if err != nil {
 		return err
 	}
@@ -266,12 +269,16 @@ func (r *Trip) Put(c *yarf.Context) error {
 
 	r.render(c, &trip)
 
+	if !hadBeenEdited {
+		posplay.RegisterTripFirstEdit(&trip)
+	}
+
 	return nil
 }
 
-func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pair *dataobjects.APIPair) (dataobjects.Trip, error) {
+func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pair *dataobjects.APIPair) (dataobjects.Trip, bool, error) {
 	if len(request.Uses) == 0 {
-		return dataobjects.Trip{}, &yarf.CustomError{
+		return dataobjects.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "Trip contains no station uses",
 			ErrorBody: "Trip contains no station uses",
@@ -280,7 +287,7 @@ func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pai
 
 	oldtrip, err := dataobjects.GetTrip(tx, request.ID)
 	if err != nil || oldtrip.Submitter.Key != pair.Key {
-		return dataobjects.Trip{}, &yarf.CustomError{
+		return dataobjects.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusNotFound,
 			ErrorMsg:  "A trip with the specified ID was not found.",
 			ErrorBody: "A trip with the specified ID was not found.",
@@ -288,7 +295,7 @@ func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pai
 	}
 
 	if time.Since(oldtrip.SubmitTime) > 7*24*time.Hour {
-		return dataobjects.Trip{}, &yarf.CustomError{
+		return dataobjects.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusLocked,
 			ErrorMsg:  "This trip was submitted over 7 days ago and can no longer be edited.",
 			ErrorBody: "This trip was submitted over 7 days ago and can no longer be edited.",
@@ -309,7 +316,7 @@ func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pai
 
 	maxFuture := time.Now().Add(15 * time.Minute)
 	if trip.StartTime.After(maxFuture) || trip.EndTime.After(maxFuture) {
-		return dataobjects.Trip{}, &yarf.CustomError{
+		return dataobjects.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "This trip is from the future. Adjust your clock.",
 			ErrorBody: "This trip is from the future. Adjust your clock.",
@@ -318,7 +325,7 @@ func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pai
 
 	if trip.EndTime.Sub(trip.StartTime) > 24*time.Hour {
 		// probably the clock of the phone was adjusted (from the default 1970-01-01) between the start and end of the trip
-		return dataobjects.Trip{}, &yarf.CustomError{
+		return dataobjects.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "This trip took way too long.",
 			ErrorBody: "This trip took way too long.",
@@ -327,9 +334,9 @@ func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pai
 
 	err = r.buildStationUses(tx, request, &trip)
 	if err != nil {
-		return dataobjects.Trip{}, err
+		return dataobjects.Trip{}, false, err
 	}
-	return trip, nil
+	return trip, oldtrip.Edited, nil
 }
 
 func (r *Trip) buildStationUses(tx sqalx.Node, request *apiTripCreationRequest, trip *dataobjects.Trip) error {
