@@ -276,3 +276,26 @@ CREATE TABLE IF NOT EXISTS "station_has_poi" (
     station_id VARCHAR(36) NOT NULL REFERENCES station (id),
     poi_id VARCHAR(36) NOT NULL REFERENCES poi (id)
 );
+
+CREATE TABLE IF NOT EXISTS "pp_player" (
+    discord_id BIGINT PRIMARY KEY,
+    joined TIMESTAMP WITH TIME ZONE NOT NULL,
+    lb_privacy VARCHAR(20) NOT NULL,
+    name_type VARCHAR(20) NOT NULL,
+    in_guild BOOLEAN NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "pp_pair" (
+    discord_id BIGINT PRIMARY KEY REFERENCES pp_player (discord_id),
+    api_key VARCHAR(16) NOT NULL UNIQUE REFERENCES api_pair (key),
+    paired TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "pp_xp_tx" (
+    id VARCHAR(36) PRIMARY KEY,
+    discord_id BIGINT REFERENCES pp_player (discord_id),
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    value INTEGER NOT NULL,
+    type VARCHAR(36) NOT NULL,
+    extra TEXT NOT NULL
+);

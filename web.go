@@ -10,10 +10,13 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/underlx/disturbancesmlx/utils"
+
 	"github.com/gbl08ma/sqalx"
 	"github.com/gbl08ma/ssoclient"
 	"github.com/medicalwei/recaptcha"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/posplay"
 
 	"encoding/json"
 
@@ -118,6 +121,18 @@ func WebServer() {
 		mainLog.Fatalf("Failed to create SSO client: %s\n", err)
 	}
 
+	posplayKeybox, present := secrets.GetBox("posplay")
+	if !present {
+		mainLog.Fatal("Posplay keybox not present in keybox")
+	}
+
+	posplay.Initialize(posplay.Config{
+		Keybox:     posplayKeybox,
+		Log:        posplayLog,
+		Store:      sessionStore,
+		Node:       rootSqalxNode,
+		PathPrefix: websiteURL + "/posplay"})
+
 	router := mux.NewRouter().StrictSlash(true)
 
 	webLog.Println("Starting Web server...")
@@ -146,12 +161,17 @@ func WebServer() {
 	router.HandleFunc("/terms/{lang:[a-z]{2}}", TermsPage)
 	router.HandleFunc("/feed", RSSFeed)
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
+	posplay.ConfigureRouter(router.PathPrefix("/posplay").Subrouter())
 
 	router.HandleFunc("/auth", AuthHandler)
 	router.HandleFunc("/auth/logout", AuthLogoutHandler)
 	router.HandleFunc("/dotAccount64Logo.png", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/img/logo.png")
 	})
+
+	if DEBUG {
+		router.Use(templateReloadingMiddleware)
+	}
 
 	WebReloadTemplate()
 
@@ -165,6 +185,11 @@ func WebServer() {
 		webLog.Println(err)
 	}
 	webLog.Println("Web server terminated")
+}
+
+func templateReloadingMiddleware(next http.Handler) http.Handler {
+	WebReloadTemplate()
+	return next
 }
 
 // InitPageCommons fills PageCommons with the info that is required by most page templates
@@ -214,9 +239,6 @@ func InitPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 
 // HomePage serves the home page
 func HomePage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -361,9 +383,6 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 
 // ReportPage serves the disturbance reporting page
 func ReportPage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -413,7 +432,7 @@ func ReportPage(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-				report := dataobjects.NewLineDisturbanceReport(GetClientIP(r), line, "general")
+				report := dataobjects.NewLineDisturbanceReport(utils.GetClientIP(r), line, "general")
 
 				err = reportHandler.HandleLineDisturbanceReport(report)
 				if err == nil {
@@ -443,9 +462,6 @@ func ReportPage(w http.ResponseWriter, r *http.Request) {
 
 // LookingGlass serves the looking glass page
 func LookingGlass(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -522,9 +538,6 @@ func Heatmap(w http.ResponseWriter, r *http.Request) {
 
 // DisturbancePage serves the page for a specific disturbance
 func DisturbancePage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -582,9 +595,6 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 
 // DisturbanceListPage serves a page with a list of disturbances
 func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -677,9 +687,6 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 
 // StationPage serves the page for a specific station
 func StationPage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -882,7 +889,7 @@ func schedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 			scheduleString = append(scheduleString,
 				fmt.Sprintf("%d de %s: %s",
 					date.Day(),
-					formatPortugueseMonth(date.Month()),
+					utils.FormatPortugueseMonth(date.Month()),
 					scheduleToString(exception.schedule)))
 		}
 	}
@@ -958,9 +965,6 @@ func ReadStationConnections(stationID string) (data []ConnectionData, err error)
 
 // LinePage serves the page for a specific line
 func LinePage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1051,9 +1055,6 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 
 // MapPage serves the network map page
 func MapPage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1082,9 +1083,6 @@ func MapPage(w http.ResponseWriter, r *http.Request) {
 
 // AboutPage serves the about page
 func AboutPage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1113,9 +1111,6 @@ func AboutPage(w http.ResponseWriter, r *http.Request) {
 
 // DonatePage serves the donations page
 func DonatePage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1144,9 +1139,6 @@ func DonatePage(w http.ResponseWriter, r *http.Request) {
 
 // PrivacyPolicyPage serves the privacy policy page
 func PrivacyPolicyPage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1183,9 +1175,6 @@ func PrivacyPolicyPage(w http.ResponseWriter, r *http.Request) {
 
 // TermsPage serves the terms and conditions page
 func TermsPage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	}
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -1222,9 +1211,7 @@ func TermsPage(w http.ResponseWriter, r *http.Request) {
 
 // InternalPage serves a internal page
 func InternalPage(w http.ResponseWriter, r *http.Request) {
-	if DEBUG {
-		WebReloadTemplate()
-	} else if !RequestIsTLS(r) {
+	if !utils.RequestIsTLS(r) {
 		w.WriteHeader(http.StatusUpgradeRequired)
 		return
 	}
@@ -1451,20 +1438,11 @@ func WebReloadTemplate() {
 			loc, _ := time.LoadLocation("Europe/Lisbon")
 			return t.In(loc).Format("02 Jan 2006 15:04")
 		},
-		"formatPortugueseMonth": formatPortugueseMonth,
+		"formatPortugueseMonth": utils.FormatPortugueseMonth,
 	}
 
 	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("web/*.html"))
 	webtemplate = template.Must(webtemplate.ParseFiles("stationkb/backers.html"))
-}
-
-// RequestIsTLS returns whether a request was made over a HTTPS channel
-// Looks at the appropriate headers if the server is behind a proxy
-func RequestIsTLS(r *http.Request) bool {
-	if r.Header.Get("X-Forwarded-Proto") == "https" || r.Header.Get("X-Forwarded-Proto") == "HTTPS" {
-		return true
-	}
-	return r.TLS != nil
 }
 
 // ShowOfficialDataOnly analyzes and modifies a request to check if the user wants to see
@@ -1492,72 +1470,4 @@ func ShowOfficialDataOnly(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	return cookie.Value == "true"
-}
-
-// GetClientIP retrieves the client IP address from the request information.
-// It detects common proxy headers to return the actual client's IP and not the proxy's.
-func GetClientIP(r *http.Request) (ip string) {
-	var pIPs string
-	var pIPList []string
-
-	if pIPs = r.Header.Get("X-Real-Ip"); pIPs != "" {
-		pIPList = strings.Split(pIPs, ",")
-		ip = strings.TrimSpace(pIPList[0])
-
-	} else if pIPs = r.Header.Get("Real-Ip"); pIPs != "" {
-		pIPList = strings.Split(pIPs, ",")
-		ip = strings.TrimSpace(pIPList[0])
-
-	} else if pIPs = r.Header.Get("X-Forwarded-For"); pIPs != "" {
-		pIPList = strings.Split(pIPs, ",")
-		ip = strings.TrimSpace(pIPList[0])
-
-	} else if pIPs = r.Header.Get("X-Forwarded"); pIPs != "" {
-		pIPList = strings.Split(pIPs, ",")
-		ip = strings.TrimSpace(pIPList[0])
-
-	} else if pIPs = r.Header.Get("Forwarded-For"); pIPs != "" {
-		pIPList = strings.Split(pIPs, ",")
-		ip = strings.TrimSpace(pIPList[0])
-
-	} else if pIPs = r.Header.Get("Forwarded"); pIPs != "" {
-		pIPList = strings.Split(pIPs, ",")
-		ip = strings.TrimSpace(pIPList[0])
-
-	} else {
-		ip = r.RemoteAddr
-	}
-
-	return strings.Split(ip, ":")[0]
-}
-
-func formatPortugueseMonth(month time.Month) string {
-	switch month {
-	case time.January:
-		return "Janeiro"
-	case time.February:
-		return "Fevereiro"
-	case time.March:
-		return "Março"
-	case time.April:
-		return "Abril"
-	case time.May:
-		return "Maio"
-	case time.June:
-		return "Junho"
-	case time.July:
-		return "Julho"
-	case time.August:
-		return "Agosto"
-	case time.September:
-		return "Setembro"
-	case time.October:
-		return "Outubro"
-	case time.November:
-		return "Novembro"
-	case time.December:
-		return "Dezembro"
-	default:
-		return ""
-	}
 }

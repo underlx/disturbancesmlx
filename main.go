@@ -23,6 +23,7 @@ var (
 	fcmcl            *fcm.FcmClient
 	mainLog          = log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	discordLog       = log.New(os.Stdout, "discord", log.Ldate|log.Ltime)
+	posplayLog       = log.New(os.Stdout, "posplay", log.Ldate|log.Ltime)
 	webLog           = log.New(os.Stdout, "web", log.Ldate|log.Ltime)
 	lastChange       time.Time
 	apiTotalRequests int
