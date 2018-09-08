@@ -6,12 +6,15 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 
 	"github.com/gbl08ma/sqalx"
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
 
 	"github.com/gbl08ma/keybox"
@@ -32,8 +35,8 @@ const (
 )
 
 const (
-	// UsernameDenominatorNameType is used when users want to appear like gbl08ma#3988
-	UsernameDenominatorNameType string = "USERNAME_DENOMINATOR"
+	// UsernameDiscriminatorNameType is used when users want to appear like gbl08ma#3988
+	UsernameDiscriminatorNameType string = "USERNAME_DISCRIM"
 	// UsernameNameType is used when users want to appear like gbl08ma
 	UsernameNameType string = "USERNAME"
 	// NicknameNameType is used when users want to appear as their nickname in the project's guild
@@ -50,6 +53,7 @@ type Config struct {
 }
 
 var config Config
+var csrfMiddleware func(http.Handler) http.Handler
 
 // Initialize initializes the PosPlay subsystem
 func Initialize(ppconfig Config) error {
@@ -59,12 +63,17 @@ func Initialize(ppconfig Config) error {
 	config = ppconfig
 	clientID, present := config.Keybox.Get("oauthClientId")
 	if !present {
-		return errors.New("OAuth client ID not present in web keybox")
+		return errors.New("OAuth client ID not present in posplay keybox")
 	}
 
 	clientSecret, present := config.Keybox.Get("oauthClientSecret")
 	if !present {
-		return errors.New("OAuth client secret not present in web keybox")
+		return errors.New("OAuth client secret not present in posplay keybox")
+	}
+
+	csrfAuthKey, present := config.Keybox.Get("csrfAuthKey")
+	if !present {
+		return errors.New("CSRF auth key not present in posplay keybox")
 	}
 
 	oauthConfig = &oauth2.Config{
@@ -77,6 +86,13 @@ func Initialize(ppconfig Config) error {
 			TokenURL: "https://discordapp.com/api/oauth2/token",
 		},
 	}
+
+	csrfOpts := []csrf.Option{}
+	csrfOpts = append(csrfOpts, csrf.FieldName(CSRFfieldName))
+	if DEBUG {
+		csrfOpts = append(csrfOpts, csrf.Secure(false))
+	}
+	csrfMiddleware = csrf.Protect([]byte(csrfAuthKey), csrfOpts...)
 
 	webReloadTemplate()
 
@@ -168,5 +184,21 @@ func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
 	default:
 		// ideally this should never show
 		return "Bónus genérico"
+	}
+}
+
+func getDisplayNameFromNameType(nameType string, user *discordgo.User, guildMember *discordgo.Member) string {
+	switch nameType {
+	case NicknameNameType:
+		if guildMember != nil && guildMember.Nick != "" {
+			return guildMember.Nick
+		}
+		fallthrough
+	case UsernameNameType:
+		return user.Username
+	case UsernameDiscriminatorNameType:
+		fallthrough
+	default:
+		return user.Username + "#" + user.Discriminator
 	}
 }

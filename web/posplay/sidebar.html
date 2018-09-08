@@ -1,0 +1,26 @@
+<p><img src="{{ .AvatarURL }}" style="border-radius: 50%;"></p>
+<h3 style="margin: 0">{{ .Session.DisplayName }}</h3>
+<p style="margin-top: 0.5em; margin-bottom: 0.5em">
+  <strong>{{ .XP }} XP</strong> - Nível <strong>{{ .Level }}</strong>
+</p>
+<div style="max-width: 170px; display: flex; margin: 0 auto;">
+  <div>{{ .Level }}</div>
+  <div style="width: 100%; height: 16px; border: 1px #999 solid; border-radius: 2px; margin-left: 5px; margin-right: 5px;">
+  <div style="background-color: #0078e7; background-image: linear-gradient(transparent,rgba(0,0,0,.05) 40%,rgba(0,0,0,.1)); height: 100%; width: {{ printf "%0.f" .LevelProgression }}%"></div>
+  </div>
+  <div>{{ plus .Level 1 }}</div>
+</div>
+<h3 style="margin-bottom: 0">Esta semana</h3>
+<p style="margin-top: 0.5em">Já ganhou <strong>{{ .XPthisWeek }} XP</strong></p>
+<div class="pure-menu" style="display: inline-block; text-align: left;">
+  <ul class="pure-menu-list">
+    <li class="pure-menu-heading">A sua conta</li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "home" }}pure-menu-selected{{end}}"><a href="/posplay" class="pure-menu-link">Início</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "pair" }}pure-menu-selected{{end}}"><a href="/posplay/pair" class="pure-menu-link">Associar dispositivo</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "settings" }}pure-menu-selected{{end}}"><a href="/posplay/settings" class="pure-menu-link">Definições</a></li>
+    <li class="pure-menu-heading">Jogar</li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "achievements" }}pure-menu-selected{{end}}"><a href="/posplay/achievements" class="pure-menu-link">Proezas</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "challenges" }}pure-menu-selected{{end}}"><a href="/posplay/challenges" class="pure-menu-link">Desafios</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "leaderboards" }}pure-menu-selected{{end}}"><a href="/posplay/leaderboards" class="pure-menu-link">Classificações</a></li>
+  </ul>
+</div>

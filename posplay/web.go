@@ -6,10 +6,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/discordbot"
 
+	"github.com/gbl08ma/sqalx"
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
-	"github.com/heetch/sqalx"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/utils"
 )
@@ -19,17 +22,28 @@ type pageCommons struct {
 	PageTitle  string
 	DebugBuild bool
 	Session    *Session
+	CSRFfield  template.HTML
+
+	// sidebar
+	SidebarSelected  string
+	AvatarURL        string
+	XP               int
+	Level            int
+	LevelProgression float64
+	XPthisWeek       int
 }
 
 // ConfigureRouter configures a router to handle PosPlay paths
 func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/", homePage)
+	router.HandleFunc("/settings", settingsPage)
 	router.HandleFunc("/login", forceLogin)
 	router.HandleFunc("/logout", forceLogout)
 	router.HandleFunc("/oauth/callback", callbackHandler)
 	if DEBUG {
 		router.Use(templateReloadingMiddleware)
 	}
+	router.Use(csrfMiddleware)
 }
 
 // webReloadTemplate reloads the templates for the website
@@ -61,8 +75,9 @@ func webReloadTemplate() {
 			}
 			return ""
 		},
-		"xpTxDescription":       descriptionForXPTransaction,
-		"formatPortugueseMonth": utils.FormatPortugueseMonth,
+		"xpTxDescription":            descriptionForXPTransaction,
+		"formatPortugueseMonth":      utils.FormatPortugueseMonth,
+		"getDisplayNameFromNameType": getDisplayNameFromNameType,
 	}
 
 	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("web/posplay/*.html"))
@@ -74,10 +89,31 @@ func templateReloadingMiddleware(next http.Handler) http.Handler {
 }
 
 // initPageCommons fills PageCommons with the info that is required by most page templates
-func initPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, title string, session *Session) (commons pageCommons, err error) {
+func initPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, title string, session *Session, player *dataobjects.PPPlayer) (commons pageCommons, err error) {
 	commons.PageTitle = title + " | PosPlay"
 	commons.DebugBuild = DEBUG
 	commons.Session = session
+	commons.CSRFfield = csrf.TemplateField(r)
+
+	if player != nil && node != nil {
+		tx, err := node.Beginx()
+		if err != nil {
+			return commons, err
+		}
+		defer tx.Commit() // read-only tx
+
+		commons.XP, commons.Level, commons.LevelProgression, err = player.Level(tx)
+		if err != nil {
+			return commons, err
+		}
+
+		commons.XPthisWeek, err = player.XPBalanceBetween(tx, getWeekStart(), time.Now())
+		if err != nil {
+			return commons, err
+		}
+
+		commons.AvatarURL = session.DiscordInfo.AvatarURL("256")
+	}
 
 	return commons, nil
 }
@@ -97,7 +133,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	p := struct {
 		pageCommons
 	}{}
-	p.pageCommons, err = initPageCommons(nil, w, r, "Página principal", session)
+	p.pageCommons, err = initPageCommons(nil, w, r, "Página principal", session, nil)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -129,37 +165,19 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 
 	p := struct {
 		pageCommons
-		AvatarURL        string
-		XP               int
-		Level            int
-		LevelProgression float64
-		XPthisWeek       int
-		XPTransactions   []*dataobjects.PPXPTransaction
-		JoinedServer     bool
+
+		XPTransactions []*dataobjects.PPXPTransaction
+		JoinedServer   bool
 	}{
-		AvatarURL:    session.DiscordInfo.AvatarURL("256"),
 		JoinedServer: player.InGuild,
 	}
-	p.pageCommons, err = initPageCommons(nil, w, r, "Página principal", session)
+	p.pageCommons, err = initPageCommons(tx, w, r, "Página principal", session, player)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
-	p.XP, p.Level, p.LevelProgression, err = player.Level(tx)
-	if err != nil {
-		config.Log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	p.XPthisWeek, err = player.XPBalanceBetween(tx, getWeekStart(), time.Now())
-	if err != nil {
-		config.Log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	p.SidebarSelected = "home"
 
 	p.XPTransactions, err = player.XPTransactionsLimit(tx, 10)
 	if err != nil {
@@ -169,6 +187,102 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 	}
 
 	err = webtemplate.ExecuteTemplate(w, "dashboard.html", p)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func settingsPage(w http.ResponseWriter, r *http.Request) {
+	session, redirected, err := GetSession(r, w, true)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if redirected {
+		return
+	}
+
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	player, err := dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p := struct {
+		pageCommons
+		JoinedServer  bool
+		GuildMember   *discordgo.Member
+		Player        *dataobjects.PPPlayer
+		SavedSettings bool
+	}{
+		JoinedServer: player.InGuild,
+	}
+	p.pageCommons, err = initPageCommons(tx, w, r, "Definições", session, player)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	p.SidebarSelected = "settings"
+	p.GuildMember, err = discordbot.ProjectGuildMember(session.DiscordInfo.ID)
+	if err != nil {
+		p.GuildMember = nil
+	}
+
+	if r.Method == http.MethodPost {
+		r.ParseForm()
+		switch r.Form.Get("name-preference") {
+		case "username-discriminator":
+			player.NameType = UsernameDiscriminatorNameType
+		case "username":
+			player.NameType = UsernameNameType
+		case "nickname":
+			player.NameType = NicknameNameType
+		}
+
+		switch r.Form.Get("lbprivacy-preference") {
+		case "public":
+			player.LBPrivacy = PublicLBPrivacy
+		case "private":
+			player.LBPrivacy = PrivateLBPrivacy
+		}
+
+		err = refreshSession(r, w, session, p.GuildMember, player)
+		if err != nil {
+			config.Log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = player.Update(tx)
+		if err != nil {
+			config.Log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	p.Player = player
+	p.SavedSettings = r.Method == http.MethodPost
+
+	err = webtemplate.ExecuteTemplate(w, "settings.html", p)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -187,7 +301,10 @@ func forceLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func forceLogout(w http.ResponseWriter, r *http.Request) {
-	// TODO security: make it so that logout requires a POST request and a CSRF token
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
 	session, _, err := GetSession(r, w, false)
 	if err != nil {
 		config.Log.Println(err)

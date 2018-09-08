@@ -46,9 +46,12 @@
         <img src="/static/img/posplay-64.png" style="height: 44px; float: left; margin-left: 3px;"><span class="headerTitle">UnderLX PosPlay</span>
       </a>
       {{ if .Session }}
-      <a href="/posplay/logout" class="pure-u-5-24 pure-u-sm-1-2 pure-u-md-4-24 pure-u-lg-3-24 pure-u-xl-4-24 headerItem">
-        <div><i class="fa fa-sign-out" aria-hidden="true"></i> <span class="headerItemText">Terminar sessão</span></div>
-      </a>
+      <form method="POST" action="/posplay/logout" class="pure-u-5-24 pure-u-sm-1-2 pure-u-md-4-24 pure-u-lg-3-24 pure-u-xl-4-24">
+        {{ .CSRFfield }}
+        <button type="submit" class="headerItem" style="display: block; border: none; padding: 0!important; width: 100%; height: 100%;">
+          <div><i class="fa fa-sign-out" aria-hidden="true"></i> <span class="headerItemText">Terminar sessão</span></div>
+        </button>
+      </form>
       {{ else }}
       <a href="/posplay/login" class="pure-u-5-24 pure-u-sm-1-2 pure-u-md-4-24 pure-u-lg-3-24 pure-u-xl-4-24 headerItem">
         <div><i class="fa fa-sign-in" aria-hidden="true"></i> <span class="headerItemText">Iniciar sessão pelo Discord</span></div>

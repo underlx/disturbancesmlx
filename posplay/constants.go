@@ -11,4 +11,7 @@ const (
 
 	// GameTimezone is the timezone where the game is played
 	GameTimezone = "Europe/Lisbon"
+
+	// CSRFfieldName is the name of the form field used for CSRF protection
+	CSRFfieldName = "posplay.csrf"
 )

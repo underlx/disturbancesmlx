@@ -53,20 +53,7 @@ func NewSession(node sqalx.Node, r *http.Request, w http.ResponseWriter, discord
 		return nil, err
 	}
 
-	switch player.NameType {
-	case NicknameNameType:
-		if projectGuildErr == nil && guildMember != nil && guildMember.Nick != "" {
-			ppsession.DisplayName = guildMember.Nick
-			break
-		}
-		fallthrough
-	case UsernameNameType:
-		ppsession.DisplayName = ppsession.DiscordInfo.Username
-	case UsernameDenominatorNameType:
-		fallthrough
-	default:
-		ppsession.DisplayName = ppsession.DiscordInfo.Username + "#" + ppsession.DiscordInfo.Discriminator
-	}
+	ppsession.DisplayName = getDisplayNameFromNameType(player.NameType, ppsession.DiscordInfo, guildMember)
 
 	session, _ := config.Store.Get(r, SessionName)
 
@@ -83,6 +70,30 @@ func NewSession(node sqalx.Node, r *http.Request, w http.ResponseWriter, discord
 	tx.Commit()
 
 	return &ppsession, nil
+}
+
+func refreshSession(r *http.Request, w http.ResponseWriter, ppsession *Session, guildMember *discordgo.Member, player *dataobjects.PPPlayer) error {
+	err := ppsession.fetchDiscordInfo()
+	if err != nil {
+		return err
+	}
+
+	guildMember, projectGuildErr := discordbot.ProjectGuildMember(ppsession.DiscordInfo.ID)
+	if projectGuildErr != nil {
+		guildMember = nil
+		player.InGuild = false
+	}
+
+	ppsession.DisplayName = getDisplayNameFromNameType(player.NameType, ppsession.DiscordInfo, guildMember)
+
+	session, _ := config.Store.Get(r, SessionName)
+
+	session.Options.MaxAge = int(ppsession.DiscordToken.Expiry.Sub(time.Now()).Seconds())
+	session.Options.HttpOnly = true
+	// TODO Secure: true
+	session.Values["session"] = ppsession
+
+	return session.Save(r, w)
 }
 
 // GetSession retrieves the Session from the specified request, if one exists,
@@ -117,7 +128,7 @@ func addNewPlayer(node sqalx.Node, discordID uint64, inGuild bool) (*dataobjects
 		DiscordID: discordID,
 		Joined:    time.Now(),
 		LBPrivacy: PrivateLBPrivacy,
-		NameType:  UsernameDenominatorNameType,
+		NameType:  UsernameDiscriminatorNameType,
 		InGuild:   inGuild,
 	}
 
