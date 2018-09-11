@@ -3,6 +3,8 @@ package posplay
 import (
 	"net/http"
 
+	"github.com/gbl08ma/sqalx"
+	"github.com/underlx/disturbancesmlx/dataobjects"
 	"golang.org/x/oauth2"
 )
 
@@ -48,4 +50,13 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, config.PathPrefix+"/", http.StatusTemporaryRedirect)
 	tx.Commit()
+}
+
+// ConnectionHandler implements resource.PairConnectionHandler
+type ConnectionHandler struct{}
+
+// TryCreateConnection implements resource.PairConnectionHandler
+func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code string, pair *dataobjects.APIPair) bool {
+	// TODO
+	return false
 }

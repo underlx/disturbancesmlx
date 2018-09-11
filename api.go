@@ -12,6 +12,7 @@ import (
 
 	"crypto/ecdsa"
 
+	"github.com/underlx/disturbancesmlx/posplay"
 	"github.com/underlx/disturbancesmlx/resource"
 	"github.com/yarf-framework/yarf"
 )
@@ -39,6 +40,8 @@ func (r *Static) Get(c *yarf.Context) error {
 
 // APIserver sets up and starts the API server
 func APIserver(trustedClientCertPath string) {
+	resource.RegisterPairConnectionHandler(new(posplay.ConnectionHandler))
+
 	y := yarf.New()
 
 	v1 := yarf.RouteGroup("/v1")
@@ -89,17 +92,6 @@ func APIserver(trustedClientCertPath string) {
 
 	v1.Add("/stationkb/*", new(Static).WithPath("stationkb/", "/v1/stationkb/"))
 
-	pubkey := getTrustedClientPublicKey(trustedClientCertPath)
-
-	v1.Add("/pair", new(resource.Pair).
-		WithNode(rootSqalxNode).
-		WithPublicKey(pubkey).
-		WithHashKey(getHashKey()))
-
-	v1.Add("/authtest", new(resource.AuthTest).
-		WithNode(rootSqalxNode).
-		WithHashKey(getHashKey()))
-
 	v1.Add("/trips", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 	v1.Add("/trips/:id", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 
@@ -110,6 +102,21 @@ func APIserver(trustedClientCertPath string) {
 		WithVehicleHandler(vehicleHandler))
 
 	v1.Add("/feedback", new(resource.Feedback).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
+
+	pubkey := getTrustedClientPublicKey(trustedClientCertPath)
+
+	v1.Add("/pair", new(resource.Pair).
+		WithNode(rootSqalxNode).
+		WithPublicKey(pubkey).
+		WithHashKey(getHashKey()))
+
+	v1.Add("/pair/connections", new(resource.PairConnection).
+		WithNode(rootSqalxNode).
+		WithHashKey(getHashKey()))
+
+	v1.Add("/authtest", new(resource.AuthTest).
+		WithNode(rootSqalxNode).
+		WithHashKey(getHashKey()))
 
 	y.AddGroup(v1)
 	if DEBUG {
