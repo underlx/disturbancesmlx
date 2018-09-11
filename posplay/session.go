@@ -37,29 +37,33 @@ func NewSession(node sqalx.Node, r *http.Request, w http.ResponseWriter, discord
 	}
 
 	guildMember, projectGuildErr := discordbot.ProjectGuildMember(ppsession.DiscordInfo.ID)
+	if projectGuildErr != nil {
+		guildMember = nil
+	}
 
 	player, err := dataobjects.GetPPPlayer(tx, uidConvS(ppsession.DiscordInfo.ID))
 	if err != nil {
 		// new player
-		player, err = addNewPlayer(tx, uidConvS(ppsession.DiscordInfo.ID), projectGuildErr == nil)
+		player, err = addNewPlayer(tx, ppsession.DiscordInfo, projectGuildErr == nil)
 		if err != nil {
 			return nil, err
 		}
 	} else {
 		player.InGuild = projectGuildErr == nil
+		player.CachedName = getDisplayNameFromNameType(player.NameType, ppsession.DiscordInfo, guildMember)
 	}
 	err = player.Update(tx)
 	if err != nil {
 		return nil, err
 	}
 
-	ppsession.DisplayName = getDisplayNameFromNameType(player.NameType, ppsession.DiscordInfo, guildMember)
+	ppsession.DisplayName = player.CachedName
 
 	session, _ := config.Store.Get(r, SessionName)
 
 	session.Options.MaxAge = int(discordToken.Expiry.Sub(time.Now()).Seconds())
 	session.Options.HttpOnly = true
-	// TODO Secure: true
+	session.Options.Secure = !DEBUG
 	session.Values["session"] = ppsession
 
 	err = session.Save(r, w)
@@ -90,7 +94,7 @@ func refreshSession(r *http.Request, w http.ResponseWriter, ppsession *Session, 
 
 	session.Options.MaxAge = int(ppsession.DiscordToken.Expiry.Sub(time.Now()).Seconds())
 	session.Options.HttpOnly = true
-	// TODO Secure: true
+	session.Options.Secure = !DEBUG
 	session.Values["session"] = ppsession
 
 	return session.Save(r, w)
@@ -117,7 +121,7 @@ func GetSession(r *http.Request, w http.ResponseWriter, doLogin bool) (ppsession
 	return &msession, false, nil
 }
 
-func addNewPlayer(node sqalx.Node, discordID uint64, inGuild bool) (*dataobjects.PPPlayer, error) {
+func addNewPlayer(node sqalx.Node, discordUser *discordgo.User, inGuild bool) (*dataobjects.PPPlayer, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return nil, err
@@ -125,11 +129,12 @@ func addNewPlayer(node sqalx.Node, discordID uint64, inGuild bool) (*dataobjects
 	defer tx.Rollback()
 
 	player := &dataobjects.PPPlayer{
-		DiscordID: discordID,
-		Joined:    time.Now(),
-		LBPrivacy: PrivateLBPrivacy,
-		NameType:  UsernameDiscriminatorNameType,
-		InGuild:   inGuild,
+		DiscordID:  uidConvS(discordUser.ID),
+		Joined:     time.Now(),
+		LBPrivacy:  PrivateLBPrivacy,
+		NameType:   UsernameDiscriminatorNameType,
+		InGuild:    inGuild,
+		CachedName: getDisplayNameFromNameType(UsernameDiscriminatorNameType, discordUser, nil),
 	}
 
 	err = player.Update(tx)
@@ -144,7 +149,7 @@ func addNewPlayer(node sqalx.Node, discordID uint64, inGuild bool) (*dataobjects
 
 	xptx := &dataobjects.PPXPTransaction{
 		ID:        id.String(),
-		DiscordID: discordID,
+		DiscordID: uidConvS(discordUser.ID),
 		Time:      time.Now(),
 		Type:      "SIGNUP_BONUS",
 		Value:     50,

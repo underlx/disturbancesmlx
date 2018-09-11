@@ -22,6 +22,7 @@ type pageCommons struct {
 	PageTitle  string
 	DebugBuild bool
 	Session    *Session
+	Player     *dataobjects.PPPlayer
 	CSRFfield  template.HTML
 
 	// sidebar
@@ -36,6 +37,7 @@ type pageCommons struct {
 // ConfigureRouter configures a router to handle PosPlay paths
 func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/", homePage)
+	router.HandleFunc("/pair", pairPage)
 	router.HandleFunc("/settings", settingsPage)
 	router.HandleFunc("/login", forceLogin)
 	router.HandleFunc("/logout", forceLogout)
@@ -93,6 +95,7 @@ func initPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 	commons.PageTitle = title + " | PosPlay"
 	commons.DebugBuild = DEBUG
 	commons.Session = session
+	commons.Player = player
 	commons.CSRFfield = csrf.TemplateField(r)
 
 	if player != nil && node != nil {
@@ -193,6 +196,50 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 	}
 }
 
+func pairPage(w http.ResponseWriter, r *http.Request) {
+	session, redirected, err := GetSession(r, w, true)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if redirected {
+		return
+	}
+
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer tx.Commit() // read-only transaction
+
+	player, err := dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p := struct {
+		pageCommons
+	}{}
+	p.pageCommons, err = initPageCommons(tx, w, r, "Associação com dispositivo", session, player)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	p.SidebarSelected = "pair"
+
+	err = webtemplate.ExecuteTemplate(w, "pair.html", p)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
 func settingsPage(w http.ResponseWriter, r *http.Request) {
 	session, redirected, err := GetSession(r, w, true)
 	if err != nil {
@@ -223,7 +270,6 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 		pageCommons
 		JoinedServer  bool
 		GuildMember   *discordgo.Member
-		Player        *dataobjects.PPPlayer
 		SavedSettings bool
 	}{
 		JoinedServer: player.InGuild,
@@ -258,6 +304,8 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 			player.LBPrivacy = PrivateLBPrivacy
 		}
 
+		player.CachedName = getDisplayNameFromNameType(player.NameType, session.DiscordInfo, p.GuildMember)
+
 		err = refreshSession(r, w, session, p.GuildMember, player)
 		if err != nil {
 			config.Log.Println(err)
@@ -273,7 +321,6 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	p.Player = player
 	p.SavedSettings = r.Method == http.MethodPost
 
 	err = webtemplate.ExecuteTemplate(w, "settings.html", p)

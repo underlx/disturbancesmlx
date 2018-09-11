@@ -12,11 +12,12 @@ import (
 
 // PPPlayer is a PosPlay player
 type PPPlayer struct {
-	DiscordID uint64
-	Joined    time.Time
-	LBPrivacy string
-	NameType  string
-	InGuild   bool
+	DiscordID  uint64
+	Joined     time.Time
+	LBPrivacy  string
+	NameType   string
+	InGuild    bool
+	CachedName string
 }
 
 // GetPPPlayers returns a slice with all registered players
@@ -34,7 +35,8 @@ func getPPPlayersWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*PPPl
 	defer tx.Commit() // read-only tx
 
 	rows, err := sbuilder.Columns("pp_player.discord_id", "pp_player.joined",
-		"pp_player.lb_privacy", "pp_player.name_type", "pp_player.in_guild").
+		"pp_player.lb_privacy", "pp_player.name_type", "pp_player.in_guild",
+		"pp_player.cached_name").
 		From("pp_player").
 		RunWith(tx).Query()
 	if err != nil {
@@ -49,7 +51,8 @@ func getPPPlayersWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*PPPl
 			&player.Joined,
 			&player.LBPrivacy,
 			&player.NameType,
-			&player.InGuild)
+			&player.InGuild,
+			&player.CachedName)
 		if err != nil {
 			return players, fmt.Errorf("getPPPlayersWithSelect: %s", err)
 		}
@@ -170,10 +173,10 @@ func (player *PPPlayer) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	_, err = sdb.Insert("pp_player").
-		Columns("discord_id", "joined", "lb_privacy", "name_type", "in_guild").
-		Values(player.DiscordID, player.Joined, player.LBPrivacy, player.NameType, player.InGuild).
-		Suffix("ON CONFLICT (discord_id) DO UPDATE SET joined = ?, lb_privacy = ?, name_type = ?, in_guild = ?",
-			player.Joined, player.LBPrivacy, player.NameType, player.InGuild).
+		Columns("discord_id", "joined", "lb_privacy", "name_type", "in_guild", "cached_name").
+		Values(player.DiscordID, player.Joined, player.LBPrivacy, player.NameType, player.InGuild, player.CachedName).
+		Suffix("ON CONFLICT (discord_id) DO UPDATE SET joined = ?, lb_privacy = ?, name_type = ?, in_guild = ?, cached_name = ?",
+			player.Joined, player.LBPrivacy, player.NameType, player.InGuild, player.CachedName).
 		RunWith(tx).Exec()
 
 	if err != nil {

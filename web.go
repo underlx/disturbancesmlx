@@ -1211,7 +1211,7 @@ func TermsPage(w http.ResponseWriter, r *http.Request) {
 
 // InternalPage serves a internal page
 func InternalPage(w http.ResponseWriter, r *http.Request) {
-	if !utils.RequestIsTLS(r) {
+	if !utils.RequestIsTLS(r) && !DEBUG {
 		w.WriteHeader(http.StatusUpgradeRequired)
 		return
 	}
