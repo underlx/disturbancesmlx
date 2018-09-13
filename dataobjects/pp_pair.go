@@ -11,9 +11,10 @@ import (
 
 // PPPair is a PosPlay pair
 type PPPair struct {
-	DiscordID uint64
-	Pair      *APIPair
-	Paired    time.Time
+	DiscordID  uint64
+	Pair       *APIPair
+	Paired     time.Time
+	DeviceName string
 }
 
 // GetPPPairs returns a slice with all registered pairs
@@ -31,7 +32,7 @@ func getPPPairsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*PPPair
 	defer tx.Commit() // read-only tx
 
 	rows, err := sbuilder.Columns("pp_pair.discord_id", "pp_pair.api_key",
-		"pp_pair.paired").
+		"pp_pair.paired", "pp_pair.device_name").
 		From("pp_pair").
 		RunWith(tx).Query()
 	if err != nil {
@@ -45,7 +46,8 @@ func getPPPairsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*PPPair
 		err := rows.Scan(
 			&pair.DiscordID,
 			&apiPair,
-			&pair.Paired)
+			&pair.Paired,
+			&pair.DeviceName)
 		if err != nil {
 			rows.Close()
 			return pairs, fmt.Errorf("getPPPairsWithSelect: %s", err)
@@ -116,10 +118,10 @@ func (pair *PPPair) Update(node sqalx.Node) error {
 	defer tx.Rollback()
 
 	_, err = sdb.Insert("pp_pair").
-		Columns("discord_id", "api_key", "paired").
-		Values(pair.DiscordID, pair.Pair.Key, pair.Paired).
-		Suffix("ON CONFLICT (discord_id) DO UPDATE SET api_key = ?, paired = ?",
-			pair.Pair.Key, pair.Paired).
+		Columns("discord_id", "api_key", "paired", "device_name").
+		Values(pair.DiscordID, pair.Pair.Key, pair.Paired, pair.DeviceName).
+		Suffix("ON CONFLICT (discord_id) DO UPDATE SET api_key = ?, paired = ?, device_name = ?",
+			pair.Pair.Key, pair.Paired, pair.DeviceName).
 		RunWith(tx).Exec()
 
 	if err != nil {

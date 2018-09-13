@@ -60,14 +60,8 @@ func NewPair(node sqalx.Node, pairtype string, activation time.Time, hashKey []b
 		Activation: activation,
 	}
 
-	pair.Key, err = GenerateAPIKey()
-	if err != nil {
-		return &APIPair{}, errors.New("NewAPIPair: " + err.Error())
-	}
-	pair.Secret, err = GenerateAPISecret()
-	if err != nil {
-		return &APIPair{}, errors.New("NewAPIPair: " + err.Error())
-	}
+	pair.Key = GenerateAPIKey()
+	pair.Secret = GenerateAPISecret()
 	pair.SecretHash = ComputeAPISecretHash(pair.Secret, hashKey)
 
 	_, err = sdb.Insert("api_pair").

@@ -289,7 +289,8 @@ CREATE TABLE IF NOT EXISTS "pp_player" (
 CREATE TABLE IF NOT EXISTS "pp_pair" (
     discord_id BIGINT PRIMARY KEY REFERENCES pp_player (discord_id),
     api_key VARCHAR(16) NOT NULL UNIQUE REFERENCES api_pair (key),
-    paired TIMESTAMP WITH TIME ZONE NOT NULL
+    paired TIMESTAMP WITH TIME ZONE NOT NULL,
+    device_name TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "pp_xp_tx" (

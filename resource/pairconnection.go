@@ -10,7 +10,7 @@ import (
 
 // PairConnectionHandler handles connections of APIPairs with external first-party services and subsystems
 type PairConnectionHandler interface {
-	TryCreateConnection(node sqalx.Node, code string, pair *dataobjects.APIPair) bool
+	TryCreateConnection(node sqalx.Node, code, deviceName string, pair *dataobjects.APIPair) bool
 	DisplayName() string
 }
 
@@ -24,11 +24,11 @@ func RegisterPairConnectionHandler(handler PairConnectionHandler) {
 // PairConnection composites resource
 type PairConnection struct {
 	resource
-	hashKey []byte
 }
 
 type apiPairConnectionRequest struct {
-	Code string `msgpack:"code" json:"code"`
+	Code       string `msgpack:"code" json:"code"`
+	DeviceName string `msgpack:"deviceName" json:"deviceName"`
 }
 
 type apiPairConnectionResponse struct {
@@ -69,7 +69,7 @@ func (r *PairConnection) Post(c *yarf.Context) error {
 	}
 
 	for _, handler := range pairConnectionHandlers {
-		if handler.TryCreateConnection(tx, connectionRequest.Code, pair) {
+		if handler.TryCreateConnection(tx, connectionRequest.Code, connectionRequest.DeviceName, pair) {
 			RenderData(c, apiPairConnectionResponse{
 				Result:      "connected",
 				ServiceName: handler.DisplayName(),

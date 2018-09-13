@@ -7,9 +7,12 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/bwmarrin/discordgo"
+
 	"github.com/dchest/uniuri"
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/discordbot"
 	"golang.org/x/oauth2"
 )
 
@@ -65,9 +68,11 @@ type ConnectionHandler struct {
 }
 
 type pairProcess struct {
-	DiscordID uint64
-	Code      string
-	Expires   time.Time
+	DiscordID       uint64
+	Code            string
+	Expires         time.Time
+	Completed       bool
+	RemovedExisting bool
 }
 
 // TheConnectionHandler is the pair connection handler for PosPlay
@@ -81,7 +86,7 @@ func init() {
 }
 
 // TryCreateConnection implements resource.PairConnectionHandler
-func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code string, pair *dataobjects.APIPair) bool {
+func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceName string, pair *dataobjects.APIPair) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -107,18 +112,77 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code string, pa
 	}
 	defer tx.Rollback()
 
-	// TODO remove any current pair for this discord ID
-	// TODO remove any current pair for this APIPair
+	// remove any current pair for this discord ID
+
+	existing, err := dataobjects.GetPPPair(tx, process.DiscordID)
+	if err == nil {
+		err = existing.Delete(tx)
+		if err != nil {
+			config.Log.Println(err)
+			return false
+		}
+		process.RemovedExisting = true
+	}
+
+	// remove any current pair for this API key
+	removedExistingKey := false
+	existingPair, err := dataobjects.GetPPPairForKey(tx, pair.Key)
+	if err == nil {
+		err = existingPair.Delete(tx)
+		if err != nil {
+			config.Log.Println(err)
+			return false
+		}
+		removedExistingKey = true
+	}
+
 	pppair := dataobjects.PPPair{
-		DiscordID: process.DiscordID,
-		Pair:      pair,
-		Paired:    time.Now(),
+		DiscordID:  process.DiscordID,
+		Pair:       pair,
+		Paired:     time.Now(),
+		DeviceName: deviceName,
 	}
 
 	err = pppair.Update(tx)
 	if err != nil {
 		config.Log.Println(err)
 		return false
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+
+	process.Completed = true
+
+	content := ""
+
+	if process.RemovedExisting {
+		content = "Acabou de trocar o dispositivo associado com a sua conta PosPlay.\n"
+		content += "Dispositivo anterior: **" + existing.DeviceName + "**\n"
+		content += "Novo dispositivo: **" + deviceName + "**"
+		if removedExistingKey {
+			content += "(anteriormente associado com outra conta)"
+		}
+	} else {
+		content = "Acabou de associar um dispositivo (**" + deviceName + "**) com a sua conta PosPlay."
+		if removedExistingKey {
+			content += " Este dispositivo estava anteriormente associado com outra conta."
+		}
+	}
+
+	discordbot.SendDMtoUser(uidConvI(process.DiscordID), &discordgo.MessageSend{
+		Content: content,
+	})
+
+	if removedExistingKey {
+		discordbot.SendDMtoUser(uidConvI(existingPair.DiscordID), &discordgo.MessageSend{
+			Content: "⚠ O dispositivo **" + existingPair.DeviceName + "** passou a estar associado com outra conta PosPlay.\n" +
+				"Se esta não foi uma acção iniciada por si, certifique-se que mais ninguém tem acesso ao seu aparelho, e torne a associá-lo a esta conta.\n" +
+				"Em caso de dúvida, contacte-nos através do endereço de email underlx@tny.im",
+		})
 	}
 
 	return true
