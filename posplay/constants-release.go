@@ -2,6 +2,8 @@
 
 package posplay
 
+import "time"
+
 const (
 	// DEBUG is whether this is a debug build
 	DEBUG = false
@@ -14,4 +16,7 @@ const (
 
 	// CSRFfieldName is the name of the form field used for CSRF protection
 	CSRFfieldName = "posplay.csrf"
+
+	// PairProcessLongevity sets the timeout for pairing a device with a PosPlay account
+	PairProcessLongevity = 5 * time.Minute
 )

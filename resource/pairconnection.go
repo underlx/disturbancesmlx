@@ -11,6 +11,7 @@ import (
 // PairConnectionHandler handles connections of APIPairs with external first-party services and subsystems
 type PairConnectionHandler interface {
 	TryCreateConnection(node sqalx.Node, code string, pair *dataobjects.APIPair) bool
+	DisplayName() string
 }
 
 var pairConnectionHandlers = []PairConnectionHandler{}
@@ -31,7 +32,8 @@ type apiPairConnectionRequest struct {
 }
 
 type apiPairConnectionResponse struct {
-	Result string `msgpack:"result" json:"result"`
+	Result      string `msgpack:"result" json:"result"`
+	ServiceName string `msgpack:"serviceName" json:"serviceName"`
 }
 
 // WithNode associates a sqalx Node with this resource
@@ -69,7 +71,8 @@ func (r *PairConnection) Post(c *yarf.Context) error {
 	for _, handler := range pairConnectionHandlers {
 		if handler.TryCreateConnection(tx, connectionRequest.Code, pair) {
 			RenderData(c, apiPairConnectionResponse{
-				Result: "connected",
+				Result:      "connected",
+				ServiceName: handler.DisplayName(),
 			})
 			return tx.Commit()
 		}

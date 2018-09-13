@@ -40,7 +40,7 @@ func (r *Static) Get(c *yarf.Context) error {
 
 // APIserver sets up and starts the API server
 func APIserver(trustedClientCertPath string) {
-	resource.RegisterPairConnectionHandler(new(posplay.ConnectionHandler))
+	resource.RegisterPairConnectionHandler(posplay.TheConnectionHandler)
 
 	y := yarf.New()
 

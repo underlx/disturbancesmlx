@@ -213,9 +213,11 @@ func pairPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer tx.Commit() // read-only transaction
+	defer tx.Commit() // read-only
 
-	player, err := dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+	discordID := uidConvS(session.DiscordInfo.ID)
+
+	player, err := dataobjects.GetPPPlayer(tx, discordID)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -224,7 +226,11 @@ func pairPage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		pageCommons
-	}{}
+		PairProcess *pairProcess
+		CurrentPair *dataobjects.PPPair
+	}{
+		PairProcess: TheConnectionHandler.getProcess(discordID),
+	}
 	p.pageCommons, err = initPageCommons(tx, w, r, "Associação com dispositivo", session, player)
 	if err != nil {
 		config.Log.Println(err)
@@ -232,6 +238,8 @@ func pairPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.SidebarSelected = "pair"
+
+	p.CurrentPair, err = dataobjects.GetPPPair(tx, discordID)
 
 	err = webtemplate.ExecuteTemplate(w, "pair.html", p)
 	if err != nil {
