@@ -35,6 +35,7 @@ func (r *resource) DecodeRequest(c *yarf.Context, v interface{}) error {
 	case strings.Contains(contentType, "msgpack"):
 		err = msgpack.NewDecoder(c.Request.Body).Decode(v)
 	case strings.Contains(contentType, "json"):
+		fallthrough
 	default:
 		err = json.NewDecoder(c.Request.Body).Decode(v)
 	}
