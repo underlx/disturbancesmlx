@@ -101,7 +101,7 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 	}, code)
 
 	process, hasProcess := h.processesByCode[code]
-	if !hasProcess {
+	if !hasProcess || process.Completed {
 		return false
 	}
 
@@ -201,8 +201,12 @@ func (h *ConnectionHandler) removeExpired(lock bool) {
 
 	for id, process := range h.processesByID {
 		if time.Now().After(process.Expires) {
-			delete(h.processesByID, id)
 			delete(h.processesByCode, process.Code)
+			if !process.Completed {
+				delete(h.processesByID, id)
+			} else if time.Now().After(process.Expires.Add(PairProcessLongevity)) {
+				delete(h.processesByID, id)
+			}
 		}
 	}
 }
@@ -211,12 +215,14 @@ func (h *ConnectionHandler) getProcess(discordID uint64) *pairProcess {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
+	h.removeExpired(false)
+
 	process, hasProcess := h.processesByID[discordID]
-	if hasProcess {
+	if hasProcess && (!time.Now().After(process.Expires) || process.Completed) {
 		return process
 	}
 
-	code := uniuri.NewLenChars(6, []byte("0123456789abcdefghjkmnpqrstwxyz"))
+	code := uniuri.NewLenChars(6, []byte("123456789bcdfghjkmnpqrstvwxyz"))
 
 	niceCode := strings.ToUpper(code)
 	niceCode = niceCode[0:3] + " " + niceCode[3:6]

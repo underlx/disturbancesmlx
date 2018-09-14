@@ -135,11 +135,13 @@ func main() {
 		}
 	}()
 
-	pair, err := dataobjects.NewPair(rootSqalxNode, "test", time.Now(), getHashKey())
-	if err != nil {
-		mainLog.Println(err)
-	} else {
-		mainLog.Println("Generated test API key", pair.Key, "with secret", pair.Secret)
+	if DEBUG {
+		pair, err := dataobjects.NewPair(rootSqalxNode, "test", time.Now(), getHashKey())
+		if err != nil {
+			mainLog.Println(err)
+		} else {
+			mainLog.Println("Generated test API key", pair.Key, "with secret", pair.Secret)
+		}
 	}
 
 	/*if DEBUG {

@@ -6,17 +6,105 @@
       </div>
       <div class="pure-u-1 pure-u-md-2-3">
         <h1>Associação com dispositivo</h1>
+        {{ if .PairProcess.Completed }}
+        <aside><p>Associou um dispositivo. Foi-lhe também enviada uma confirmação por mensagem directa do Discord.</p></aside>
+        {{ end }}
         <p>Normalmente, os registos de viagem submetidos pela aplicação UnderLX são anónimos.
           Associar um dispositivo com a sua conta é necessário para que os registos de viagem
           passem a contribuir para a sua conta do PosPlay.</p>
-        <p>Tal como antes, estes registos permanecerão confidenciais e a associação entre os
+        <p style="font-size: 80%">Tal como antes, estes registos permanecerão confidenciais e a associação entre os
           dados submetidos pelo UnderLX no seu telemóvel e a sua conta do PosPlay servirá
           apenas para fins de atribuição de pontos (XP), participação em desafios e registo de proezas.
           Os dados continuarão a ser tratados exclusivamente pela equipa do UnderLX.
           Para mais informações, consulte a <a href="#">política de privacidade do PosPlay</a>.</p>
-        <p>Abra a aplicação UnderLX no seu telemóvel. No menu do canto superior direito, escolha "Associar com serviço" e introduza o código seguinte:</p>
-        <p style="text-align: center; font-size: 200%">{{ .PairProcess.Code }}</p>
+        {{ if .CurrentPair }}
+          <p>Já tem um dispositivo associado com a sua conta: <strong>{{ .CurrentPair.DeviceName }}</strong>.
+          {{ if not .PairProcess.Completed }}Poderá trocar o dispositivo associado seguindo estas instruções:{{end}}
+          </p>
+        {{end}}
+        {{ if .PairProcess.Completed }}
+          <p>Acabou de associar um dispositivo. Terá de esperar algum tempo até poder trocar o dispositivo associado com a sua conta.</p>
+        {{else}}
+          <ul>
+            <li>Abra a aplicação UnderLX no telemóvel que pretende associar;</li>
+            <li>No menu do canto superior direito, escolha "Associar com serviço";</li>
+            <li>Introduza o código seguinte:</li>
+          </ul>
+          <p style="text-align: center; font-size: 200%" id="code">{{ .PairProcess.Code }}</p>
+          <p style="text-align: center;">Este código irá mudar dentro de <span id="expiryCountdown">05:00</span>.</p>
+        {{end}}
       </div>
     </div>
   </div>
+<script>
+  (function() {
+    var httpRequest, pairCompleted, expiry;
+    var firstCheck = true;
+    var countDownRequestedUpdate = false;
+  
+    function makeRequest() {
+      if(typeof(httpRequest) === 'object') {
+        httpRequest.abort();
+      }
+      httpRequest = new XMLHttpRequest();
+  
+      if (!httpRequest) {
+        console.log("Could not create a XMLHttpRequest")
+        return false;
+      }
+      httpRequest.onreadystatechange = onReadyStateChange;
+      httpRequest.open('GET', '/posplay/pair/status');
+      httpRequest.setRequestHeader('Cache-Control', 'no-cache');
+      httpRequest.send();
+    }
+  
+    function onReadyStateChange() {
+      try {
+        if (httpRequest.readyState === XMLHttpRequest.DONE) {
+          if (httpRequest.status === 200) {
+            var response = JSON.parse(httpRequest.responseText);
+            expiry = response.expiry;
+            document.getElementById('code').textContent = response.code;
+            if (firstCheck) {
+              pairCompleted = response.completed;
+              firstCheck = false;
+            } else if (pairCompleted !== response.completed) {
+              window.location.reload();
+            }
+          } else {
+            console.log('Server returned non-200 status code ' + httpRequest.status);
+          }
+        }
+      } catch(e) {
+        console.log("Caught exception " + e);
+      }
+    }
+
+    function updateCountdown() {
+      if(typeof(expiry) !== 'undefined') {
+        var unix = Math.floor((new Date()).getTime() / 1000);
+        var date = new Date(null);
+        seconds = expiry - unix;
+        if (seconds < 0) {
+          seconds = 0;
+          if(!countDownRequestedUpdate) {
+            countDownRequestedUpdate = true;
+            makeRequest();
+          }
+        } else {
+          countDownRequestedUpdate = false;
+        }
+        date.setSeconds(seconds);
+        var timeString = date.toISOString().substr(11, 8).replace(/^(00:)/,"");
+        document.getElementById('expiryCountdown').textContent = timeString;
+      }
+    }
+
+{{ if not .PairProcess.Completed }}
+    setInterval(makeRequest, 5000);
+    setInterval(updateCountdown, 1000);
+    makeRequest();
+{{end}}
+  })();
+</script>
 {{template "footer.html" . }}

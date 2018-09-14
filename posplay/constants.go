@@ -18,5 +18,5 @@ const (
 	CSRFfieldName = "posplay.csrf"
 
 	// PairProcessLongevity sets the timeout for pairing a device with a PosPlay account
-	PairProcessLongevity = 5 * time.Minute
+	PairProcessLongevity = 30 * time.Second
 )

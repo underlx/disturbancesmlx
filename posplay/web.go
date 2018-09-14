@@ -1,6 +1,7 @@
 package posplay
 
 import (
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"strings"
@@ -38,6 +39,7 @@ type pageCommons struct {
 func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/", homePage)
 	router.HandleFunc("/pair", pairPage)
+	router.HandleFunc("/pair/status", pairStatus)
 	router.HandleFunc("/settings", settingsPage)
 	router.HandleFunc("/login", forceLogin)
 	router.HandleFunc("/logout", forceLogout)
@@ -239,13 +241,41 @@ func pairPage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.SidebarSelected = "pair"
 
-	p.CurrentPair, err = dataobjects.GetPPPair(tx, discordID)
+	p.CurrentPair, _ = dataobjects.GetPPPair(tx, discordID)
 
 	err = webtemplate.ExecuteTemplate(w, "pair.html", p)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+func pairStatus(w http.ResponseWriter, r *http.Request) {
+	session, _, err := GetSession(r, w, false)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if session == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	pairProcess := TheConnectionHandler.getProcess(uidConvS(session.DiscordInfo.ID))
+
+	data := make(map[string]interface{})
+	data["completed"] = pairProcess.Completed
+	data["expiry"] = pairProcess.Expires.Unix()
+	data["code"] = pairProcess.Code
+
+	b, err := json.Marshal(data)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(b)
 }
 
 func settingsPage(w http.ResponseWriter, r *http.Request) {
