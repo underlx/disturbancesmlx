@@ -158,6 +158,8 @@ func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
 	switch tx.Type {
 	case "SIGNUP_BONUS":
 		return "Oferta de boas-vindas"
+	case "PAIR_BONUS":
+		return "Associação de dispositivo"
 	case "TRIP_SUBMIT_REWARD":
 		numstations, ok := extra["station_count"].(int)
 		numexchanges, ok2 := extra["interchange_count"].(int)

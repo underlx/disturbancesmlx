@@ -34,6 +34,14 @@ func GetPPXPTransactionsBetween(node sqalx.Node, start time.Time, end time.Time)
 	return getPPXPTransactionsWithSelect(node, s)
 }
 
+// GetPPXPTransactionsWithType returns a slice with all transactions with the specified type
+func GetPPXPTransactionsWithType(node sqalx.Node, txtype string) ([]*PPXPTransaction, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"type": txtype}).
+		OrderBy("timestamp ASC")
+	return getPPXPTransactionsWithSelect(node, s)
+}
+
 func getPPXPTransactionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*PPXPTransaction, error) {
 	transactions := []*PPXPTransaction{}
 

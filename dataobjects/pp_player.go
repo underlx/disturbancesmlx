@@ -93,6 +93,15 @@ func (player *PPPlayer) XPTransactions(node sqalx.Node) ([]*PPXPTransaction, err
 	return getPPXPTransactionsWithSelect(node, s)
 }
 
+// XPTransactionsWithType returns a slice with the transactions for this player of the specified type
+func (player *PPPlayer) XPTransactionsWithType(node sqalx.Node, txtype string) ([]*PPXPTransaction, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"discord_id": player.DiscordID}).
+		Where(sq.Eq{"type": txtype}).
+		OrderBy("timestamp DESC")
+	return getPPXPTransactionsWithSelect(node, s)
+}
+
 // XPTransactionsLimit returns a slice with `limit` most recent transactions for this player
 func (player *PPPlayer) XPTransactionsLimit(node sqalx.Node, limit uint64) ([]*PPXPTransaction, error) {
 	s := sdb.Select().

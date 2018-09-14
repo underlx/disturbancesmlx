@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"github.com/bwmarrin/discordgo"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/dchest/uniuri"
 	"github.com/gbl08ma/sqalx"
@@ -136,6 +137,7 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 		removedExistingKey = true
 	}
 
+	// save pair
 	pppair := dataobjects.PPPair{
 		DiscordID:  process.DiscordID,
 		Pair:       pair,
@@ -149,6 +151,41 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 		return false
 	}
 
+	// give XP bonus if it has never been given before
+	player, err := dataobjects.GetPPPlayer(tx, process.DiscordID)
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+	txs, err := player.XPTransactionsWithType(tx, "PAIR_BONUS")
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+
+	if len(txs) == 0 {
+		id, err := uuid.NewV4()
+		if err != nil {
+			config.Log.Println(err)
+			return false
+		}
+
+		xptx := &dataobjects.PPXPTransaction{
+			ID:        id.String(),
+			DiscordID: process.DiscordID,
+			Time:      pppair.Paired,
+			Type:      "PAIR_BONUS",
+			Value:     30,
+		}
+
+		err = xptx.Update(tx)
+		if err != nil {
+			config.Log.Println(err)
+			return false
+		}
+	}
+
+	// commit and send notifications
 	err = tx.Commit()
 	if err != nil {
 		config.Log.Println(err)
