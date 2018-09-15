@@ -21,17 +21,26 @@
           <p>Já tem um dispositivo associado com a sua conta: <strong>{{ .CurrentPair.DeviceName }}</strong>.
           {{ if not .PairProcess.Completed }}Poderá trocar o dispositivo associado seguindo estas instruções:{{end}}
           </p>
+        {else}}
+          <p>Para associar um dispositivo:</p>
         {{end}}
         {{ if .PairProcess.Completed }}
           <p>Acabou de associar um dispositivo. Terá de esperar algum tempo até poder trocar o dispositivo associado com a sua conta.</p>
         {{else}}
+        <div class="pure-g">
+        <div class="pure-u-1 pure-u-lg-1-2">
           <ul>
             <li>Abra a aplicação UnderLX no telemóvel que pretende associar;</li>
-            <li>No menu do canto superior direito, escolha "Associar com serviço";</li>
+            <li>No menu do canto superior direito, escolha "<strong>Associar com serviço</strong>";</li>
             <li>Introduza o código seguinte:</li>
           </ul>
           <p style="text-align: center; font-size: 200%" id="code">{{ .PairProcess.Code }}</p>
           <p style="text-align: center;">Este código irá mudar dentro de <span id="expiryCountdown">05:00</span>.</p>
+        </div>
+        <div class="pure-u-1 pure-u-lg-1-2">
+          <img src="/static/img/pair-device-instr-pt.png" style="max-width: 100%;">
+        </div>
+        </div>
         {{end}}
       </div>
     </div>

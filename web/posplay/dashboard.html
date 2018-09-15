@@ -21,7 +21,7 @@
             {{ range $transaction := .XPTransactions }}
             <tr>
               <td style="white-space: nowrap;">{{ formatTime $transaction.Time }}</td>
-              <td>{{ xpTxDescription $transaction }}</td>
+              <td style="font-size: 85%;">{{ xpTxDescription $transaction }}</td>
               <td style="white-space: nowrap;">{{ $transaction.Value }} XP</td>
             </tr>
             {{ end }}
