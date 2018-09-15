@@ -161,28 +161,28 @@ func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
 	case "PAIR_BONUS":
 		return "Associação de dispositivo"
 	case "TRIP_SUBMIT_REWARD":
-		numstations, ok := extra["station_count"].(int)
-		numexchanges, ok2 := extra["interchange_count"].(int)
+		numstations, ok := extra["station_count"].(float64)
+		numexchanges, ok2 := extra["interchange_count"].(float64)
 		offpeak, ok3 := extra["offpeak"].(bool)
 		if ok && ok2 && ok3 {
 			excstr := ""
-			switch numexchanges {
+			switch int(numexchanges) {
 			case 0:
 				excstr = ""
 			case 1:
 				excstr = ", com 1 troca de linha"
 			default:
-				excstr = fmt.Sprintf(", com %d trocas de linha", numexchanges)
+				excstr = fmt.Sprintf(", com %d trocas de linha", int(numexchanges))
 			}
 			ofpstr := ""
 			if offpeak {
 				ofpstr = ", fora das horas de ponta"
 			}
-			return fmt.Sprintf("Viagem por %d estações%s%s", numstations, excstr, ofpstr)
+			return fmt.Sprintf("Viagem por %d estações%s%s", int(numstations), excstr, ofpstr)
 		}
 		return "Viagem"
 	case "TRIP_CONFIRM_REWARD":
-		return "Confirmação/correcção de registo de viagem"
+		return "Verificação de registo de viagem"
 	default:
 		// ideally this should never show
 		return "Bónus genérico"

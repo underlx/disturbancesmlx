@@ -71,6 +71,7 @@
             } else if (pairCompleted !== response.completed) {
               window.location.reload();
             }
+            updateCountdown();
           } else {
             console.log('Server returned non-200 status code ' + httpRequest.status);
           }
