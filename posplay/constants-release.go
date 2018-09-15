@@ -19,4 +19,7 @@ const (
 
 	// PairProcessLongevity sets the timeout for pairing a device with a PosPlay account
 	PairProcessLongevity = 5 * time.Minute
+
+	// PosPlayVersion is the version of this PosPlay subsystem release
+	PosPlayVersion = "v0.1"
 )

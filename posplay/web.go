@@ -20,11 +20,12 @@ import (
 
 // pageCommons contains information that is required by most page templates
 type pageCommons struct {
-	PageTitle  string
-	DebugBuild bool
-	Session    *Session
-	Player     *dataobjects.PPPlayer
-	CSRFfield  template.HTML
+	PageTitle   string
+	DebugBuild  bool
+	Session     *Session
+	Player      *dataobjects.PPPlayer
+	CSRFfield   template.HTML
+	VersionInfo string
 
 	// sidebar
 	SidebarSelected  string
@@ -44,6 +45,7 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/login", forceLogin)
 	router.HandleFunc("/logout", forceLogout)
 	router.HandleFunc("/oauth/callback", callbackHandler)
+	router.HandleFunc("/privacy", privacyPolicyPage)
 	if DEBUG {
 		router.Use(templateReloadingMiddleware)
 	}
@@ -99,6 +101,7 @@ func initPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 	commons.Session = session
 	commons.Player = player
 	commons.CSRFfield = csrf.TemplateField(r)
+	commons.VersionInfo = PosPlayVersion + "-" + config.GitCommit
 
 	if player != nil && node != nil {
 		tx, err := node.Beginx()
@@ -173,6 +176,7 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 
 		XPTransactions []*dataobjects.PPXPTransaction
 		JoinedServer   bool
+		PairedDevice   bool
 	}{
 		JoinedServer: player.InGuild,
 	}
@@ -190,6 +194,9 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	_, err = dataobjects.GetPPPair(tx, player.DiscordID)
+	p.PairedDevice = err == nil
 
 	err = webtemplate.ExecuteTemplate(w, "dashboard.html", p)
 	if err != nil {
@@ -368,6 +375,38 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = tx.Commit()
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func privacyPolicyPage(w http.ResponseWriter, r *http.Request) {
+	session, _, err := GetSession(r, w, false)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer tx.Commit() // read-only tx
+
+	p := struct {
+		pageCommons
+	}{}
+	p.pageCommons, err = initPageCommons(tx, w, r, "Política de Privacidade", session, nil)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = webtemplate.ExecuteTemplate(w, "privacy.html", p)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

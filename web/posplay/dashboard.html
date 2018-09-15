@@ -6,7 +6,17 @@
       </div>
       <div class="pure-u-1 pure-u-md-2-3">
         <h1>PosPlay <small>O jogo do UnderLX</small></h1>
-        <p>Blah blah blah</p>
+        <p>Bem-vindo ao painel do PosPlay, onde encontra as informações mais relevantes sobre a sua participação no jogo.</p>
+        <p style="font-size: 85%;">Neste momento, o PosPlay encontra-se numa fase muito prematura:</p>
+        <ul style="font-size: 85%;">
+          <li>Tal como acontece com o restante projecto, o Metro de Lisboa é o único sistema de transportes suportado;</li>
+          <li>Já é possível obter recompensas sob a forma de pontos (XP) por realizar viagens e por corrigir ou confirmar os seus registos;</li>
+          <li>Ainda não é possível competir com outros jogadores;</li>
+          <li>O seu progresso no jogo e definições da conta podem ser parcialmente ou totalmente reinicializados se tal for necessário ao desenvolvimento.</li>
+        </ul>
+        {{ if not .PairedDevice }}
+        <p>Para poder começar a jogar com as suas viagens, <a href="/posplay/pair">associe um dispositivo</a>.</p>
+        {{end}}
         <h2>Recompensas recentes</h2>
         <table class="pure-table pure-table-horizontal" style="width: 100%">
           <thead>

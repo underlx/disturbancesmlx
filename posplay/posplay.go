@@ -50,6 +50,7 @@ type Config struct {
 	Store      *sessions.CookieStore
 	Node       sqalx.Node
 	PathPrefix string
+	GitCommit  string
 }
 
 var config Config

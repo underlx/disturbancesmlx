@@ -131,7 +131,8 @@ func WebServer() {
 		Log:        posplayLog,
 		Store:      sessionStore,
 		Node:       rootSqalxNode,
-		PathPrefix: websiteURL + "/posplay"})
+		PathPrefix: websiteURL + "/posplay",
+		GitCommit:  GitCommit})
 
 	router := mux.NewRouter().StrictSlash(true)
 
