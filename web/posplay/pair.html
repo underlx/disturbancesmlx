@@ -21,7 +21,7 @@
           <p>Já tem um dispositivo associado com a sua conta: <strong>{{ .CurrentPair.DeviceName }}</strong>.
           {{ if not .PairProcess.Completed }}Poderá trocar o dispositivo associado seguindo estas instruções:{{end}}
           </p>
-        {else}}
+        {{else}}
           <p>Para associar um dispositivo:</p>
         {{end}}
         {{ if .PairProcess.Completed }}
