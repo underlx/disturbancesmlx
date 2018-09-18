@@ -173,6 +173,37 @@ func (player *PPPlayer) Level(node sqalx.Node) (int, int, float64, error) {
 	return xp, int(level), part * 100, nil
 }
 
+// RankBetween returns the global XP rank for this player within the specified time interval
+func (player *PPPlayer) RankBetween(node sqalx.Node, start, end time.Time) (int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	rows, err := tx.Query("SELECT position "+
+		"FROM ( "+
+		"  SELECT discord_id, SUM(value) AS s, rank() OVER (ORDER BY sum(value) DESC) AS position "+
+		"  FROM pp_xp_tx "+
+		"  WHERE timestamp BETWEEN $1 AND $2 "+
+		"  GROUP BY discord_id "+
+		") AS leaderboard "+
+		"WHERE leaderboard.discord_id = $3;",
+		start, end, player.DiscordID)
+	defer rows.Close()
+	if err != nil {
+		return 0, err
+	}
+	var rank int
+	for rows.Next() {
+		err := rows.Scan(&rank)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return rank, rows.Err()
+}
+
 // Update adds or updates the PPPlayer
 func (player *PPPlayer) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()

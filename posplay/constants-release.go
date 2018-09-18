@@ -21,5 +21,5 @@ const (
 	PairProcessLongevity = 5 * time.Minute
 
 	// PosPlayVersion is the version of this PosPlay subsystem release
-	PosPlayVersion = "v0.1"
+	PosPlayVersion = "v0.2"
 )

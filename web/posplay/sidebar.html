@@ -11,7 +11,9 @@
   <div>{{ plus .Level 1 }}</div>
 </div>
 <h3 style="margin-bottom: 0">Esta semana</h3>
-<p style="margin-top: 0.5em">Já ganhou <strong>{{ .XPthisWeek }} XP</strong></p>
+<p style="margin-top: 0.5em">Já ganhou <strong>{{ .XPthisWeek }} XP</strong>
+{{ if .RankThisWeek }}<br>{{ .RankThisWeek }}º lugar{{end}}
+</p>
 <div class="pure-menu" style="display: inline-block; text-align: left;">
   <ul class="pure-menu-list">
     <li class="pure-menu-heading">A sua conta</li>

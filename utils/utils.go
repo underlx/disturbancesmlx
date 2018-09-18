@@ -90,6 +90,38 @@ func FormatPortugueseMonth(month time.Month) string {
 	}
 }
 
+// FormatPortugueseMonthShort returns the Portuguese name abbreviation for a month
+func FormatPortugueseMonthShort(month time.Month) string {
+	switch month {
+	case time.January:
+		return "Jan"
+	case time.February:
+		return "Fev"
+	case time.March:
+		return "Mar"
+	case time.April:
+		return "Abr"
+	case time.May:
+		return "Mai"
+	case time.June:
+		return "Jun"
+	case time.July:
+		return "Jul"
+	case time.August:
+		return "Ago"
+	case time.September:
+		return "Set"
+	case time.October:
+		return "Out"
+	case time.November:
+		return "Nov"
+	case time.December:
+		return "Dez"
+	default:
+		return ""
+	}
+}
+
 // ComputeStationTriviaURLs returns a mapping from locales to URLs of the HTML file containing the trivia for the given station
 func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 	m := make(map[string]string)

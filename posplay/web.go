@@ -2,6 +2,7 @@ package posplay
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
@@ -34,6 +35,7 @@ type pageCommons struct {
 	Level            int
 	LevelProgression float64
 	XPthisWeek       int
+	RankThisWeek     int
 }
 
 // ConfigureRouter configures a router to handle PosPlay paths
@@ -42,6 +44,7 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/pair", pairPage)
 	router.HandleFunc("/pair/status", pairStatus)
 	router.HandleFunc("/settings", settingsPage)
+	router.HandleFunc("/leaderboards", leaderboardsPage)
 	router.HandleFunc("/login", forceLogin)
 	router.HandleFunc("/logout", forceLogout)
 	router.HandleFunc("/oauth/callback", callbackHandler)
@@ -84,6 +87,14 @@ func webReloadTemplate() {
 		"xpTxDescription":            descriptionForXPTransaction,
 		"formatPortugueseMonth":      utils.FormatPortugueseMonth,
 		"getDisplayNameFromNameType": getDisplayNameFromNameType,
+		"formatLeaderboardWeek": func(start time.Time) string {
+			end := start.AddDate(0, 0, 6)
+			year, week := start.ISOWeek()
+			return fmt.Sprintf("%dª semana de %d (%d %s - %d %s)",
+				week, year,
+				start.Day(), utils.FormatPortugueseMonthShort(start.Month()),
+				end.Day(), utils.FormatPortugueseMonthShort(end.Month()))
+		},
 	}
 
 	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("web/posplay/*.html"))
@@ -116,6 +127,11 @@ func initPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 		}
 
 		commons.XPthisWeek, err = player.XPBalanceBetween(tx, getWeekStart(), time.Now())
+		if err != nil {
+			return commons, err
+		}
+
+		commons.RankThisWeek, err = player.RankBetween(tx, getWeekStart(), time.Now())
 		if err != nil {
 			return commons, err
 		}
@@ -375,6 +391,82 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = tx.Commit()
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func leaderboardsPage(w http.ResponseWriter, r *http.Request) {
+	session, redirected, err := GetSession(r, w, true)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if redirected {
+		return
+	}
+
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer tx.Commit() // read-only
+
+	discordID := uidConvS(session.DiscordInfo.ID)
+
+	player, err := dataobjects.GetPPPlayer(tx, discordID)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p := struct {
+		pageCommons
+		Leaderboards []struct {
+			Start   time.Time
+			Entries []dataobjects.PPLeaderboardEntry
+		}
+	}{}
+	p.pageCommons, err = initPageCommons(tx, w, r, "Classificações", session, player)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	p.SidebarSelected = "leaderboards"
+
+	start := getWeekStart()
+	fmt.Println(start)
+	end := time.Now()
+	for i := 0; i < 5; i++ {
+		entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 15, player)
+		if err != nil {
+			config.Log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		if len(entries) == 1 && entries[0].Position == 0 {
+			// avoid showing just this player in the 0th place
+			entries = []dataobjects.PPLeaderboardEntry{}
+		}
+
+		p.Leaderboards = append(p.Leaderboards, struct {
+			Start   time.Time
+			Entries []dataobjects.PPLeaderboardEntry
+		}{
+			Start:   start,
+			Entries: entries,
+		})
+
+		end = start
+		start = start.AddDate(0, 0, -7)
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "leaderboards.html", p)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

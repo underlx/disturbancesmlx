@@ -151,7 +151,7 @@ func getWeekStart() time.Time {
 		// it's Monday, but it's not 2 AM yet
 		endTime = endTime.AddDate(0, 0, -7)
 	}
-	return endTime.AddDate(0, 0, -7)
+	return endTime
 }
 
 func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
