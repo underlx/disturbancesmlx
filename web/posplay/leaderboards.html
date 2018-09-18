@@ -15,7 +15,7 @@
             <thead>
               <tr>
                 <th>Posição</th>
-                <th>Utilizador</th>
+                <th>Jogador</th>
                 <th>XP ganhos</th>
               </tr>
             </thead>
@@ -23,11 +23,13 @@
             <tbody>
               {{ range $entry := $leaderboard.Entries }}
               {{ $isself := (eq $entry.Player.DiscordID $.Player.DiscordID ) }}
+              {{ if (gt $entry.Position 0 )}}
               <tr {{if $isself }}style="background-color: rgb(255, 234, 133);"{{end}}>
                 <td style="white-space: nowrap;">{{ $entry.Position }}º</td>
                 <td>{{ if (eq $entry.Player.LBPrivacy "PUBLIC")}}{{ $entry.Player.CachedName }}{{else if $isself }}{{ $entry.Player.CachedName }}<br><em style="font-size: 75%">os outros utilizadores não vêem este nome - <a href="/posplay/settings">definições</a></em>{{else}}<em>Jogador anónimo</em>{{end}}</td>
                 <td style="white-space: nowrap;">{{ $entry.Score }} XP</td>
               </tr>
+              {{end}}
               {{ end }}
             </tbody>
           </table>
