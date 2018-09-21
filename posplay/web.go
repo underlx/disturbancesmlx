@@ -448,7 +448,6 @@ func leaderboardsPage(w http.ResponseWriter, r *http.Request) {
 	p.SidebarSelected = "leaderboards"
 
 	start := getWeekStart()
-	fmt.Println(start)
 	end := time.Now()
 	for i := 0; i < 5; i++ {
 		entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 15, player)

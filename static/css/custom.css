@@ -362,8 +362,40 @@ ul.pt-ml-line {
   width: 10px;
   height: 10px;
   background-color: white;
-  border-radius: 5px;
+  border-radius: 50%;
 }
+
+a.pt-ml-interchange-left {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: -40px;
+  display: block;
+  width: 12px;
+  height: 16px;
+}
+
+a.pt-ml-interchange-right {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: -12px;
+  display: block;
+  width: 12px;
+  height: 16px;
+}
+
+span.pt-ml-interchange-center {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: -28px;
+  display: block;
+  width: 16px;
+  height: 16px;
+  z-index: -1;
+}
+
 
 .pt-ml-line > li > a {
   color: inherit;

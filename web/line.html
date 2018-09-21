@@ -10,7 +10,14 @@
         <ul class="pt-ml-line" style="background-color: #{{ .Line.Color }}">
         {{ range $index, $station := .Stations }}
           <li>
-            <a href="/stations/{{ $station.ID }}" {{ if (index $.ClosedStations $index) }} style="text-decoration: line-through" {{end}}>{{ $station.Name }}</a>
+            {{ if (index $.StationInfo $index).LeftLine }}
+            <a class="pt-ml-interchange-left" style="background: linear-gradient(to left, #{{ (index $.StationInfo $index).LeftLine.Color }}, rgba(255, 255, 255, 0));" href="/lines/{{ (index $.StationInfo $index).LeftLine.ID }}"></a>
+            {{end}}
+            {{ if (index $.StationInfo $index).RightLine }}
+            <span class="pt-ml-interchange-center" style="background-color: #{{ (index $.StationInfo $index).RightLine.Color }}"></span>
+            <a class="pt-ml-interchange-right" style="background: linear-gradient(to right, #{{ (index $.StationInfo $index).RightLine.Color }}, rgba(255, 255, 255, 0));" href="/lines/{{ (index $.StationInfo $index).RightLine.ID }}"></a>
+            {{end}}
+            <a href="/stations/{{ $station.ID }}" {{ if (index $.StationInfo $index).Closed }} style="text-decoration: line-through" {{end}}>{{ $station.Name }}</a>
             <span class="station-features">
               {{ range $tag := $station.Tags }}
                 {{ if (eq $tag "c_airport") }}<i class="fa fa-plane" aria-hidden="true"></i>{{end}}

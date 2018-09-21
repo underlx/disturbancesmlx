@@ -976,9 +976,12 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Line              *dataobjects.Line
-		Stations          []*dataobjects.Station
-		ClosedStations    []bool
+		Line        *dataobjects.Line
+		Stations    []*dataobjects.Station
+		StationInfo []struct {
+			Closed              bool
+			LeftLine, RightLine *dataobjects.Line
+		}
 		WeekAvailability  float64
 		WeekDuration      time.Duration
 		MonthAvailability float64
@@ -1006,11 +1009,35 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	p.StationInfo = make([]struct {
+		Closed              bool
+		LeftLine, RightLine *dataobjects.Line
+	}, len(p.Stations))
 
-	p.ClosedStations = make([]bool, len(p.Stations))
 	for i, station := range p.Stations {
 		if closed, err := station.Closed(tx); err == nil && closed {
-			p.ClosedStations[i] = true
+			p.StationInfo[i].Closed = true
+		}
+
+		lines, err := station.Lines(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		for _, line := range lines {
+			if line.ID != p.Line.ID {
+				p.StationInfo[i].RightLine = line
+				stations, err := line.Stations(tx)
+				if err != nil {
+					webLog.Println(err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				if len(stations) > 0 && station.ID != stations[0].ID && station.ID != stations[len(stations)-1].ID {
+					p.StationInfo[i].LeftLine = line
+				}
+			}
 		}
 	}
 
