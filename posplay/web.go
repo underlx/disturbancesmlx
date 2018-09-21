@@ -95,6 +95,13 @@ func webReloadTemplate() {
 				start.Day(), utils.FormatPortugueseMonthShort(start.Month()),
 				end.Day(), utils.FormatPortugueseMonthShort(end.Month()))
 		},
+		"userAvatarURL": func(userID uint64, size string) string {
+			user, err := discordbot.User(uidConvI(userID))
+			if err == nil {
+				return user.AvatarURL(size)
+			}
+			return ""
+		},
 	}
 
 	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("web/posplay/*.html"))
