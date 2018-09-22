@@ -6,12 +6,13 @@ import (
 
 // Announcement contains an announcement for a network
 type Announcement struct {
-	Time    time.Time
-	Network *Network
-	Title   string
-	Body    string
-	URL     string
-	Source  string
+	Time     time.Time
+	Network  *Network
+	Title    string
+	Body     string
+	ImageURL string
+	URL      string
+	Source   string
 }
 
 // AnnouncementStore manages announcements for one or more networks

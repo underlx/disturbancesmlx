@@ -2,11 +2,13 @@ package mlxscraper
 
 import (
 	"log"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	cache "github.com/patrickmn/go-cache"
 
 	"github.com/mmcdole/gofeed"
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -23,6 +25,7 @@ type RSSScraper struct {
 	firstUpdate    bool
 	fp             *gofeed.Parser
 	announcements  []*dataobjects.Announcement
+	imageURLcache  *cache.Cache
 
 	URL     string
 	Network *dataobjects.Network
@@ -41,6 +44,7 @@ func (sc *RSSScraper) Init(log *log.Logger,
 	sc.newAnnCallback = newAnnCallback
 	sc.firstUpdate = true
 	sc.fp = gofeed.NewParser()
+	sc.imageURLcache = cache.New(1*time.Hour, 30*time.Minute)
 
 	sc.log.Println("RSSScraper initializing")
 	sc.update()
@@ -101,12 +105,13 @@ func (sc *RSSScraper) update() {
 	announcements := []*dataobjects.Announcement{}
 	for _, item := range feed.Items {
 		ann := dataobjects.Announcement{
-			Time:    *item.PublishedParsed,
-			Network: sc.Network,
-			Title:   item.Title,
-			Body:    sc.adaptPostBody(item.Content),
-			URL:     item.Link,
-			Source:  "pt-ml-rss",
+			Time:     *item.PublishedParsed,
+			Network:  sc.Network,
+			Title:    item.Title,
+			Body:     sc.adaptPostBody(item.Content),
+			ImageURL: sc.getImageForPost(item.Link),
+			URL:      item.Link,
+			Source:   "pt-ml-rss",
 		}
 		announcements = append(announcements, &ann)
 	}
@@ -141,6 +146,38 @@ func (sc *RSSScraper) adaptPostBody(original string) string {
 		return ""
 	}
 	return doc.Find("p").First().Text()
+}
+
+func (sc *RSSScraper) getImageForPost(postURL string) string {
+	url, present := sc.imageURLcache.Get(postURL)
+	if present {
+		return url.(string)
+	}
+
+	netClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
+	response, err := netClient.Get(postURL)
+	if err != nil {
+		return ""
+	}
+
+	doc, err := goquery.NewDocumentFromReader(response.Body)
+	if err != nil {
+		return ""
+	}
+	imageURL := ""
+	doc.Find("meta").EachWithBreak(func(i int, s *goquery.Selection) bool {
+		if property, ok := s.Attr("property"); ok && property == "og:image" {
+			if content, ok := s.Attr("content"); ok {
+				imageURL = content
+				return false
+			}
+		}
+		return true
+	})
+	sc.imageURLcache.SetDefault(postURL, imageURL)
+	return imageURL
 }
 
 // Networks returns the networks monitored by this scraper

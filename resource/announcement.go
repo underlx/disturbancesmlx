@@ -15,12 +15,13 @@ type Announcement struct {
 }
 
 type apiAnnouncement struct {
-	Time    time.Time            `msgpack:"time" json:"time"`
-	Network *dataobjects.Network `msgpack:"-" json:"-"`
-	Title   string               `msgpack:"title" json:"title"`
-	Body    string               `msgpack:"body" json:"body"`
-	URL     string               `msgpack:"url" json:"url"`
-	Source  string               `msgpack:"source" json:"source"`
+	Time     time.Time            `msgpack:"time" json:"time"`
+	Network  *dataobjects.Network `msgpack:"-" json:"-"`
+	Title    string               `msgpack:"title" json:"title"`
+	Body     string               `msgpack:"body" json:"body"`
+	ImageURL string               `msgpack:"imageURL" json:"imageURL"`
+	URL      string               `msgpack:"url" json:"url"`
+	Source   string               `msgpack:"source" json:"source"`
 }
 
 type apiAnnouncementWrapper struct {
