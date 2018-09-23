@@ -32,7 +32,7 @@
                       <img src="{{ userAvatarURL $entry.Player.DiscordID "64" }}" style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px;">
                       <span>
                         {{ $entry.Player.CachedName }}
-                        {{if $isself }}<br><em style="font-size: 75%">os outros utilizadores não vêem este nome - <a href="/posplay/settings">definições</a></em>{{end}}
+                        {{if (and (eq $entry.Player.LBPrivacy "PRIVATE") $isself) }}<br><em style="font-size: 75%">os outros utilizadores não vêem este nome - <a href="/posplay/settings">definições</a></em>{{end}}
                       </span>
                     {{else}}
                       <em>Jogador anónimo</em>
