@@ -353,7 +353,7 @@ ul.pt-ml-line {
   margin-top: 0;
 }
 
-.pt-ml-line > li::before {
+.pt-ml-line > li > a.station-link::before {
   content: "";
   position: absolute;
   top: 4px;

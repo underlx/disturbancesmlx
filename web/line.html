@@ -17,7 +17,7 @@
             <span class="pt-ml-interchange-center" style="background-color: #{{ (index $.StationInfo $index).RightLine.Color }}"></span>
             <a class="pt-ml-interchange-right" style="background: linear-gradient(to right, #{{ (index $.StationInfo $index).RightLine.Color }}, rgba(255, 255, 255, 0));" href="/lines/{{ (index $.StationInfo $index).RightLine.ID }}"></a>
             {{end}}
-            <a href="/stations/{{ $station.ID }}" {{ if (index $.StationInfo $index).Closed }} style="text-decoration: line-through" {{end}}>{{ $station.Name }}</a>
+            <a class="station-link" href="/stations/{{ $station.ID }}" {{ if (index $.StationInfo $index).Closed }} style="text-decoration: line-through" {{end}}>{{ $station.Name }}</a>
             <span class="station-features">
               {{ range $tag := $station.Tags }}
                 {{ if (eq $tag "c_airport") }}<i class="fa fa-plane" aria-hidden="true"></i>{{end}}
