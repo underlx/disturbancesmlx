@@ -42,7 +42,7 @@ func (sc *FacebookScraper) Init(log *log.Logger,
 	sc.log = log
 	sc.newAnnCallback = newAnnCallback
 	sc.firstUpdate = true
-	sc.imageURLcache = cache.New(1*time.Hour, 30*time.Minute)
+	sc.imageURLcache = cache.New(12*time.Hour, 30*time.Minute)
 
 	sc.log.Println("FacebookScraper initializing")
 	sc.update()
@@ -133,7 +133,7 @@ func (sc *FacebookScraper) update() {
 			Network:  sc.Network,
 			Title:    "",
 			Body:     body,
-			ImageURL: sc.getImageForPost(pitem["id"].(string)),
+			ImageURL: sc.getImageForPost(ids[1]),
 			URL:      "https://www.facebook.com/" + ids[0] + "/posts/" + ids[1],
 			Source:   "pt-ml-facebook",
 		}
@@ -164,30 +164,28 @@ func (sc *FacebookScraper) update() {
 	sc.firstUpdate = false
 }
 
-func (sc *FacebookScraper) getImageForPost(postID string) string {
-	url, present := sc.imageURLcache.Get(postID)
+func (sc *FacebookScraper) getImageForPost(objectID string) string {
+	url, present := sc.imageURLcache.Get(objectID)
 	if present {
 		return url.(string)
 	}
 
+	possibleImageURL := "https://graph.facebook.com/" + objectID + "/picture"
 	netClient := &http.Client{
 		Timeout: time.Second * 10,
 	}
-	objIDresponse, err := netClient.Get("https://graph.facebook.com/" + postID + "?fields=object_id&access_token=" + sc.AccessToken)
+	imageHeadResponse, err := netClient.Head(possibleImageURL)
 	if err != nil {
 		return ""
 	}
 
-	var dat map[string]interface{}
-	if err := json.NewDecoder(objIDresponse.Body).Decode(&dat); err != nil {
+	if imageHeadResponse.StatusCode >= 400 {
+		// this post doesn't appear to have an image
+		sc.imageURLcache.SetDefault(objectID, "")
 		return ""
 	}
-	if dat == nil || dat["object_id"] == nil {
-		return ""
-	}
-	imageURL := "https://graph.facebook.com/" + dat["object_id"].(string) + "/picture"
-	sc.imageURLcache.SetDefault(postID, imageURL)
-	return imageURL
+	sc.imageURLcache.SetDefault(objectID, possibleImageURL)
+	return possibleImageURL
 }
 
 // Networks returns the networks monitored by this scraper
