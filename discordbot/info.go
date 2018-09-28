@@ -74,8 +74,8 @@ type InfoHandler struct {
 func NewInfoHandler(snode sqalx.Node) (*InfoHandler, error) {
 	i := &InfoHandler{
 		lightTriggersLastUsage: make(map[lastUsageKey]time.Time),
-		node:           snode,
-		triggerMatcher: cedar.NewMatcher(),
+		node:                   snode,
+		triggerMatcher:         cedar.NewMatcher(),
 	}
 
 	err := i.buildWordMap()
@@ -234,6 +234,11 @@ func (i *InfoHandler) buildWordMap() error {
 			wordType: wordTypePOI,
 			id:       poi.ID},
 			poi.ID)
+		i.populateTriggers(trigger{
+			wordType: wordTypePOI,
+			id:       poi.ID,
+			light:    true},
+			poi.Names[poi.MainLocale])
 	}
 
 	i.triggerMatcher.Compile()
@@ -262,6 +267,8 @@ func (i *InfoHandler) sendReply(s *discordgo.Session, m *discordgo.MessageCreate
 		embed, err = buildStationMessage(trigger)
 	case wordTypeLobby:
 		embed, err = buildLobbyMesage(trigger)
+	case wordTypePOI:
+		embed, err = buildPOIMessage(trigger)
 	}
 
 	if err != nil {

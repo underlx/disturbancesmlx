@@ -459,6 +459,118 @@ func buildLobbyMesage(id string) (*Embed, error) {
 	return embed, nil
 }
 
+func buildPOIMessage(id string) (*Embed, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit() // read-only tx
+
+	poi, err := dataobjects.GetPOI(tx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	stations, err := poi.Stations(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	description := ""
+
+	switch poi.Type {
+	case "dinning":
+		description = "Restauração"
+	case "police":
+		description = "Esquadra de polícia"
+	case "fire-station":
+		description = "Quartel de bombeiros"
+	case "sports":
+		description = "Desporto"
+	case "school":
+		description = "Escola"
+	case "university":
+		description = "Universidade"
+	case "library":
+		description = "Biblioteca"
+	case "airport":
+		description = "Aeroporto"
+	case "embassy":
+		description = "Embaixada"
+	case "church":
+		description = "Local de culto"
+	case "business":
+		description = "Negócio"
+	case "zoo":
+		description = "Jardim Zoológico"
+	case "court":
+		description = "Tribunal"
+	case "park":
+		description = "Parque"
+	case "hospital":
+		description = "Hospital"
+	case "monument":
+		description = "Monumento"
+	case "museum":
+		description = "Museu"
+	case "shopping-center":
+		description = "Centro comercial"
+	case "health-center":
+		description = "Centro de saúde"
+	case "bank":
+		description = "Banco"
+	case "viewpoint":
+		description = "Miradouro"
+	case "casino":
+		description = "Casino"
+	case "theater":
+		description = "Teatro"
+	case "show-room":
+		description = "Salão de exposições"
+	case "organization":
+		description = "Organização"
+	case "transportation-hub":
+		description = "Hub de transportes"
+	case "public-space":
+		description = "Espaço público"
+	case "government":
+		description = "Governo"
+	case "market":
+		description = "Mercado"
+	case "public-service":
+		description = "Serviço público"
+	case "institute":
+		description = "Instituto"
+	case "post-office":
+		description = "Correios"
+	case "cemetery":
+		description = "Cemitério"
+	case "hotel":
+		description = "Alojamento"
+	}
+
+	description += fmt.Sprintf("\n[Ver no Google Maps](https://www.google.com/maps/search/?api=1&query=%f,%f)", poi.WorldCoord[0], poi.WorldCoord[1])
+
+	embed := NewEmbed().
+		SetTitle("Ponto de interesse __" + poi.Names[poi.MainLocale] + "__").
+		SetDescription(description)
+
+	if poi.URL != "" {
+		embed.AddField("Website", poi.URL)
+	}
+
+	stationsStr := ""
+	for _, station := range stations {
+		name := station.Name
+		if closed, err := station.Closed(tx); err == nil && closed {
+			name = "~~" + name + "~~"
+		}
+		stationsStr += "[" + name + "](" + websiteURL + "/s/" + station.ID + ")" + " (`" + station.ID + "`)\n"
+	}
+	embed.AddField("Estações de acesso", stationsStr)
+	return embed, nil
+}
+
 func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
 	uptime := time.Now().Sub(botstats.startTime)
 	uptimenice := durafmt.Parse(uptime.Truncate(time.Second))
