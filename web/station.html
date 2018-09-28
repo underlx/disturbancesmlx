@@ -55,9 +55,9 @@
             {{end}}
             </p>
             <h4>Saídas</h4>
-            <ul>
+            <ul class="exit-list">
             {{ range $exit := (index $.LobbyExits $index) }}
-              <li>
+              <li class="{{ $exit.Type }}">
                 <a target="_blank"
                    href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $exit.WorldCoord 0) (index $exit.WorldCoord 1)) }}">
                   {{ range $idx, $street := $exit.Streets}}{{$street}}{{ if not (eq $idx (minus (len $exit.Streets) 1))}}, {{end}}{{end}}
