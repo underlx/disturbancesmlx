@@ -100,8 +100,8 @@ func (l *CommandLibrary) Register(command Command) {
 	l.commands[command.Name] = command
 }
 
-// Handle attempts to handle the provided message; if it fails, it returns false
-func (l *CommandLibrary) Handle(s *discordgo.Session, m *discordgo.MessageCreate, muted bool) bool {
+// HandleMessage attempts to handle the provided message; if it fails, it returns false
+func (l *CommandLibrary) HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate, muted bool) bool {
 	l.handledCount++
 	args, err := shellquote.Split(m.Content)
 	if err != nil {

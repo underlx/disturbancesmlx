@@ -628,7 +628,22 @@ func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
 		if handled > 0 {
 			statsStr += fmt.Sprintf("\n%.02f%% de atendimento", float64(actedUpon)/float64(handled)*100.0)
 		}
-		embed.AddField("Utilização do processador "+handler.Name(), statsStr)
+		embed.AddField("Utilização do processador de mensagens "+handler.Name(), statsStr)
+	}
+	for _, handler := range reactionHandlers {
+		handled := handler.ReactionsHandled()
+		actedUpon := handler.ReactionsActedUpon()
+
+		statsStr := fmt.Sprintf("%d reacções processadas (%.02f/minuto)\n%d reacções atendidas (%.02f/minuto)",
+			handled,
+			float64(handled)/uptime.Minutes(),
+			actedUpon,
+			float64(actedUpon)/uptime.Minutes())
+
+		if handled > 0 {
+			statsStr += fmt.Sprintf("\n%.02f%% de atendimento", float64(actedUpon)/float64(handled)*100.0)
+		}
+		embed.AddField("Utilização do processador de reacções "+handler.Name(), statsStr)
 	}
 
 	embed.Timestamp = time.Now().Format(time.RFC3339Nano)

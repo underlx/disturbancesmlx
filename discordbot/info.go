@@ -3,6 +3,7 @@ package discordbot
 import (
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -63,11 +64,14 @@ const (
 // (both natural language based and ID-based) and replies with
 // information messages
 type InfoHandler struct {
-	handledCount           int
-	actedUponCount         int
-	triggerMatcher         *cedar.Matcher
-	lightTriggersLastUsage map[lastUsageKey]time.Time // maps lightTrigger IDs to the last time they were used
-	node                   sqalx.Node
+	handledCount            int
+	actedUponCount          int
+	reactionsHandledCount   int
+	reactionsActedUponCount int
+	triggerMatcher          *cedar.Matcher
+	lightTriggersLastUsage  map[lastUsageKey]time.Time // maps lightTrigger IDs to the last time they were used
+	node                    sqalx.Node
+	tempMessages            sync.Map
 }
 
 // NewInfoHandler returns a new InfoHandler
@@ -85,9 +89,9 @@ func NewInfoHandler(snode sqalx.Node) (*InfoHandler, error) {
 	return i, nil
 }
 
-// Handle attempts to handle the provided message;
+// HandleMessage attempts to handle the provided message;
 // always returns false as this is a non-authoritative handler
-func (i *InfoHandler) Handle(s *discordgo.Session, m *discordgo.MessageCreate, muted bool) bool {
+func (i *InfoHandler) HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate, muted bool) bool {
 	i.handledCount++
 	if muted {
 		return false
@@ -153,6 +157,31 @@ func (i *InfoHandler) MessagesActedUpon() int {
 // Name returns the name of this message handler
 func (i *InfoHandler) Name() string {
 	return "InfoHandler"
+}
+
+// HandleReaction attempts to handle the provided reaction
+// always returns false as this is a non-authoritative handler
+func (i *InfoHandler) HandleReaction(s *discordgo.Session, m *discordgo.MessageReactionAdd) bool {
+	i.reactionsHandledCount++
+	v, ok := i.tempMessages.Load(m.MessageID)
+	if !ok {
+		return false
+	}
+
+	ch := v.(chan interface{})
+	ch <- true
+	i.reactionsActedUponCount++
+	return false
+}
+
+// ReactionsHandled returns the number of reactions handled by this InfoHandler
+func (i *InfoHandler) ReactionsHandled() int {
+	return i.reactionsHandledCount
+}
+
+// ReactionsActedUpon returns the number of reactions acted upon by this InfoHandler
+func (i *InfoHandler) ReactionsActedUpon() int {
+	return i.reactionsActedUponCount
 }
 
 func (i *InfoHandler) buildWordMap() error {
@@ -308,7 +337,7 @@ func (i *InfoHandler) sendReply(s *discordgo.Session, m *discordgo.MessageCreate
 		s.MessageReactionAdd(message.ChannelID, message.ID, "🇷")
 	}()
 	ch := make(chan interface{}, 1)
-	tempMessages.Store(message.ID, ch)
+	i.tempMessages.Store(message.ID, ch)
 	go func() {
 		select {
 		case <-ch:
@@ -325,6 +354,6 @@ func (i *InfoHandler) sendReply(s *discordgo.Session, m *discordgo.MessageCreate
 				botLog.Println(err)
 			}
 		}
-		tempMessages.Delete(message.ID)
+		i.tempMessages.Delete(message.ID)
 	}()
 }

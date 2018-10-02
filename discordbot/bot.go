@@ -21,10 +21,10 @@ import (
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
-var tempMessages sync.Map
 var muteManager = NewMuteManager()
 var commandLib *CommandLibrary
 var messageHandlers []MessageHandler
+var reactionHandlers []ReactionHandler
 var guildIDs sync.Map
 var botstats = stats{
 	dmChannels: make(map[string]bool),
@@ -178,6 +178,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		return err
 	}
 	messageHandlers = append(messageHandlers, infoHandler)
+	reactionHandlers = append(reactionHandlers, infoHandler)
 
 	/*disduper := new(bot.Disduper)
 	err = disduper.InitIntegrated(log, session)
@@ -278,13 +279,16 @@ func channelDelete(s *discordgo.Session, m *discordgo.ChannelDelete) {
 }
 
 func messageReactionAdd(s *discordgo.Session, m *discordgo.MessageReactionAdd) {
-	v, ok := tempMessages.Load(m.MessageID)
-	if m.MessageReaction.UserID == s.State.User.ID || !ok {
+	// Ignore all reactions created by the bot itself
+	if m.UserID == s.State.User.ID {
 		return
 	}
 
-	ch := v.(chan interface{})
-	ch <- true
+	for _, handler := range reactionHandlers {
+		if handler.HandleReaction(s, m) {
+			return
+		}
+	}
 }
 
 // This function will be called (due to AddHandler above) every time a new
@@ -297,7 +301,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	muted := muteManager.MutedAny(m.ChannelID)
 	for _, handler := range messageHandlers {
-		if handler.Handle(s, m, muted) {
+		if handler.HandleMessage(s, m, muted) {
 			return
 		}
 	}
