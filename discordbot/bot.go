@@ -46,6 +46,10 @@ var botLog *log.Logger
 var session *discordgo.Session
 var cmdReceiver CommandReceiver
 
+// ThePosPlayEventManager is the PosPlayEventManager of the bot
+// (exported so the posplay package can reach it)
+var ThePosPlayEventManager = new(PosPlayEventManager)
+
 // Start starts the Discord bot
 func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	log *log.Logger,
@@ -172,6 +176,10 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		}
 		s.ChannelMessageSend(m.ChannelID, "✅")
 	}).WithRequirePrivilege(PrivilegeRoot))
+
+	commandLib.Register(NewCommand("startreactionevent", ThePosPlayEventManager.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("stopreactionevent", ThePosPlayEventManager.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
+	reactionHandlers = append(reactionHandlers, ThePosPlayEventManager)
 
 	infoHandler, err := NewInfoHandler(node)
 	if err != nil {

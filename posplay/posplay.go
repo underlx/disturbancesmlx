@@ -11,13 +11,16 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/discordbot"
 
 	"github.com/gbl08ma/sqalx"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/sessions"
 
 	"github.com/gbl08ma/keybox"
+	sq "github.com/gbl08ma/squirrel"
 	"golang.org/x/oauth2"
 )
 
@@ -95,6 +98,8 @@ func Initialize(ppconfig Config) error {
 	}
 	csrfMiddleware = csrf.Protect([]byte(csrfAuthKey), csrfOpts...)
 
+	discordbot.ThePosPlayEventManager.OnReactionCallback = RegisterReactionCallback
+
 	webReloadTemplate()
 
 	go serialProcessor()
@@ -110,6 +115,74 @@ func RegisterTripSubmission(trip *dataobjects.Trip) {
 // RegisterTripFirstEdit schedules a trip resubmission (edit, confirmation) for analysis
 func RegisterTripFirstEdit(trip *dataobjects.Trip) {
 	tripEditsChan <- trip.ID
+}
+
+// RegisterReactionCallback gives a user a XP reward for a Discord event, if he has not received a reward for that event yet
+func RegisterReactionCallback(userID, messageID string, XPreward int) bool {
+	// does the user even exist in PosPlay?
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+	defer tx.Rollback()
+
+	player, err := dataobjects.GetPPPlayer(tx, uidConvS(userID))
+	if err != nil {
+		// this user is not yet a PosPlay player
+		discordbot.SendDMtoUser(userID, &discordgo.MessageSend{
+			Content: fmt.Sprintf("Para poder receber XP por participar nos eventos no servidor de Discord do UnderLX, tem de se registar no PosPlay primeiro: " + config.PathPrefix),
+		})
+		return false
+	}
+
+	typeFilter := sq.Eq{"type": "DISCORD_REACTION_EVENT"}
+	eventFilter := sq.Expr("extra::json ->> 'event_id' = ?", messageID)
+
+	transactions, err := player.XPTransactionsCustomFilter(tx, typeFilter, eventFilter)
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+	if len(transactions) > 0 {
+		// user already received rewards for this event
+		return false
+	}
+
+	txid, err := uuid.NewV4()
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+
+	xptx := &dataobjects.PPXPTransaction{
+		ID:        txid.String(),
+		DiscordID: player.DiscordID,
+		Time:      time.Now(),
+		Type:      "DISCORD_REACTION_EVENT",
+		Value:     XPreward,
+	}
+	xptx.MarshalExtra(map[string]interface{}{
+		"event_id": messageID,
+	})
+
+	err = xptx.Update(tx)
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+
+	discordbot.SendDMtoUser(userID, &discordgo.MessageSend{
+		Content: fmt.Sprintf("Acabou de receber %d XP pela participação num evento no servidor de Discord do UnderLX 👍", XPreward),
+	})
+
+	return true
 }
 
 func serialProcessor() {
@@ -184,6 +257,8 @@ func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
 		return "Viagem"
 	case "TRIP_CONFIRM_REWARD":
 		return "Verificação de registo de viagem"
+	case "DISCORD_REACTION_EVENT":
+		return "Participação em evento no Discord do UnderLX"
 	default:
 		// ideally this should never show
 		return "Bónus genérico"
