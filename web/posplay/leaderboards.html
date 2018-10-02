@@ -35,7 +35,10 @@
                         {{if (and (eq $entry.Player.LBPrivacy "PRIVATE") $isself) }}<br><em style="font-size: 75%">os outros utilizadores não vêem este nome - <a href="/posplay/settings">definições</a></em>{{end}}
                       </span>
                     {{else}}
-                      <em>Jogador anónimo</em>
+                      <img src="https://api.adorable.io/avatars/64/{{ $entry.Player.Seed }}.png" style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px;">
+                      <span>
+                        <em>{{ $entry.Player.AnonymousName }}</em>
+                      </span>
                     {{end}}
                   </div>
                 </td>
