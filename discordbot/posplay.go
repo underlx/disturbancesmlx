@@ -120,6 +120,7 @@ func (e *PosPlayEventManager) handleStopCommand(s *discordgo.Session, m *discord
 	v, ok := e.ongoing.Load(args[0])
 	if !ok {
 		s.ChannelMessageSend(m.ChannelID, "❌ no ongoing event with the specified ID")
+		return
 	}
 	event := v.(posPlayEvent)
 	event.StopChan <- true
