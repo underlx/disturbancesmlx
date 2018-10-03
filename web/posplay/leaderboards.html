@@ -6,6 +6,12 @@
       </div>
       <div class="pure-u-1 pure-u-md-2-3">
         <h1>Classificações</h1>
+        <div class="pure-menu pure-menu-horizontal">
+          <ul class="pure-menu-list">
+            <li class="pure-menu-item pure-menu-selected"><a href="/posplay/leaderboards/weekly" class="pure-menu-link">Semanal</a></li>
+            <li class="pure-menu-item"><a href="/posplay/leaderboards/alltime" class="pure-menu-link">Desde sempre</a></li>
+          </ul>
+        </div>
         {{ range $leaderboard := .Leaderboards }}
         <h2>{{ formatLeaderboardWeek $leaderboard.Start }}</h2>
         {{ if (eq (len $leaderboard.Entries) 0) }}
