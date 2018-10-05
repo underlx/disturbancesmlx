@@ -98,7 +98,7 @@ func Initialize(ppconfig Config) error {
 	}
 	csrfMiddleware = csrf.Protect([]byte(csrfAuthKey), csrfOpts...)
 
-	discordbot.ThePosPlayEventManager.OnReactionCallback = RegisterReactionCallback
+	discordbot.ThePosPlayEventManager.OnEventWinCallback = RegisterEventWinCallback
 
 	webReloadTemplate()
 
@@ -117,8 +117,8 @@ func RegisterTripFirstEdit(trip *dataobjects.Trip) {
 	tripEditsChan <- trip.ID
 }
 
-// RegisterReactionCallback gives a user a XP reward for a Discord event, if he has not received a reward for that event yet
-func RegisterReactionCallback(userID, messageID string, XPreward int) bool {
+// RegisterEventWinCallback gives a user a XP reward for a Discord event, if he has not received a reward for that event yet
+func RegisterEventWinCallback(userID, messageID string, XPreward int, eventType string) bool {
 	// does the user even exist in PosPlay?
 	tx, err := config.Node.Beginx()
 	if err != nil {
@@ -136,7 +136,7 @@ func RegisterReactionCallback(userID, messageID string, XPreward int) bool {
 		return false
 	}
 
-	typeFilter := sq.Eq{"type": "DISCORD_REACTION_EVENT"}
+	typeFilter := sq.Eq{"type": eventType}
 	eventFilter := sq.Expr("extra::json ->> 'event_id' = ?", messageID)
 
 	transactions, err := player.XPTransactionsCustomFilter(tx, typeFilter, eventFilter)
@@ -159,7 +159,7 @@ func RegisterReactionCallback(userID, messageID string, XPreward int) bool {
 		ID:        txid.String(),
 		DiscordID: player.DiscordID,
 		Time:      time.Now(),
-		Type:      "DISCORD_REACTION_EVENT",
+		Type:      eventType,
 		Value:     XPreward,
 	}
 	xptx.MarshalExtra(map[string]interface{}{
@@ -259,6 +259,8 @@ func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
 		return "Verificação de registo de viagem"
 	case "DISCORD_REACTION_EVENT":
 		return "Participação em evento no Discord do UnderLX"
+	case "DISCORD_CHALLENGE_EVENT":
+		return "Participação em desafio no Discord do UnderLX"
 	default:
 		// ideally this should never show
 		return "Bónus genérico"

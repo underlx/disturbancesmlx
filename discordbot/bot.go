@@ -178,8 +178,10 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	}).WithRequirePrivilege(PrivilegeRoot))
 
 	commandLib.Register(NewCommand("startreactionevent", ThePosPlayEventManager.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
-	commandLib.Register(NewCommand("stopreactionevent", ThePosPlayEventManager.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("startquizevent", ThePosPlayEventManager.handleQuizStartCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("stopevent", ThePosPlayEventManager.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
 	reactionHandlers = append(reactionHandlers, ThePosPlayEventManager)
+	messageHandlers = append(messageHandlers, ThePosPlayEventManager)
 
 	infoHandler, err := NewInfoHandler(node)
 	if err != nil {
