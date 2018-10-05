@@ -268,7 +268,7 @@ func (e *PosPlayEventManager) HandleMessage(s *discordgo.Session, m *discordgo.M
 		return false
 	}
 
-	e.reactionsActedUponCount++
+	e.actedUponCount++
 
 	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
 	answer, _, err := transform.String(t, strings.ToLower(event.Answer))
