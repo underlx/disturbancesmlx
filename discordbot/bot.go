@@ -27,17 +27,17 @@ var messageHandlers []MessageHandler
 var reactionHandlers []ReactionHandler
 var guildIDs sync.Map
 var botstats = stats{
-	dmChannels: make(map[string]bool),
+	DMChannels: make(map[string]bool),
 }
 
 type stats struct {
-	startTime           time.Time
-	userCount           int
-	botCount            int
-	dmChannels          map[string]bool
-	groupDMChannelCount int
-	textChannelCount    int
-	voiceChannelCount   int
+	StartTime           time.Time
+	UserCount           int
+	BotCount            int
+	DMChannels          map[string]bool
+	GroupDMChannelCount int
+	TextChannelCount    int
+	VoiceChannelCount   int
 }
 
 var node sqalx.Node
@@ -180,6 +180,8 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("startreactionevent", ThePosPlayEventManager.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("startquizevent", ThePosPlayEventManager.handleQuizStartCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("stopevent", ThePosPlayEventManager.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
+	new(ScriptSystem).Setup(commandLib, PrivilegeRoot)
+
 	reactionHandlers = append(reactionHandlers, ThePosPlayEventManager)
 	messageHandlers = append(messageHandlers, ThePosPlayEventManager)
 
@@ -228,21 +230,21 @@ func Stop() {
 }
 
 func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate) {
-	if botstats.startTime.IsZero() {
-		botstats.startTime = time.Now()
+	if botstats.StartTime.IsZero() {
+		botstats.StartTime = time.Now()
 	}
-	botstats.userCount += m.Guild.MemberCount
+	botstats.UserCount += m.Guild.MemberCount
 	for _, member := range m.Guild.Members {
 		if member.User.Bot {
-			botstats.botCount++
+			botstats.BotCount++
 		}
 	}
 	for _, channel := range m.Guild.Channels {
 		switch channel.Type {
 		case discordgo.ChannelTypeGuildText:
-			botstats.textChannelCount++
+			botstats.TextChannelCount++
 		case discordgo.ChannelTypeGuildVoice:
-			botstats.voiceChannelCount++
+			botstats.VoiceChannelCount++
 		}
 	}
 	guildIDs.Store(m.ID, m.Guild.MemberCount)
@@ -251,40 +253,40 @@ func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate) {
 func guildDelete(s *discordgo.Session, m *discordgo.GuildDelete) {
 	c, ok := guildIDs.Load(m.ID)
 	if ok {
-		botstats.userCount -= c.(int)
+		botstats.UserCount -= c.(int)
 	}
 	guildIDs.Delete(m.ID)
 }
 
 func guildMemberAdded(s *discordgo.Session, m *discordgo.GuildMemberAdd) {
-	botstats.userCount++
+	botstats.UserCount++
 	if m.Member.User.Bot {
-		botstats.botCount++
+		botstats.BotCount++
 	}
 }
 
 func guildMemberRemoved(s *discordgo.Session, m *discordgo.GuildMemberRemove) {
-	botstats.userCount--
+	botstats.UserCount--
 	if m.Member.User.Bot {
-		botstats.botCount--
+		botstats.BotCount--
 	}
 }
 
 func channelCreate(s *discordgo.Session, m *discordgo.ChannelCreate) {
 	switch m.Channel.Type {
 	case discordgo.ChannelTypeDM:
-		botstats.dmChannels[m.Channel.ID] = true
+		botstats.DMChannels[m.Channel.ID] = true
 	case discordgo.ChannelTypeGroupDM:
-		botstats.groupDMChannelCount++
+		botstats.GroupDMChannelCount++
 	}
 }
 
 func channelDelete(s *discordgo.Session, m *discordgo.ChannelDelete) {
 	switch m.Channel.Type {
 	case discordgo.ChannelTypeDM:
-		delete(botstats.dmChannels, m.Channel.ID)
+		delete(botstats.DMChannels, m.Channel.ID)
 	case discordgo.ChannelTypeGroupDM:
-		botstats.groupDMChannelCount--
+		botstats.GroupDMChannelCount--
 	}
 }
 

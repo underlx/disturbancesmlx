@@ -5,6 +5,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	shellquote "github.com/govau/go-shellquote"
+	altmath "github.com/pkg/math"
 )
 
 // Privilege indicates the privilege of a user interacting with the bot, in
@@ -27,6 +28,7 @@ type Command struct {
 	RequirePrivilege Privilege
 	IgnoreMute       bool
 	Handler          CommandHandler
+	SkipArgParsing   bool
 }
 
 // CommandHandler is a function capable of handling a bot commmand
@@ -53,6 +55,14 @@ func (c Command) WithRequirePrivilege(privilege Privilege) Command {
 // muted
 func (c Command) WithIgnoreMute(ignoreMute bool) Command {
 	c.IgnoreMute = ignoreMute
+	return c
+}
+
+// WithSkipArgParsing sets whether arguments for this command are to be parsed
+// by go-shellquote (true), or if the remainder of the message should be passed
+// as the first item in the args array (false)
+func (c Command) WithSkipArgParsing(skipArgParsing bool) Command {
+	c.SkipArgParsing = skipArgParsing
 	return c
 }
 
@@ -133,7 +143,14 @@ func (l *CommandLibrary) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 	}
 
 	l.actedUponCount++
-	command.Handle(s, m, args[1:])
+
+	if command.SkipArgParsing {
+		words := strings.Fields(m.Content)
+		startLen := altmath.MinInt(len(m.Content), len(words[0])+1)
+		command.Handle(s, m, []string{m.Content[startLen:]})
+	} else {
+		command.Handle(s, m, args[1:])
+	}
 	return true
 }
 

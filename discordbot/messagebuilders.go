@@ -572,7 +572,7 @@ func buildPOIMessage(id string) (*Embed, error) {
 }
 
 func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
-	uptime := time.Now().Sub(botstats.startTime)
+	uptime := time.Now().Sub(botstats.StartTime)
 	uptimenice := durafmt.Parse(uptime.Truncate(time.Second))
 	uptimestr := uptimenice.String()
 	uptimestr = strings.Replace(uptimestr, "year", "ano", 1)
@@ -597,22 +597,22 @@ func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
 		serversStr += "es"
 	}
 	serversStr += "\n"
-	serversStr += fmt.Sprintf("%d utilizador", botstats.userCount)
-	if botstats.userCount != 1 {
+	serversStr += fmt.Sprintf("%d utilizador", botstats.UserCount)
+	if botstats.UserCount != 1 {
 		serversStr += "es"
 	}
-	serversStr += fmt.Sprintf(", %d dos quais ", botstats.botCount)
-	if botstats.userCount != 1 {
+	serversStr += fmt.Sprintf(", %d dos quais ", botstats.BotCount)
+	if botstats.UserCount != 1 {
 		serversStr += "são bots"
 	} else {
 		serversStr += "é bot"
 	}
 	serversStr += "\n"
 
-	serversStr += fmt.Sprintf("%d canais de texto\n", botstats.textChannelCount)
-	serversStr += fmt.Sprintf("%d canais de voz\n", botstats.voiceChannelCount)
-	serversStr += fmt.Sprintf("%d canais de mensagens directas\n", len(botstats.dmChannels))
-	serversStr += fmt.Sprintf("%d canais de grupo\n", botstats.groupDMChannelCount)
+	serversStr += fmt.Sprintf("%d canais de texto\n", botstats.TextChannelCount)
+	serversStr += fmt.Sprintf("%d canais de voz\n", botstats.VoiceChannelCount)
+	serversStr += fmt.Sprintf("%d canais de mensagens directas\n", len(botstats.DMChannels))
+	serversStr += fmt.Sprintf("%d canais de grupo\n", botstats.GroupDMChannelCount)
 
 	embed.AddField("Entidades do Discord", serversStr)
 	for _, handler := range messageHandlers {
@@ -669,7 +669,7 @@ func buildStatsMessage() (*Embed, error) {
 
 	dbConnections, apiRequests := cmdReceiver.GetStats()
 
-	uptime := time.Now().Sub(botstats.startTime)
+	uptime := time.Now().Sub(botstats.StartTime)
 
 	apiStr := fmt.Sprintf("%d pedidos (%.02f/minuto)", apiRequests, float64(apiRequests)/uptime.Minutes())
 	embed.AddField("API", apiStr)
