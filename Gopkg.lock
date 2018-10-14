@@ -50,6 +50,18 @@
   revision = "8902c56451e9b58ff940bbe5fec35d5f9c04584a"
 
 [[projects]]
+  digest = "1:33bc4615968b97961672131dd5b5baff5411c9a2ea7180b11652e07dff85664b"
+  name = "github.com/gbl08ma/anko"
+  packages = [
+    "core",
+    "packages",
+    "vm",
+  ]
+  pruneopts = "UT"
+  revision = "cdc3b7317d35b9d24257e5f5079b3bac4d52705a"
+  version = "v0.0.6"
+
+[[projects]]
   branch = "master"
   digest = "1:721876cf5cb0205ce0c464927a7e6ee051beb0127f104ba4a96745df7afa040a"
   name = "github.com/gbl08ma/keybox"
@@ -233,6 +245,19 @@
   ]
   pruneopts = "UT"
   revision = "90697d60dd844d5ef6ff15135d0203f65d2f53b8"
+
+[[projects]]
+  digest = "1:38a19e6059247326b46870e41517325ee58c720a9dc18fc4d180c7cc75f6f201"
+  name = "github.com/mattn/anko"
+  packages = [
+    "ast",
+    "internal/corelib",
+    "parser",
+    "vm",
+  ]
+  pruneopts = "UT"
+  revision = "cdc3b7317d35b9d24257e5f5079b3bac4d52705a"
+  version = "v0.0.6"
 
 [[projects]]
   branch = "master"
@@ -446,6 +471,9 @@
     "github.com/SaidinWoT/timespan",
     "github.com/bwmarrin/discordgo",
     "github.com/dchest/uniuri",
+    "github.com/gbl08ma/anko/core",
+    "github.com/gbl08ma/anko/packages",
+    "github.com/gbl08ma/anko/vm",
     "github.com/gbl08ma/keybox",
     "github.com/gbl08ma/sqalx",
     "github.com/gbl08ma/squirrel",
