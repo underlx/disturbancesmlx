@@ -50,16 +50,19 @@
   revision = "8902c56451e9b58ff940bbe5fec35d5f9c04584a"
 
 [[projects]]
-  digest = "1:33bc4615968b97961672131dd5b5baff5411c9a2ea7180b11652e07dff85664b"
+  branch = "master"
+  digest = "1:5a9e15bcdc8cc8d817d61c0dd4a2f73a1c99ceca44a2f6fb63026d6ad4c16b27"
   name = "github.com/gbl08ma/anko"
   packages = [
+    "ast",
     "core",
+    "internal/corelib",
     "packages",
+    "parser",
     "vm",
   ]
   pruneopts = "UT"
-  revision = "cdc3b7317d35b9d24257e5f5079b3bac4d52705a"
-  version = "v0.0.6"
+  revision = "221e7c37babfe0c58c78e1a00dcebe5e92e92816"
 
 [[projects]]
   branch = "master"
@@ -245,19 +248,6 @@
   ]
   pruneopts = "UT"
   revision = "90697d60dd844d5ef6ff15135d0203f65d2f53b8"
-
-[[projects]]
-  digest = "1:38a19e6059247326b46870e41517325ee58c720a9dc18fc4d180c7cc75f6f201"
-  name = "github.com/mattn/anko"
-  packages = [
-    "ast",
-    "internal/corelib",
-    "parser",
-    "vm",
-  ]
-  pruneopts = "UT"
-  revision = "cdc3b7317d35b9d24257e5f5079b3bac4d52705a"
-  version = "v0.0.6"
 
 [[projects]]
   branch = "master"
