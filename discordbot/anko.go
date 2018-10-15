@@ -2,6 +2,7 @@ package discordbot
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -54,6 +55,14 @@ func (ssys *ScriptSystem) Setup(cl *CommandLibrary, privilege Privilege) {
 	packages.PackageTypes["underlx"] = map[string]interface{}{}
 
 	cmdReceiver.ConfigureAnkoPackage(packages.Packages["underlx"], packages.PackageTypes["underlx"])
+
+	packages.Packages["discordgo"] = map[string]interface{}{}
+	packages.PackageTypes["discordgo"] = map[string]interface{}{
+		"Session":            discordgo.Session{},
+		"MessageCreate":      discordgo.MessageCreate{},
+		"MessageReactionAdd": discordgo.MessageReactionAdd{},
+	}
+
 }
 
 func (ssys *ScriptSystem) handleRun(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
@@ -89,6 +98,21 @@ func (ssys *ScriptSystem) handleRun(s *discordgo.Session, m *discordgo.MessageCr
 		return len(msg), doSend(msg)
 	})
 
+	env.Define("strengthen", ankoStrengthen)
+	env.Define("ptr", func(obj interface{}) interface{} {
+		val := reflect.ValueOf(obj)
+		vp := reflect.New(val.Type())
+		vp.Elem().Set(val)
+		return vp.Interface()
+	})
+	env.Define("inspect", func(obj interface{}) string {
+		t := reflect.TypeOf(obj)
+		if t != nil {
+			return t.String()
+		}
+		return "nil"
+	})
+
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("▶ env %d", envID))
 	_, err := env.Execute(script)
 	if err != nil {
@@ -96,6 +120,69 @@ func (ssys *ScriptSystem) handleRun(s *discordgo.Session, m *discordgo.MessageCr
 		return
 	}
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🏃 env %d", envID))
+}
+
+func ankoStrengthen(fn interface{}, argsForTypes ...interface{}) interface{} {
+	fType := reflect.TypeOf(fn)
+	if fType == nil || fType.Kind() != reflect.Func {
+		return fn
+	}
+
+	ins := make([]reflect.Type, 0)
+	outs := make([]reflect.Type, 0)
+
+	i := 0
+	transformReturn := false
+	for ; i < fType.NumIn() && i < len(argsForTypes); i++ {
+		if argsForTypes[i] == nil {
+			break
+		}
+		ins = append(ins, reflect.TypeOf(argsForTypes[i]))
+	}
+
+	if i < len(argsForTypes) && argsForTypes[i] == nil {
+		transformReturn = true
+		i++
+	}
+
+	if transformReturn {
+		for ; i < len(argsForTypes); i++ {
+			outs = append(outs, reflect.TypeOf(argsForTypes[i]))
+		}
+	}
+
+	outsCount := len(outs)
+	variadic := fType.IsVariadic()
+	funcType := reflect.FuncOf(ins, outs, variadic)
+	transformedFunc := reflect.MakeFunc(funcType, func(in []reflect.Value) []reflect.Value {
+		args := make([]reflect.Value, len(in))
+		for i, arg := range in {
+			// functions in anko always appear to golang as if all their arguments were reflect.Values
+			// if we don't wrap args like this, Call below complains that e.g.
+			// "panic: reflect: Call using *discordgo.Session as type reflect.Value"
+			args[i] = reflect.ValueOf(arg)
+		}
+		result := reflect.ValueOf(fn).Call(args)
+		// we must also convert the result, because all anko functions always return (reflect.Value, error)
+		retVal := result[0].Interface().(reflect.Value)
+		k := retVal.Kind()
+		switch k {
+		case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr:
+			if retVal.IsNil() {
+				return []reflect.Value{}
+			}
+		}
+		converted := make([]reflect.Value, outsCount)
+		retIfaces, ok := retVal.Interface().([]interface{})
+		if !ok {
+			return converted
+		}
+		for i := 0; i < outsCount && i < len(retIfaces); i++ {
+			converted[i] = reflect.ValueOf(retIfaces[i])
+		}
+		return converted
+	})
+	return transformedFunc.Interface()
 }
 
 func (ssys *ScriptSystem) handleSuspend(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
