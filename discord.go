@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/gbl08ma/sqalx"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 
@@ -152,4 +153,14 @@ func (r *BotCommandReceiver) SendCommandMetaBroadcast(versionFilter, localeFilte
 	SendMetaBroadcast(id.String(), "command", versionFilter, localeFilter,
 		[2]string{"command", command},
 		[2]string{"args", strings.Join(args, "|")})
+}
+
+// ConfigureAnkoPackage asks the bot host to set up the package for the anko script system
+func (r *BotCommandReceiver) ConfigureAnkoPackage(pkg, packageTypes map[string]interface{}) {
+	pkg["RootSqalxNode"] = func() sqalx.Node {
+		return rootSqalxNode
+	}
+	pkg["ComputeAverageSpeed"] = ComputeAverageSpeed
+	pkg["ComputeAverageSpeedFilter"] = ComputeAverageSpeedFilter
+	pkg["ComputeAverageSpeedCached"] = ComputeAverageSpeedCached
 }

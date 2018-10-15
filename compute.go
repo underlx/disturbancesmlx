@@ -259,6 +259,12 @@ func ComputeTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 // ComputeAverageSpeed returns the average service speed in km/h
 // based on the trips in the specified time range
 func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time, yieldFor time.Duration) (float64, error) {
+	return ComputeAverageSpeedFilter(node, fromTime, toTime, yieldFor, func(trip *dataobjects.Trip) bool { return true })
+}
+
+// ComputeAverageSpeedFilter returns the average service speed in km/h
+// based on the trips in the specified time range that match the provided filter
+func ComputeAverageSpeedFilter(node sqalx.Node, fromTime time.Time, toTime time.Time, yieldFor time.Duration, filter func(trip *dataobjects.Trip) bool) (float64, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return 0, err
@@ -278,6 +284,9 @@ func ComputeAverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time, 
 	var totalDistance int64
 
 	processTrip := func(trip *dataobjects.Trip) error {
+		if !filter(trip) {
+			return nil
+		}
 		if len(trip.StationUses) <= 1 {
 			// station visit or invalid trip
 			// can't extract any data about connections

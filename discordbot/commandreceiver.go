@@ -48,4 +48,7 @@ type CommandReceiver interface {
 
 	// SendCommandMetaBroadcast sends a FCM message containing a command to run on some/all clients
 	SendCommandMetaBroadcast(versionFilter, localeFilter, command string, args ...string)
+
+	// ConfigureAnkoPackage asks the bot host to set up the package for the anko script system
+	ConfigureAnkoPackage(pkg, packageTypes map[string]interface{})
 }

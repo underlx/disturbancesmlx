@@ -50,6 +50,10 @@ func (ssys *ScriptSystem) Setup(cl *CommandLibrary, privilege Privilege) {
 			return reactionHandlers
 		},
 	}
+
+	packages.PackageTypes["underlx"] = map[string]interface{}{}
+
+	cmdReceiver.ConfigureAnkoPackage(packages.Packages["underlx"], packages.PackageTypes["underlx"])
 }
 
 func (ssys *ScriptSystem) handleRun(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
