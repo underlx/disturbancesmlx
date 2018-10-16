@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"reflect"
 	"strings"
 	"syscall"
 
@@ -156,11 +157,69 @@ func (r *BotCommandReceiver) SendCommandMetaBroadcast(versionFilter, localeFilte
 }
 
 // ConfigureAnkoPackage asks the bot host to set up the package for the anko script system
-func (r *BotCommandReceiver) ConfigureAnkoPackage(pkg, packageTypes map[string]interface{}) {
-	pkg["RootSqalxNode"] = func() sqalx.Node {
+func (r *BotCommandReceiver) ConfigureAnkoPackage(packages, packageTypes map[string]map[string]interface{}) {
+	packages["underlx"] = make(map[string]interface{})
+	packages["underlx"]["RootSqalxNode"] = func() sqalx.Node {
 		return rootSqalxNode
 	}
-	pkg["ComputeAverageSpeed"] = ComputeAverageSpeed
-	pkg["ComputeAverageSpeedFilter"] = ComputeAverageSpeedFilter
-	pkg["ComputeAverageSpeedCached"] = ComputeAverageSpeedCached
+	packages["underlx"]["ComputeAverageSpeed"] = ComputeAverageSpeed
+	packages["underlx"]["ComputeAverageSpeedFilter"] = ComputeAverageSpeedFilter
+	packages["underlx"]["ComputeAverageSpeedCached"] = ComputeAverageSpeedCached
+
+	packages["dataobjects"] = make(map[string]interface{})
+	dopkg := packages["dataobjects"]
+	for name, function := range dataobjects.Functions {
+		if function.CanInterface() {
+			dopkg[name] = function.Interface()
+		}
+	}
+	for name, item := range dataobjects.Consts {
+		if item.CanInterface() {
+			dopkg[name] = item.Interface()
+		}
+	}
+	for name, item := range dataobjects.Variables {
+		if item.CanInterface() {
+			dopkg[name] = item.Interface()
+		}
+	}
+	packageTypes["dataobjects"] = make(map[string]interface{})
+	dotypes := packageTypes["dataobjects"]
+	for name, item := range dataobjects.Types {
+		dotypes[name] = reflect.New(item)
+	}
+
+	packages["uuid"] = make(map[string]interface{})
+	packages["uuid"]["V1"] = uuid.V1
+	packages["uuid"]["V2"] = uuid.V2
+	packages["uuid"]["V3"] = uuid.V3
+	packages["uuid"]["V4"] = uuid.V4
+	packages["uuid"]["V5"] = uuid.V5
+	packages["uuid"]["VariantNCS"] = uuid.VariantNCS
+	packages["uuid"]["VariantRFC4122"] = uuid.VariantRFC4122
+	packages["uuid"]["VariantMicrosoft"] = uuid.VariantMicrosoft
+	packages["uuid"]["VariantFuture"] = uuid.VariantFuture
+	packages["uuid"]["DomainGroup"] = uuid.DomainGroup
+	packages["uuid"]["DomainOrg"] = uuid.DomainOrg
+	packages["uuid"]["DomainPerson"] = uuid.DomainPerson
+	packages["uuid"]["Size"] = uuid.Size
+	packages["uuid"]["NamespaceDNS"] = uuid.NamespaceDNS
+	packages["uuid"]["NamespaceOID"] = uuid.NamespaceOID
+	packages["uuid"]["NamespaceURL"] = uuid.NamespaceURL
+	packages["uuid"]["NamespaceX500"] = uuid.NamespaceX500
+	packages["uuid"]["Nil"] = uuid.Nil
+	packages["uuid"]["Equal"] = uuid.Equal
+	packages["uuid"]["FromBytes"] = uuid.FromBytes
+	packages["uuid"]["FromBytesOrNil"] = uuid.FromBytesOrNil
+	packages["uuid"]["FromString"] = uuid.FromString
+	packages["uuid"]["FromStringOrNil"] = uuid.FromStringOrNil
+	packages["uuid"]["Must"] = uuid.Must
+	packages["uuid"]["NewV1"] = uuid.NewV1
+	packages["uuid"]["NewV2"] = uuid.NewV2
+	packages["uuid"]["NewV3"] = uuid.NewV3
+	packages["uuid"]["NewV4"] = uuid.NewV4
+	packages["uuid"]["NewV5"] = uuid.NewV5
+	packageTypes["uuid"] = make(map[string]interface{})
+	packageTypes["uuid"]["NullUUID"] = uuid.NullUUID{}
+	packageTypes["uuid"]["UUID"] = uuid.UUID{}
 }

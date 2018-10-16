@@ -50,5 +50,5 @@ type CommandReceiver interface {
 	SendCommandMetaBroadcast(versionFilter, localeFilter, command string, args ...string)
 
 	// ConfigureAnkoPackage asks the bot host to set up the package for the anko script system
-	ConfigureAnkoPackage(pkg, packageTypes map[string]interface{})
+	ConfigureAnkoPackage(packages, packageTypes map[string]map[string]interface{})
 }

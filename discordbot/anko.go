@@ -37,32 +37,40 @@ func (ssys *ScriptSystem) Setup(cl *CommandLibrary, privilege Privilege) {
 	cl.Register(NewCommand("ankoclear", ssys.handleClear).WithRequirePrivilege(privilege))
 	cl.Register(NewCommand("ankostatus", ssys.handleStatus).WithRequirePrivilege(privilege))
 
-	packages.Packages["underlx"] = map[string]interface{}{
-		"DiscordSession": func() *discordgo.Session {
-			return session
-		},
-		"BotStats": func() *stats {
-			return &botstats
-		},
-		"MessageHandlers": func() []MessageHandler {
-			return messageHandlers
-		},
-		"ReactionHandlers": func() []ReactionHandler {
-			return reactionHandlers
-		},
+	cmdReceiver.ConfigureAnkoPackage(packages.Packages, packages.PackageTypes)
+
+	if packages.Packages["underlx"] == nil {
+		packages.Packages["underlx"] = make(map[string]interface{})
+	}
+	if packages.PackageTypes["underlx"] == nil {
+		packages.PackageTypes["underlx"] = make(map[string]interface{})
 	}
 
-	packages.PackageTypes["underlx"] = map[string]interface{}{}
-
-	cmdReceiver.ConfigureAnkoPackage(packages.Packages["underlx"], packages.PackageTypes["underlx"])
-
-	packages.Packages["discordgo"] = map[string]interface{}{}
-	packages.PackageTypes["discordgo"] = map[string]interface{}{
-		"Session":            discordgo.Session{},
-		"MessageCreate":      discordgo.MessageCreate{},
-		"MessageReactionAdd": discordgo.MessageReactionAdd{},
+	packages.Packages["underlx"]["DiscordSession"] = func() *discordgo.Session {
+		return session
 	}
+	packages.Packages["underlx"]["BotStats"] = func() *stats {
+		return &botstats
+	}
+	packages.Packages["underlx"]["MessageHandlers"] = func() []MessageHandler {
+		return messageHandlers
+	}
+	packages.Packages["underlx"]["ReactionHandlers"] = func() []ReactionHandler {
+		return reactionHandlers
+	}
+	packages.Packages["underlx"]["StartReactionEvent"] = ThePosPlayEventManager.StartReactionEvent
+	packages.Packages["underlx"]["StartQuizEvent"] = ThePosPlayEventManager.StartQuizEvent
+	packages.Packages["underlx"]["StopEvent"] = ThePosPlayEventManager.StopEvent
 
+	if packages.Packages["discordgo"] == nil {
+		packages.Packages["discordgo"] = make(map[string]interface{})
+	}
+	if packages.PackageTypes["discordgo"] == nil {
+		packages.PackageTypes["discordgo"] = make(map[string]interface{})
+	}
+	packages.PackageTypes["discordgo"]["Session"] = discordgo.Session{}
+	packages.PackageTypes["discordgo"]["MessageCreate"] = discordgo.MessageCreate{}
+	packages.PackageTypes["discordgo"]["MessageReactionAdd"] = discordgo.MessageReactionAdd{}
 }
 
 func (ssys *ScriptSystem) handleRun(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {

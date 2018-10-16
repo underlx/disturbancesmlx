@@ -110,13 +110,23 @@ func (e *PosPlayEventManager) handleStartCommand(s *discordgo.Session, m *discor
 		s.ChannelMessageSend(m.ChannelID, "❌ missing message")
 		return
 	}
-
-	message, err := s.ChannelMessageSend(channel.ID, strings.Join(args[3:], " "))
+	duration := time.Duration(seconds) * time.Second
+	message, err := e.StartReactionEvent(s, channel, xpReward, duration, strings.Join(args[3:], " "))
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 		return
 	}
 
+	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ event with ID %s started on channel <#%s> with duration %s and %d XP reward per user",
+		message.ID, channel.ID, duration.String(), xpReward))
+}
+
+// StartReactionEvent starts a reaction event on the specified channel with the given XP reward and message, expiring after the given duration
+func (e *PosPlayEventManager) StartReactionEvent(s *discordgo.Session, channel *discordgo.Channel, xpReward int, duration time.Duration, messageContents string) (*discordgo.Message, error) {
+	message, err := s.ChannelMessageSend(channel.ID, messageContents)
+	if err != nil {
+		return nil, err
+	}
 	event := posPlayReactionEvent{
 		posPlayEvent: posPlayEvent{
 			MessageID: message.ID,
@@ -124,7 +134,6 @@ func (e *PosPlayEventManager) handleStartCommand(s *discordgo.Session, m *discor
 			stopChan:  make(chan interface{}, 1),
 		},
 	}
-	duration := time.Duration(seconds) * time.Second
 	e.ongoing.Store(message.ID, event)
 	go func() {
 		select {
@@ -136,8 +145,7 @@ func (e *PosPlayEventManager) handleStartCommand(s *discordgo.Session, m *discor
 			e.ongoing.Delete(message.ID)
 		}
 	}()
-	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ event with ID %s started on channel <#%s> with duration %s and %d XP reward per user",
-		message.ID, channel.ID, duration.String(), xpReward))
+	return message, nil
 }
 
 func (e *PosPlayEventManager) handleQuizStartCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
@@ -180,10 +188,22 @@ func (e *PosPlayEventManager) handleQuizStartCommand(s *discordgo.Session, m *di
 		return
 	}
 
-	message, err := s.ChannelMessageSend(channel.ID, strings.Join(args[6:], " "))
+	duration := time.Duration(seconds) * time.Second
+	_, err = e.StartQuizEvent(s, channel, args[1], args[2], numberOfAttempts, xpReward, duration, strings.Join(args[6:], " "))
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 		return
+	}
+
+	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ event with ID `%s` started on channel <#%s> with duration %s and %d XP reward per user",
+		args[1], channel.ID, duration.String(), xpReward))
+}
+
+// StartQuizEvent starts a quiz event on the specified channel with the given XP reward and message, expiring after the given duration
+func (e *PosPlayEventManager) StartQuizEvent(s *discordgo.Session, channel *discordgo.Channel, answerTrigger, answer string, numberOfAttempts int, xpReward int, duration time.Duration, messageContents string) (*discordgo.Message, error) {
+	message, err := s.ChannelMessageSend(channel.ID, messageContents)
+	if err != nil {
+		return nil, err
 	}
 
 	event := posPlayQuizEvent{
@@ -192,12 +212,12 @@ func (e *PosPlayEventManager) handleQuizStartCommand(s *discordgo.Session, m *di
 			XPreward:  xpReward,
 			stopChan:  make(chan interface{}, 1),
 		},
-		Trigger:      args[1],
-		Answer:       args[2],
+		Trigger:      answerTrigger,
+		Answer:       answer,
 		MaxAttempts:  uint(numberOfAttempts),
 		AttemptTally: new(sync.Map),
 	}
-	duration := time.Duration(seconds) * time.Second
+
 	e.ongoing.Store(event.Trigger, event)
 	go func() {
 		select {
@@ -209,8 +229,7 @@ func (e *PosPlayEventManager) handleQuizStartCommand(s *discordgo.Session, m *di
 			e.ongoing.Delete(event.Trigger)
 		}
 	}()
-	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ event with ID `%s` started on channel <#%s> with duration %s and %d XP reward per user",
-		event.Trigger, channel.ID, duration.String(), xpReward))
+	return nil, err
 }
 
 func (e *PosPlayEventManager) handleStopCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
@@ -218,18 +237,27 @@ func (e *PosPlayEventManager) handleStopCommand(s *discordgo.Session, m *discord
 		s.ChannelMessageSend(m.ChannelID, "🆖 missing event ID argument")
 		return
 	}
-	v, ok := e.ongoing.Load(strings.ToLower(args[0]))
-	if !ok {
-		s.ChannelMessageSend(m.ChannelID, "❌ no ongoing event with the specified ID")
+
+	err := e.StopEvent(strings.ToLower(args[0]))
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 		return
+	}
+	s.ChannelMessageSend(m.ChannelID, "✅")
+}
+
+// StopEvent stops the specified event, or returns an error if the ID does not match any event
+func (e *PosPlayEventManager) StopEvent(eventID string) error {
+	v, ok := e.ongoing.Load(eventID)
+	if !ok {
+		return errors.New("no ongoing event with the specified ID")
 	}
 	event, ok := v.(stoppable)
 	if !ok {
-		s.ChannelMessageSend(m.ChannelID, "❌ no ongoing event with the specified ID")
-		return
+		return errors.New("no ongoing event with the specified ID")
 	}
 	event.StopChan() <- true
-	s.ChannelMessageSend(m.ChannelID, "✅")
+	return nil
 }
 
 // HandleReaction attempts to handle the provided reaction
