@@ -10,6 +10,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/bwmarrin/discordgo"
 	cache "github.com/patrickmn/go-cache"
 	"golang.org/x/text/runes"
@@ -57,6 +59,7 @@ type PosPlayBridge struct {
 	OnDiscussionParticipationCallback func(userID string, XPreward int) bool
 	ongoing                           sync.Map
 	participation                     *cache.Cache
+	spamChannels                      []string
 	reactionsHandledCount             int
 	reactionsActedUponCount           int
 	handledCount                      int
@@ -267,6 +270,26 @@ func (e *PosPlayBridge) StopEvent(eventID string) error {
 	return nil
 }
 
+func (e *PosPlayBridge) handleMarkSpamChannel(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	channel := m.ChannelID
+	if len(args) > 0 {
+		channel = args[0]
+	}
+	if !funk.ContainsString(e.spamChannels, channel) {
+		e.spamChannels = append(e.spamChannels, channel)
+	}
+}
+
+func (e *PosPlayBridge) handleUnmarkSpamChannel(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	channel := m.ChannelID
+	if len(args) > 0 {
+		channel = args[0]
+	}
+	e.spamChannels = funk.FilterString(e.spamChannels, func(s string) bool {
+		return s != channel
+	})
+}
+
 // HandleReaction attempts to handle the provided reaction
 // always returns false as this is a non-authoritative handler
 func (e *PosPlayBridge) HandleReaction(s *discordgo.Session, m *discordgo.MessageReactionAdd) bool {
@@ -286,8 +309,10 @@ func (e *PosPlayBridge) HandleReaction(s *discordgo.Session, m *discordgo.Messag
 // HandleMessage attempts to handle the provided message
 func (e *PosPlayBridge) HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate, muted bool) bool {
 	e.handledCount++
-	e.registerUserActivity(m.Author.ID)
 	if isdm, err := ComesFromDM(s, m); !isdm || err != nil {
+		if !funk.ContainsString(e.spamChannels, m.ChannelID) {
+			e.registerUserActivity(m.Author.ID)
+		}
 		return false
 	}
 

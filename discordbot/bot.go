@@ -180,6 +180,8 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("startreactionevent", ThePosPlayBridge.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("startquizevent", ThePosPlayBridge.handleQuizStartCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("stopevent", ThePosPlayBridge.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("markspamchannel", ThePosPlayBridge.handleMarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("unmarkspamchannel", ThePosPlayBridge.handleUnmarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
 	new(ScriptSystem).Setup(commandLib, PrivilegeRoot)
 
 	reactionHandlers = append(reactionHandlers, ThePosPlayBridge)
