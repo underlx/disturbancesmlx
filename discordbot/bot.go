@@ -46,9 +46,9 @@ var botLog *log.Logger
 var session *discordgo.Session
 var cmdReceiver CommandReceiver
 
-// ThePosPlayEventManager is the PosPlayEventManager of the bot
+// ThePosPlayBridge is the PosPlayBridge of the bot
 // (exported so the posplay package can reach it)
-var ThePosPlayEventManager = new(PosPlayEventManager)
+var ThePosPlayBridge = new(PosPlayBridge)
 
 // Start starts the Discord bot
 func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
@@ -177,13 +177,13 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		s.ChannelMessageSend(m.ChannelID, "✅")
 	}).WithRequirePrivilege(PrivilegeRoot))
 
-	commandLib.Register(NewCommand("startreactionevent", ThePosPlayEventManager.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
-	commandLib.Register(NewCommand("startquizevent", ThePosPlayEventManager.handleQuizStartCommand).WithRequirePrivilege(PrivilegeAdmin))
-	commandLib.Register(NewCommand("stopevent", ThePosPlayEventManager.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("startreactionevent", ThePosPlayBridge.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("startquizevent", ThePosPlayBridge.handleQuizStartCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("stopevent", ThePosPlayBridge.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
 	new(ScriptSystem).Setup(commandLib, PrivilegeRoot)
 
-	reactionHandlers = append(reactionHandlers, ThePosPlayEventManager)
-	messageHandlers = append(messageHandlers, ThePosPlayEventManager)
+	reactionHandlers = append(reactionHandlers, ThePosPlayBridge)
+	messageHandlers = append(messageHandlers, ThePosPlayBridge)
 
 	infoHandler, err := NewInfoHandler(node)
 	if err != nil {

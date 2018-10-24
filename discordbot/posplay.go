@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"github.com/bwmarrin/discordgo"
+	cache "github.com/patrickmn/go-cache"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -50,14 +51,20 @@ func SendDMtoUser(userID string, data *discordgo.MessageSend) (*discordgo.Messag
 	return session.ChannelMessageSendComplex(channel.ID, data)
 }
 
-// PosPlayEventManager manages PosPlay reaction events
-type PosPlayEventManager struct {
-	OnEventWinCallback      func(userID, messageID string, XPreward int, eventType string) bool
-	ongoing                 sync.Map
-	reactionsHandledCount   int
-	reactionsActedUponCount int
-	handledCount            int
-	actedUponCount          int
+// PosPlayBridge manages PosPlay reaction events and rewards for user participation
+type PosPlayBridge struct {
+	OnEventWinCallback                func(userID, messageID string, XPreward int, eventType string) bool
+	OnDiscussionParticipationCallback func(userID string, XPreward int) bool
+	ongoing                           sync.Map
+	participation                     *cache.Cache
+	reactionsHandledCount             int
+	reactionsActedUponCount           int
+	handledCount                      int
+	actedUponCount                    int
+}
+
+func init() {
+	ThePosPlayBridge.participation = cache.New(3*time.Minute, 10*time.Minute)
 }
 
 type stoppable interface {
@@ -86,7 +93,7 @@ type posPlayQuizEvent struct {
 	AttemptTally *sync.Map
 }
 
-func (e *PosPlayEventManager) handleStartCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+func (e *PosPlayBridge) handleStartCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	if len(args) < 4 {
 		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments: [channel ID] [XP reward] [duration in seconds] [message]")
 		return
@@ -122,7 +129,7 @@ func (e *PosPlayEventManager) handleStartCommand(s *discordgo.Session, m *discor
 }
 
 // StartReactionEvent starts a reaction event on the specified channel with the given XP reward and message, expiring after the given duration
-func (e *PosPlayEventManager) StartReactionEvent(s *discordgo.Session, channel *discordgo.Channel, xpReward int, duration time.Duration, messageContents string) (*discordgo.Message, error) {
+func (e *PosPlayBridge) StartReactionEvent(s *discordgo.Session, channel *discordgo.Channel, xpReward int, duration time.Duration, messageContents string) (*discordgo.Message, error) {
 	message, err := s.ChannelMessageSend(channel.ID, messageContents)
 	if err != nil {
 		return nil, err
@@ -148,7 +155,7 @@ func (e *PosPlayEventManager) StartReactionEvent(s *discordgo.Session, channel *
 	return message, nil
 }
 
-func (e *PosPlayEventManager) handleQuizStartCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+func (e *PosPlayBridge) handleQuizStartCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	if len(args) < 7 {
 		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments: [channel ID] [answer trigger] [answer] [max attempts] [XP reward] [duration in seconds] [message]")
 		return
@@ -200,7 +207,7 @@ func (e *PosPlayEventManager) handleQuizStartCommand(s *discordgo.Session, m *di
 }
 
 // StartQuizEvent starts a quiz event on the specified channel with the given XP reward and message, expiring after the given duration
-func (e *PosPlayEventManager) StartQuizEvent(s *discordgo.Session, channel *discordgo.Channel, answerTrigger, answer string, numberOfAttempts int, xpReward int, duration time.Duration, messageContents string) (*discordgo.Message, error) {
+func (e *PosPlayBridge) StartQuizEvent(s *discordgo.Session, channel *discordgo.Channel, answerTrigger, answer string, numberOfAttempts int, xpReward int, duration time.Duration, messageContents string) (*discordgo.Message, error) {
 	message, err := s.ChannelMessageSend(channel.ID, messageContents)
 	if err != nil {
 		return nil, err
@@ -232,7 +239,7 @@ func (e *PosPlayEventManager) StartQuizEvent(s *discordgo.Session, channel *disc
 	return nil, err
 }
 
-func (e *PosPlayEventManager) handleStopCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+func (e *PosPlayBridge) handleStopCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	if len(args) < 1 {
 		s.ChannelMessageSend(m.ChannelID, "🆖 missing event ID argument")
 		return
@@ -247,7 +254,7 @@ func (e *PosPlayEventManager) handleStopCommand(s *discordgo.Session, m *discord
 }
 
 // StopEvent stops the specified event, or returns an error if the ID does not match any event
-func (e *PosPlayEventManager) StopEvent(eventID string) error {
+func (e *PosPlayBridge) StopEvent(eventID string) error {
 	v, ok := e.ongoing.Load(eventID)
 	if !ok {
 		return errors.New("no ongoing event with the specified ID")
@@ -262,7 +269,7 @@ func (e *PosPlayEventManager) StopEvent(eventID string) error {
 
 // HandleReaction attempts to handle the provided reaction
 // always returns false as this is a non-authoritative handler
-func (e *PosPlayEventManager) HandleReaction(s *discordgo.Session, m *discordgo.MessageReactionAdd) bool {
+func (e *PosPlayBridge) HandleReaction(s *discordgo.Session, m *discordgo.MessageReactionAdd) bool {
 	e.reactionsHandledCount++
 	v, ok := e.ongoing.Load(m.MessageID)
 	if !ok {
@@ -277,11 +284,12 @@ func (e *PosPlayEventManager) HandleReaction(s *discordgo.Session, m *discordgo.
 }
 
 // HandleMessage attempts to handle the provided message
-func (e *PosPlayEventManager) HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate, muted bool) bool {
+func (e *PosPlayBridge) HandleMessage(s *discordgo.Session, m *discordgo.MessageCreate, muted bool) bool {
+	e.handledCount++
+	e.registerUserActivity(m.Author.ID)
 	if isdm, err := ComesFromDM(s, m); !isdm || err != nil {
 		return false
 	}
-	e.handledCount++
 
 	words := strings.SplitN(m.Content, " ", 2)
 	reg := regexp.MustCompile("[^a-zA-Z0-9]+")
@@ -331,28 +339,38 @@ func (e *PosPlayEventManager) HandleMessage(s *discordgo.Session, m *discordgo.M
 	return true
 }
 
+func (e *PosPlayBridge) registerUserActivity(userID string) {
+	_, present := e.participation.Get(userID)
+	if present {
+		// already counted participation in the last N minutes
+		return
+	}
+	e.participation.SetDefault(userID, true)
+	e.OnDiscussionParticipationCallback(userID, 1)
+}
+
 // Name returns the name of this handler
-func (e *PosPlayEventManager) Name() string {
-	return "EventManager"
+func (e *PosPlayBridge) Name() string {
+	return "PosPlayBridge"
 }
 
 // ReactionsHandled returns the number of reactions handled by this handler
-func (e *PosPlayEventManager) ReactionsHandled() int {
+func (e *PosPlayBridge) ReactionsHandled() int {
 	return e.reactionsHandledCount
 }
 
 // ReactionsActedUpon returns the number of reactions acted upon by this handler
-func (e *PosPlayEventManager) ReactionsActedUpon() int {
+func (e *PosPlayBridge) ReactionsActedUpon() int {
 	return e.reactionsActedUponCount
 }
 
 // MessagesHandled returns the number of messages handled by this handler
-func (e *PosPlayEventManager) MessagesHandled() int {
+func (e *PosPlayBridge) MessagesHandled() int {
 	return e.handledCount
 }
 
 // MessagesActedUpon returns the number of messages acted upon by this handler
-func (e *PosPlayEventManager) MessagesActedUpon() int {
+func (e *PosPlayBridge) MessagesActedUpon() int {
 	return e.actedUponCount
 }
 

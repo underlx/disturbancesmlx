@@ -98,7 +98,8 @@ func Initialize(ppconfig Config) error {
 	}
 	csrfMiddleware = csrf.Protect([]byte(csrfAuthKey), csrfOpts...)
 
-	discordbot.ThePosPlayEventManager.OnEventWinCallback = RegisterEventWinCallback
+	discordbot.ThePosPlayBridge.OnEventWinCallback = RegisterEventWinCallback
+	discordbot.ThePosPlayBridge.OnDiscussionParticipationCallback = RegisterDiscussionParticipationCallback
 
 	webReloadTemplate()
 
@@ -185,6 +186,59 @@ func RegisterEventWinCallback(userID, messageID string, XPreward int, eventType 
 	return true
 }
 
+// RegisterDiscussionParticipationCallback gives a user a XP reward for participating in the Discord channels
+func RegisterDiscussionParticipationCallback(userID string, XPreward int) bool {
+	// does the user even exist in PosPlay?
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+	defer tx.Rollback()
+
+	player, err := dataobjects.GetPPPlayer(tx, uidConvS(userID))
+	if err != nil {
+		// this user is not yet a PosPlay player
+		return false
+	}
+
+	lasttx, err := player.XPTransactionsLimit(tx, 1)
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+	var newtx *dataobjects.PPXPTransaction
+	if len(lasttx) > 0 && lasttx[0].Type == "DISCORD_PARTICIPATION" {
+		// to avoid creating many micro-transactions, update the latest transaction, adding the new reward
+		newtx = lasttx[0]
+	} else {
+		txid, err := uuid.NewV4()
+		if err != nil {
+			config.Log.Println(err)
+			return false
+		}
+		newtx = &dataobjects.PPXPTransaction{
+			ID:        txid.String(),
+			DiscordID: player.DiscordID,
+			Type:      "DISCORD_PARTICIPATION",
+		}
+	}
+	newtx.Time = time.Now()
+	newtx.Value += XPreward
+	err = newtx.Update(tx)
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+	return true
+}
+
 func serialProcessor() {
 	for {
 		select {
@@ -261,6 +315,8 @@ func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
 		return "Participação em evento no Discord do UnderLX"
 	case "DISCORD_CHALLENGE_EVENT":
 		return "Participação em desafio no Discord do UnderLX"
+	case "DISCORD_PARTICIPATION":
+		return "Participação na discussão no Discord do UnderLX"
 	default:
 		// ideally this should never show
 		return "Bónus genérico"

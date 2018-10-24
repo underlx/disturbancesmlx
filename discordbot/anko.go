@@ -58,9 +58,9 @@ func (ssys *ScriptSystem) Setup(cl *CommandLibrary, privilege Privilege) {
 	packages.Packages["underlx"]["ReactionHandlers"] = func() []ReactionHandler {
 		return reactionHandlers
 	}
-	packages.Packages["underlx"]["StartReactionEvent"] = ThePosPlayEventManager.StartReactionEvent
-	packages.Packages["underlx"]["StartQuizEvent"] = ThePosPlayEventManager.StartQuizEvent
-	packages.Packages["underlx"]["StopEvent"] = ThePosPlayEventManager.StopEvent
+	packages.Packages["underlx"]["StartReactionEvent"] = ThePosPlayBridge.StartReactionEvent
+	packages.Packages["underlx"]["StartQuizEvent"] = ThePosPlayBridge.StartQuizEvent
+	packages.Packages["underlx"]["StopEvent"] = ThePosPlayBridge.StopEvent
 
 	if packages.Packages["discordgo"] == nil {
 		packages.Packages["discordgo"] = make(map[string]interface{})
