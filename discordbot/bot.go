@@ -117,6 +117,12 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 			s.ChannelMessageSendEmbed(m.ChannelID, embed.MessageEmbed)
 		}
 	}))
+	commandLib.Register(NewCommand("xp", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+		embed, err := buildPosPlayXPMessage(m)
+		if err == nil {
+			s.ChannelMessageSendEmbed(m.ChannelID, embed.MessageEmbed)
+		}
+	}))
 	commandLib.Register(NewCommand("help", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		showAll := len(args) > 0 && args[0] == "full" &&
 			(commandLib.isAdminChannel(m.ChannelID) || m.Author.ID == selfApp.Owner.ID)

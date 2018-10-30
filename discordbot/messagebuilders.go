@@ -11,6 +11,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/hako/durafmt"
+	"go.tianon.xyz/progress"
 
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/utils"
@@ -713,6 +714,51 @@ func buildAboutMessage(s *discordgo.Session, m *discordgo.MessageCreate) (*Embed
 	embed.Timestamp = time.Now().Format(time.RFC3339Nano)
 
 	addMuteEmbed(embed, m.ChannelID)
+
+	return embed, nil
+}
+
+func buildPosPlayXPMessage(m *discordgo.MessageCreate) (*Embed, error) {
+	info, err := ThePosPlayBridge.PlayerXPInfo(m.Author.ID)
+	var embed *Embed
+	if err != nil {
+		embed = NewEmbed().
+			SetTitle("⚠ Não é um jogador do <:posplay:499252980273381376> PosPlay").
+			SetDescription("[Inscreva-se no PosPlay](https://perturbacoes.pt/posplay/)")
+	} else {
+		bar := progress.NewBar(nil)
+		bar.Min = 0
+		bar.Max = 10000
+		bar.Val = int64(info.LevelProgress * 100)
+
+		bar.Prefix = func(_ *progress.Bar) string {
+			return ""
+		}
+		bar.Suffix = func(b *progress.Bar) string {
+			return ""
+		}
+
+		bar.Phases = []string{
+			"·",
+			"▌",
+			"█",
+		}
+
+		desc := fmt.Sprintf("Nível **%d**`%s`%d\n", info.Level, bar.TickString(20), info.Level+1)
+		desc += fmt.Sprintf("%d XP - **%dº** lugar", info.XP, info.Rank)
+		embed = NewEmbed().
+			SetTitle(fmt.Sprintf("<:posplay:499252980273381376> **%s** no PosPlay", info.Username)).
+			SetDescription(desc).
+			SetThumbnail(info.AvatarURL)
+		if info.RankThisWeek > 0 {
+			embed.AddField("Esta semana", fmt.Sprintf("%d XP - **%d**º lugar", info.XPthisWeek, info.RankThisWeek))
+		} else {
+			embed.AddField("Esta semana", "Ainda não jogou esta semana.")
+		}
+	}
+
+	embed.SetFooter("PosPlay, o jogo do UnderLX", "https://cdn.discordapp.com/emojis/499252980273381376.png")
+	embed.Timestamp = time.Now().Format(time.RFC3339Nano)
 
 	return embed, nil
 }

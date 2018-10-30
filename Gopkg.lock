@@ -348,13 +348,22 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:fc2ea1c99aef99f198111b71eae98b334f5fdc4e24944ffb8d8176405054d1cb"
+  digest = "1:d703393c6b9867040e73066fc6ed70e782b599aff426cdbb336317dfe792065e"
+  name = "go.tianon.xyz/progress"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ace047765ac3545f82e16f38e57d244382ab8f83"
+
+[[projects]]
+  branch = "master"
+  digest = "1:d7264502f372f7d03e89a98c420167be20e184e003eb9ca6cf6761b3e3224da9"
   name = "golang.org/x/crypto"
   packages = [
     "blowfish",
     "nacl/secretbox",
     "poly1305",
     "salsa20/salsa",
+    "ssh/terminal",
   ]
   pruneopts = "UT"
   revision = "5ba7f63082460102a45837dbd1827e10f9479ac0"
@@ -383,6 +392,17 @@
   ]
   pruneopts = "UT"
   revision = "d2e6202438beef2727060aa7cabdd924d92ebfd9"
+
+[[projects]]
+  branch = "master"
+  digest = "1:709bd14fefefd413c3ffae7c2a7be0c7fd16d45d189231ef529c0dbd8f951f82"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = "UT"
+  revision = "d69651ed3497faee15a5363a89578e9991f6d5e2"
 
 [[projects]]
   digest = "1:cba5629e6f8fb21815b2178c7bb309e6fb27df0ed1c5466a34f4612b4f937e93"
@@ -486,6 +506,7 @@
     "github.com/satori/go.uuid",
     "github.com/thoas/go-funk",
     "github.com/yarf-framework/yarf",
+    "go.tianon.xyz/progress",
     "golang.org/x/oauth2",
     "golang.org/x/text/runes",
     "golang.org/x/text/transform",

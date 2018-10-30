@@ -100,6 +100,7 @@ func Initialize(ppconfig Config) error {
 
 	discordbot.ThePosPlayBridge.OnEventWinCallback = RegisterEventWinCallback
 	discordbot.ThePosPlayBridge.OnDiscussionParticipationCallback = RegisterDiscussionParticipationCallback
+	discordbot.ThePosPlayBridge.PlayerXPInfo = playerXPinfo
 
 	webReloadTemplate()
 
@@ -337,4 +338,59 @@ func getDisplayNameFromNameType(nameType string, user *discordgo.User, guildMemb
 	default:
 		return user.Username + "#" + user.Discriminator
 	}
+}
+
+func playerXPinfo(userID string) (discordbot.PosPlayXPInfo, error) {
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		return discordbot.PosPlayXPInfo{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	player, err := dataobjects.GetPPPlayer(tx, uidConvS(userID))
+	if err != nil {
+		return discordbot.PosPlayXPInfo{}, err
+	}
+
+	username := player.CachedName
+	avatar := userAvatarURL(uidConvS(userID), "256")
+	if player.LBPrivacy == PrivateLBPrivacy {
+		username = player.AnonymousName()
+		avatar = fmt.Sprintf("https://api.adorable.io/avatars/256/%d.png", player.Seed)
+	}
+	xp, level, progress, err := player.Level(tx)
+	if err != nil {
+		return discordbot.PosPlayXPInfo{}, err
+	}
+
+	xpWeek, err := player.XPBalanceBetween(tx, getWeekStart(), time.Now())
+	if err != nil {
+		xpWeek = 0
+	}
+	rank, err := player.RankBetween(tx, time.Time{}, time.Now())
+	if err != nil {
+		rank = 0
+	}
+	rankWeek, err := player.RankBetween(tx, getWeekStart(), time.Now())
+	if err != nil {
+		rankWeek = 0
+	}
+	return discordbot.PosPlayXPInfo{
+		Username:      username,
+		AvatarURL:     avatar,
+		Level:         level,
+		LevelProgress: progress,
+		XP:            xp,
+		XPthisWeek:    xpWeek,
+		Rank:          rank,
+		RankThisWeek:  rankWeek,
+	}, nil
+}
+
+func userAvatarURL(userID uint64, size string) string {
+	user, err := discordbot.User(uidConvI(userID))
+	if err == nil {
+		return user.AvatarURL(size)
+	}
+	return ""
 }

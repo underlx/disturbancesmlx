@@ -55,6 +55,7 @@ func SendDMtoUser(userID string, data *discordgo.MessageSend) (*discordgo.Messag
 
 // PosPlayBridge manages PosPlay reaction events and rewards for user participation
 type PosPlayBridge struct {
+	PlayerXPInfo                      func(userID string) (PosPlayXPInfo, error)
 	OnEventWinCallback                func(userID, messageID string, XPreward int, eventType string) bool
 	OnDiscussionParticipationCallback func(userID string, XPreward int) bool
 	ongoing                           sync.Map
@@ -64,6 +65,18 @@ type PosPlayBridge struct {
 	reactionsActedUponCount           int
 	handledCount                      int
 	actedUponCount                    int
+}
+
+// PosPlayXPInfo contains information for the $xp command
+type PosPlayXPInfo struct {
+	Username      string
+	AvatarURL     string
+	Level         int
+	LevelProgress float64
+	XP            int
+	XPthisWeek    int
+	Rank          int
+	RankThisWeek  int
 }
 
 func init() {
