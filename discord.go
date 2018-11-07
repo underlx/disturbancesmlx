@@ -159,6 +159,15 @@ func (r *BotCommandReceiver) ConfigureAnkoPackage(packages, packageTypes map[str
 	packages["underlx"]["RootSqalxNode"] = func() sqalx.Node {
 		return rootSqalxNode
 	}
+	packages["underlx"]["VehicleHandler"] = func() *compute.VehicleHandler {
+		return vehicleHandler
+	}
+	packages["underlx"]["StatsHandler"] = func() *compute.StatsHandler {
+		return statsHandler
+	}
+	packages["underlx"]["ReportHandler"] = func() *compute.ReportHandler {
+		return reportHandler
+	}
 
 	packages["compute"] = make(map[string]interface{})
 	packages["compute"]["AverageSpeed"] = compute.AverageSpeed
