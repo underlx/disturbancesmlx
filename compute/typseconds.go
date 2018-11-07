@@ -179,7 +179,7 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 		}
 		average := connectionStopAvgNumerator[connection] / denominator
 		connection.TypicalStopSeconds = int(math.Round(average))
-		mainLogs.Printf("Updating connection from %s to %s with stop %d (%f)\n", connection.From.ID, connection.To.ID, connection.TypicalStopSeconds, denominator)
+		mainLog.Printf("Updating connection from %s to %s with stop %d (%f)\n", connection.From.ID, connection.To.ID, connection.TypicalStopSeconds, denominator)
 		err := connection.Update(tx)
 		if err != nil {
 			return err
