@@ -42,7 +42,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		switch r.Form.Get("action") {
 		case "reloadTemplates":
 			vehicleHandler.ClearTypicalSecondsCache()
-			WebReloadTemplate()
+			ReloadTemplates()
 			message = "Templates reloaded"
 		case "computeMsgTypes":
 			compute.UpdateStatusMsgTypes(tx)

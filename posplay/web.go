@@ -57,8 +57,8 @@ func ConfigureRouter(router *mux.Router) {
 	router.Use(csrfMiddleware)
 }
 
-// webReloadTemplate reloads the templates for the website
-func webReloadTemplate() {
+// ReloadTemplates reloads the templates for the website
+func ReloadTemplates() {
 	funcMap := template.FuncMap{
 		"minus": func(a, b int) int {
 			return a - b
@@ -100,11 +100,11 @@ func webReloadTemplate() {
 		"userAvatarURL": userAvatarURL,
 	}
 
-	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("web/posplay/*.html"))
+	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("templates/posplay/*.html"))
 }
 
 func templateReloadingMiddleware(next http.Handler) http.Handler {
-	webReloadTemplate()
+	ReloadTemplates()
 	return next
 }
 

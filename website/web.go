@@ -151,7 +151,7 @@ func Initialize(snode sqalx.Node, webKeybox *keybox.Keybox, log *log.Logger,
 		webLog.Fatalf("Failed to create SSO client: %s\n", err)
 	}
 
-	WebReloadTemplate()
+	ReloadTemplates()
 }
 
 // SessionStore returns the session store used by the website
@@ -165,7 +165,7 @@ func BaseURL() string {
 }
 
 func templateReloadingMiddleware(next http.Handler) http.Handler {
-	WebReloadTemplate()
+	ReloadTemplates()
 	return next
 }
 
@@ -367,8 +367,8 @@ func RSSFeed(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(rss))
 }
 
-// WebReloadTemplate reloads the templates for the website
-func WebReloadTemplate() {
+// ReloadTemplates reloads the templates for the website
+func ReloadTemplates() {
 	funcMap := template.FuncMap{
 		"minus": func(a, b int) int {
 			return a - b
@@ -392,7 +392,7 @@ func WebReloadTemplate() {
 		"formatPortugueseMonth": utils.FormatPortugueseMonth,
 	}
 
-	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("web/*.html"))
+	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("templates/*.html"))
 	webtemplate = template.Must(webtemplate.ParseFiles("stationkb/backers.html"))
 }
 

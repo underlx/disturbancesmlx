@@ -102,7 +102,7 @@ func Initialize(ppconfig Config) error {
 	discordbot.ThePosPlayBridge.OnDiscussionParticipationCallback = RegisterDiscussionParticipationCallback
 	discordbot.ThePosPlayBridge.PlayerXPInfo = playerXPinfo
 
-	webReloadTemplate()
+	ReloadTemplates()
 
 	go serialProcessor()
 
