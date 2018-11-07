@@ -191,6 +191,24 @@ func (i *InfoHandler) buildWordMap() error {
 	}
 	defer tx.Commit() // read-only tx
 
+	// POIs before stations so all stations work (there's a POI named "estação de santa apolónia")
+	// otherwise the POI keys would overwrite some station keys
+	pois, err := dataobjects.GetPOIs(tx)
+	if err != nil {
+		return err
+	}
+	for _, poi := range pois {
+		i.populateTriggers(trigger{
+			wordType: wordTypePOI,
+			id:       poi.ID},
+			poi.ID)
+		i.populateTriggers(trigger{
+			wordType: wordTypePOI,
+			id:       poi.ID,
+			light:    true},
+			poi.Names[poi.MainLocale])
+	}
+
 	networks, err := dataobjects.GetNetworks(tx)
 	if err != nil {
 		return err
@@ -252,22 +270,6 @@ func (i *InfoHandler) buildWordMap() error {
 			wordType: wordTypeLobby,
 			id:       lobby.ID},
 			lobby.ID)
-	}
-
-	pois, err := dataobjects.GetPOIs(tx)
-	if err != nil {
-		return err
-	}
-	for _, poi := range pois {
-		i.populateTriggers(trigger{
-			wordType: wordTypePOI,
-			id:       poi.ID},
-			poi.ID)
-		i.populateTriggers(trigger{
-			wordType: wordTypePOI,
-			id:       poi.ID,
-			light:    true},
-			poi.Names[poi.MainLocale])
 	}
 
 	i.triggerMatcher.Compile()
