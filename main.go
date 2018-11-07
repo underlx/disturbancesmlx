@@ -12,6 +12,7 @@ import (
 	sq "github.com/gbl08ma/squirrel"
 
 	"github.com/gbl08ma/keybox"
+	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
@@ -28,35 +29,15 @@ var (
 	lastChange       time.Time
 	apiTotalRequests int
 
+	vehicleHandler *compute.VehicleHandler
+	reportHandler  *compute.ReportHandler
+	statsHandler   *compute.StatsHandler
+
 	// GitCommit is provided by govvv at compile-time
 	GitCommit = "???"
 	// BuildDate is provided by govvv at compile-time
 	BuildDate = "???"
 )
-
-// MLlastDisturbanceTime returns the time of the latest Metro de Lisboa disturbance
-func MLlastDisturbanceTime(node sqalx.Node, officialOnly bool) (t time.Time, err error) {
-	tx, err := node.Beginx()
-	if err != nil {
-		return time.Now().UTC(), err
-	}
-	defer tx.Commit() // read-only tx
-
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
-	if err != nil {
-		return time.Now().UTC(), err
-	}
-	d, err := n.LastDisturbance(tx, officialOnly)
-	if err != nil {
-		return time.Now().UTC(), err
-	}
-
-	if !d.UEnded {
-		return time.Now().UTC(), nil
-	}
-
-	return d.UEndTime, nil
-}
 
 func main() {
 	var err error
@@ -89,10 +70,15 @@ func main() {
 	if err != nil {
 		mainLog.Fatalln(err)
 	}
+
+	statsHandler = compute.NewStatsHandler()
+	vehicleHandler = compute.NewVehicleHandler()
 	// done like this to ensure rootSqalxNode is not nil at this point
-	reportHandler = NewReportHandler(statsHandler, rootSqalxNode)
+	reportHandler = compute.NewReportHandler(statsHandler, rootSqalxNode, handleNewStatus)
 
 	mainLog.Println("Database opened")
+
+	compute.Initialize(rootSqalxNode, mainLog)
 
 	fcmServerKey, present := secrets.Get("firebaseServerKey")
 	if !present {
@@ -127,10 +113,11 @@ func main() {
 	go func() {
 		time.Sleep(5 * time.Second)
 		for {
-			err := ComputeTypicalSeconds(rootSqalxNode, 10*time.Millisecond)
+			err := compute.UpdateTypicalSeconds(rootSqalxNode, 10*time.Millisecond)
 			if err != nil {
 				mainLog.Println(err)
 			}
+			vehicleHandler.ClearTypicalSecondsCache()
 			time.Sleep(10 * time.Hour)
 		}
 	}()
@@ -149,7 +136,7 @@ func main() {
 		if err == nil {
 			toTime := time.Now()
 			fromTime := toTime.AddDate(0, 0, -30)
-			err = ComputeSimulatedRealtime(rootSqalxNode, fromTime, toTime, f)
+			err = compute.SimulateRealtime(rootSqalxNode, fromTime, toTime, f)
 			if err != nil {
 				mainLog.Println(err)
 			}
@@ -161,11 +148,6 @@ func main() {
 	for {
 		if DEBUG {
 			printLatestDisturbance(rootSqalxNode)
-			ld, err := MLlastDisturbanceTime(rootSqalxNode, false)
-			if err != nil {
-				mainLog.Println(err)
-			}
-			mainLog.Printf("Last disturbance: %s", ld.String())
 		}
 		time.Sleep(1 * time.Minute)
 	}

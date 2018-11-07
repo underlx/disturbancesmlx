@@ -8,6 +8,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/underlx/disturbancesmlx/compute"
+
 	"github.com/gbl08ma/sqalx"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -72,7 +74,7 @@ func (r *BotCommandReceiver) ControlNotifs(notifType string, enable bool) {
 
 // CastDisturbanceVote is called when the bot wants to cast a disturbance vote
 func (r *BotCommandReceiver) CastDisturbanceVote(line *dataobjects.Line, weight int) {
-	err := reportHandler.addReport(dataobjects.NewLineDisturbanceReportDebug(line, "discord"), weight)
+	err := reportHandler.AddReportManually(dataobjects.NewLineDisturbanceReportDebug(line, "discord"), weight)
 	if err != nil {
 		discordLog.Println(err)
 	}
@@ -80,7 +82,7 @@ func (r *BotCommandReceiver) CastDisturbanceVote(line *dataobjects.Line, weight 
 
 // ClearDisturbanceVotes is called when the bot wants to clear disturbance votes
 func (r *BotCommandReceiver) ClearDisturbanceVotes(line *dataobjects.Line) {
-	reportHandler.clearVotesForLine(line)
+	reportHandler.ClearVotesForLine(line)
 }
 
 // GetDisturbanceVotes is called when the bot wants to show current disturbance report status
@@ -91,7 +93,7 @@ func (r *BotCommandReceiver) GetDisturbanceVotes(messageCallback func(message st
 		discordLog.Println(err)
 	}
 	for _, line := range lines {
-		message += fmt.Sprintf("`%s`: %d/%d\n", line.ID, reportHandler.countVotesForLine(line), reportHandler.getThresholdForLine(line))
+		message += fmt.Sprintf("`%s`: %d/%d\n", line.ID, reportHandler.CountVotesForLine(line), reportHandler.GetThresholdForLine(line))
 	}
 	messageCallback(message)
 }
@@ -126,11 +128,6 @@ func (r *BotCommandReceiver) GetStats() (dbOpenConnections, apiTR int) {
 	return rdb.Stats().OpenConnections, apiTotalRequests
 }
 
-// SchedulesToLines turns the provided schedule array into a human-readable list of strings
-func (r *BotCommandReceiver) SchedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
-	return schedulesToLines(schedules)
-}
-
 // SendNotificationMetaBroadcast sends a FCM message containing a notification to show on some/all clients
 func (r *BotCommandReceiver) SendNotificationMetaBroadcast(versionFilter, localeFilter, title, body, url string) {
 	id, err := uuid.NewV4()
@@ -162,9 +159,13 @@ func (r *BotCommandReceiver) ConfigureAnkoPackage(packages, packageTypes map[str
 	packages["underlx"]["RootSqalxNode"] = func() sqalx.Node {
 		return rootSqalxNode
 	}
-	packages["underlx"]["ComputeAverageSpeed"] = ComputeAverageSpeed
-	packages["underlx"]["ComputeAverageSpeedFilter"] = ComputeAverageSpeedFilter
-	packages["underlx"]["ComputeAverageSpeedCached"] = ComputeAverageSpeedCached
+
+	packages["compute"] = make(map[string]interface{})
+	packages["compute"]["AverageSpeed"] = compute.AverageSpeed
+	packages["compute"]["AverageSpeedFilter"] = compute.AverageSpeedFilter
+	packages["compute"]["AverageSpeedCached"] = compute.AverageSpeedCached
+	packages["compute"]["UpdateTypicalSeconds"] = compute.UpdateTypicalSeconds
+	packages["compute"]["UpdateStatusMsgTypes"] = compute.UpdateStatusMsgTypes
 
 	packages["dataobjects"] = make(map[string]interface{})
 	dopkg := packages["dataobjects"]

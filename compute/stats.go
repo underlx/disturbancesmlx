@@ -1,4 +1,4 @@
-package main
+package compute
 
 import (
 	"math/rand"
@@ -12,12 +12,15 @@ import (
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
-var statsHandler = new(StatsHandler)
-
 // StatsHandler implements resource.StatsCalculator and resource.RealtimeStatsHandler
 type StatsHandler struct {
 	activityPerNetwork sync.Map
 	activityPerLine    sync.Map
+}
+
+// NewStatsHandler returns a new, initialized StatsHandler
+func NewStatsHandler() *StatsHandler {
+	return new(StatsHandler)
 }
 
 func (h *StatsHandler) getNetworkCache(network *dataobjects.Network) *cache.Cache {

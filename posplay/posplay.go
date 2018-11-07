@@ -356,7 +356,7 @@ func playerXPinfo(userID string) (discordbot.PosPlayXPInfo, error) {
 	avatar := userAvatarURL(uidConvS(userID), "256")
 	if player.LBPrivacy == PrivateLBPrivacy {
 		username = player.AnonymousName()
-		avatar = fmt.Sprintf("https://api.adorable.io/avatars/256/%d.png", player.Seed)
+		avatar = fmt.Sprintf("https://api.adorable.io/avatars/256/%d.png", player.Seed())
 	}
 	xp, level, progress, err := player.Level(tx)
 	if err != nil {

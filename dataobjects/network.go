@@ -222,6 +222,20 @@ func (network *Network) LastDisturbance(node sqalx.Node, officialOnly bool) (*Di
 	return lastDisturbances[len(lastDisturbances)-1], nil
 }
 
+// LastDisturbanceTime returns the end time of the latest disturbance on this network
+func (network *Network) LastDisturbanceTime(node sqalx.Node, officialOnly bool) (time.Time, error) {
+	d, err := network.LastDisturbance(node, officialOnly)
+	if err != nil {
+		return time.Now().UTC(), err
+	}
+
+	if !d.UEnded {
+		return time.Now().UTC(), nil
+	}
+
+	return d.UEndTime, nil
+}
+
 // CountDisturbancesByHour counts disturbances by hour between the specified dates
 func (network *Network) CountDisturbancesByHour(node sqalx.Node, start time.Time, end time.Time) ([]int, error) {
 	tx, err := node.Beginx()

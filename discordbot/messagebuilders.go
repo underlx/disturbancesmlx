@@ -355,7 +355,7 @@ func buildStationMessage(id string) (*Embed, error) {
 	}
 	embed.AddField("Átrios", lobbiesStr)
 
-	connectionURLs := utils.ComputeStationConnectionURLs(station)
+	connectionURLs := utils.StationConnectionURLs(station)
 
 	if len(connectionURLs) != 0 {
 		connectionStr := "Esta estação tem ligação a "
@@ -421,7 +421,7 @@ func buildLobbyMesage(id string) (*Embed, error) {
 		SetDescription(description).
 		SetURL(websiteURL + "/s/" + lobby.Station.ID)
 
-	scheduleLines := cmdReceiver.SchedulesToLines(schedules)
+	scheduleLines := utils.SchedulesToLines(schedules)
 	scheduleStr := ""
 	for i, line := range scheduleLines {
 		scheduleStr += line

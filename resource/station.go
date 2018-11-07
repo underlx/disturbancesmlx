@@ -120,7 +120,7 @@ func (r *Station) Get(c *yarf.Context) error {
 			apistations[i].POIs = append(apistations[i].POIs, poi.ID)
 		}
 		apistations[i].TriviaURLs = utils.ComputeStationTriviaURLs(stations[i])
-		apistations[i].ConnectionURLs = utils.ComputeStationConnectionURLs(stations[i])
+		apistations[i].ConnectionURLs = utils.StationConnectionURLs(stations[i])
 
 		// compatibility with old clients: set station features
 		// TODO remove this once old clients are no longer supported

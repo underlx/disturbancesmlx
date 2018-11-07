@@ -40,9 +40,6 @@ type CommandReceiver interface {
 	// GetStats is called when the bot wants to get the current server stats
 	GetStats() (dbOpenConnections, apiTotalRequests int)
 
-	// SchedulesToLines turns the provided schedule array into a human-readable list of strings
-	SchedulesToLines(schedules []*dataobjects.LobbySchedule) []string
-
 	// SendNotificationMetaBroadcast sends a FCM message containing a notification to show on some/all clients
 	SendNotificationMetaBroadcast(versionFilter, localeFilter, title, body, url string)
 

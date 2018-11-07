@@ -57,8 +57,8 @@ func StatsSender() {
 
 			statsHandler.RangeLines(rootSqalxNode, func(l *dataobjects.Line, cache *cache.Cache) bool {
 				c.Gauge("online_in_transit_"+l.ID, statsHandler.OITInLine(l, 0))
-				c.Gauge("report_votes_"+l.ID, reportHandler.countVotesForLine(l))
-				c.Gauge("report_threshold_"+l.ID, reportHandler.getThresholdForLine(l))
+				c.Gauge("report_votes_"+l.ID, reportHandler.CountVotesForLine(l))
+				c.Gauge("report_threshold_"+l.ID, reportHandler.GetThresholdForLine(l))
 				return true
 			})
 		case <-APIrequestTelemetry:

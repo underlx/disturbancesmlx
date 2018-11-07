@@ -1,7 +1,8 @@
-package main
+package compute
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"time"
 
@@ -11,12 +12,19 @@ import (
 	altmath "github.com/pkg/math"
 )
 
-var vehicleHandler = new(VehicleHandler)
-
 // VehicleHandler implements resource.RealtimeVehicleHandler
 type VehicleHandler struct {
 	readings                      []PassengerReading
 	presenceByStationAndDirection map[string]time.Time
+	connectionDurationCache       map[string]int
+}
+
+// NewVehicleHandler returns a new, initialized VehicleHandler
+func NewVehicleHandler() *VehicleHandler {
+	vh := new(VehicleHandler)
+	vh.presenceByStationAndDirection = make(map[string]time.Time)
+	vh.connectionDurationCache = make(map[string]int)
+	return vh
 }
 
 // PassengerReading represents a datapoint of real-time information as submitted by a user
@@ -24,6 +32,11 @@ type PassengerReading struct {
 	Time        time.Time
 	StationID   string
 	DirectionID string
+}
+
+// ClearTypicalSecondsCache clears a cache used for ETA computation
+func (h *VehicleHandler) ClearTypicalSecondsCache() {
+	h.connectionDurationCache = make(map[string]int)
 }
 
 // RegisterTrainPassenger registers the presence of a user in a station
@@ -40,15 +53,13 @@ func (h *VehicleHandler) RegisterTrainPassenger(currentStation *dataobjects.Stat
 	h.readings = h.readings[altmath.Max(0, len(h.readings)-100):len(h.readings)]
 }
 
-// GetReadings returns the currently stored PassengerReadings
-func (h *VehicleHandler) GetReadings() []PassengerReading {
+// Readings returns the currently stored PassengerReadings
+func (h *VehicleHandler) Readings() []PassengerReading {
 	return h.readings
 }
 
-var connectionDurationCache = make(map[string]int)
-
-// GetNextTrainETA makes a best-effort calculation of the ETA to the next train at the specified station going in the specified direction
-func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.Station, direction *dataobjects.Station) (time.Duration, error) {
+// NextTrainETA makes a best-effort calculation of the ETA to the next train at the specified station going in the specified direction
+func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Station, direction *dataobjects.Station) (time.Duration, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return 0, err
@@ -89,7 +100,7 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 	userAtIdx := cursor
 
 	getConnectionDuration := func(from, to string) int {
-		if s, present := connectionDurationCache[from+"#"+to]; present {
+		if s, present := h.connectionDurationCache[from+"#"+to]; present {
 			return s
 		}
 		connection, err := dataobjects.GetConnection(tx, from, to)
@@ -97,7 +108,7 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 			return 0
 		}
 		s := connection.TypicalSeconds + connection.TypicalStopSeconds
-		connectionDurationCache[from+"#"+to] = s
+		h.connectionDurationCache[from+"#"+to] = s
 		return s
 	}
 
@@ -255,10 +266,45 @@ func (h *VehicleHandler) GetNextTrainETA(node sqalx.Node, station *dataobjects.S
 	return time.Duration(totalSeconds) * time.Second, nil
 }
 
-func (h *VehicleHandler) getMapKey(station *dataobjects.Station, direction *dataobjects.Station) string {
-	return station.ID + "#" + direction.ID
+// TrainETA contains information about the estimated arrival time of a train for a station and direction
+type TrainETA struct {
+	Station   *dataobjects.Station
+	Direction *dataobjects.Station
+	ETA       string
 }
 
-func init() {
-	vehicleHandler.presenceByStationAndDirection = make(map[string]time.Time)
+// AllTrainETAs computes the train ETA for all stations in all directions
+func (h *VehicleHandler) AllTrainETAs(node sqalx.Node) ([]TrainETA, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return []TrainETA{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	stations, err := dataobjects.GetStations(tx)
+	if err != nil {
+		return []TrainETA{}, err
+	}
+	trainETAs := []TrainETA{}
+	for _, station := range stations {
+		directions, err := station.Directions(tx)
+		if err != nil {
+			return trainETAs, err
+		}
+		for _, direction := range directions {
+			eta, err := h.NextTrainETA(tx, station, direction)
+			if err != nil {
+				trainETAs = append(trainETAs, TrainETA{station, direction, err.Error()})
+			} else if eta.Seconds() < 0 {
+				trainETAs = append(trainETAs, TrainETA{station, direction, fmt.Sprintf("probably arrived %s ago", (-eta).String())})
+			} else {
+				trainETAs = append(trainETAs, TrainETA{station, direction, eta.String()})
+			}
+		}
+	}
+	return trainETAs, nil
+}
+
+func (h *VehicleHandler) getMapKey(station *dataobjects.Station, direction *dataobjects.Station) string {
+	return station.ID + "#" + direction.ID
 }
