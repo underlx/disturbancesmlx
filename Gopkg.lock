@@ -48,7 +48,7 @@
     "parser",
     "vm"
   ]
-  revision = "221e7c37babfe0c58c78e1a00dcebe5e92e92816"
+  revision = "0c6aaa0696a78a3a226a7b035191b4ce796d01bd"
 
 [[projects]]
   branch = "master"
