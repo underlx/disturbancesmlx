@@ -20,6 +20,8 @@ const (
 	PrivilegeAdmin
 	// PrivilegeRoot commands can only be used by the bot owner
 	PrivilegeRoot
+	// PrivilegeNobody commands can not be used
+	PrivilegeNobody
 )
 
 // Command represents a bot command
@@ -75,7 +77,7 @@ func (c Command) Handle(s *discordgo.Session, m *discordgo.MessageCreate, args [
 
 // CommandLibrary handles a set of commands
 type CommandLibrary struct {
-	commands       map[string]Command
+	commands       map[string]*Command
 	prefix         string
 	adminChannelID string
 	botOwnerUserID string
@@ -86,7 +88,7 @@ type CommandLibrary struct {
 // NewCommandLibrary returns a new CommandLibrary with the specified prefix
 func NewCommandLibrary(prefix, botOwnerUserID string) *CommandLibrary {
 	return &CommandLibrary{
-		commands:       make(map[string]Command),
+		commands:       make(map[string]*Command),
 		prefix:         prefix,
 		botOwnerUserID: botOwnerUserID,
 	}
@@ -107,7 +109,13 @@ func (l *CommandLibrary) SetPrefix(prefix string) {
 // Register registers a command in the library, replacing an existing command
 // with the same name, if one exists
 func (l *CommandLibrary) Register(command Command) {
-	l.commands[command.Name] = command
+	l.commands[command.Name] = &command
+}
+
+// Get retrieves a command from the library by name
+func (l *CommandLibrary) Get(name string) (command *Command, present bool) {
+	c, ok := l.commands[name]
+	return c, ok
 }
 
 // HandleMessage attempts to handle the provided message; if it fails, it returns false
@@ -140,6 +148,8 @@ func (l *CommandLibrary) HandleMessage(s *discordgo.Session, m *discordgo.Messag
 		if m.Author.ID != l.botOwnerUserID {
 			return false
 		}
+	case PrivilegeNobody:
+		return false
 	}
 
 	l.actedUponCount++

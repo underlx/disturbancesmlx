@@ -194,16 +194,20 @@ func ankoStrengthen(fn interface{}, argsForTypes ...interface{}) interface{} {
 }
 
 func (ssys *ScriptSystem) handleSuspend(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
 	envID, err := strconv.ParseUint(args[0], 10, 32)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ env ID")
+		s.ChannelMessageSend(m.ChannelID, "🆖 env ID")
 		return
 	}
 	ssys.Lock()
 	defer ssys.Unlock()
 	env := ssys.envs[uint(envID)]
 	if env == nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ env ID")
+		s.ChannelMessageSend(m.ChannelID, "🆖 env ID")
 		return
 	}
 	if ssys.suspended[uint(envID)] {
@@ -217,16 +221,20 @@ func (ssys *ScriptSystem) handleSuspend(s *discordgo.Session, m *discordgo.Messa
 }
 
 func (ssys *ScriptSystem) handleRestart(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
 	envID, err := strconv.ParseUint(args[0], 10, 32)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ env ID")
+		s.ChannelMessageSend(m.ChannelID, "🆖 env ID")
 		return
 	}
 	ssys.Lock()
 	defer ssys.Unlock()
 	env := ssys.envs[uint(envID)]
 	if env == nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ env ID")
+		s.ChannelMessageSend(m.ChannelID, "🆖 env ID")
 		return
 	}
 	if !ssys.suspended[uint(envID)] {
@@ -246,10 +254,14 @@ func (ssys *ScriptSystem) handleRestart(s *discordgo.Session, m *discordgo.Messa
 }
 
 func (ssys *ScriptSystem) handleRunOn(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
 	words := strings.Fields(args[0])
 	envID, err := strconv.ParseUint(words[0], 10, 32)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ env ID")
+		s.ChannelMessageSend(m.ChannelID, "🆖 env ID")
 		return
 	}
 
@@ -257,7 +269,7 @@ func (ssys *ScriptSystem) handleRunOn(s *discordgo.Session, m *discordgo.Message
 	defer ssys.Unlock()
 	env := ssys.envs[uint(envID)]
 	if env == nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ env ID")
+		s.ChannelMessageSend(m.ChannelID, "🆖 env ID")
 		return
 	}
 	if !ssys.suspended[uint(envID)] {
@@ -281,16 +293,20 @@ func (ssys *ScriptSystem) handleRunOn(s *discordgo.Session, m *discordgo.Message
 }
 
 func (ssys *ScriptSystem) handleStop(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
 	envID, err := strconv.ParseUint(args[0], 10, 32)
 	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ env ID")
+		s.ChannelMessageSend(m.ChannelID, "🆖 env ID")
 		return
 	}
 	ssys.Lock()
 	defer ssys.Unlock()
 	env := ssys.envs[uint(envID)]
 	if env == nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ env ID")
+		s.ChannelMessageSend(m.ChannelID, "🆖 env ID")
 		return
 	}
 

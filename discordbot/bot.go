@@ -129,7 +129,11 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		msg := "**Comandos suportados**\n"
 		for _, command := range commandLib.commands {
 			if command.RequirePrivilege == PrivilegeEveryone || showAll {
-				msg += commandLib.prefix + command.Name + "\n"
+				msg += commandLib.prefix + command.Name
+				if command.RequirePrivilege == PrivilegeNobody {
+					msg += " _(disabled)_"
+				}
+				msg += "\n"
 			}
 		}
 		if commandLib.isAdminChannel(m.ChannelID) && !showAll {
@@ -182,6 +186,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		}
 		s.ChannelMessageSend(m.ChannelID, "✅")
 	}).WithRequirePrivilege(PrivilegeRoot))
+	commandLib.Register(NewCommand("setcmdpriv", handleSetCommandPrivilege).WithRequirePrivilege(PrivilegeRoot))
 
 	commandLib.Register(NewCommand("startreactionevent", ThePosPlayBridge.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("startquizevent", ThePosPlayBridge.handleQuizStartCommand).WithRequirePrivilege(PrivilegeAdmin))
@@ -189,6 +194,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("markspamchannel", ThePosPlayBridge.handleMarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("unmarkspamchannel", ThePosPlayBridge.handleUnmarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
 	new(ScriptSystem).Setup(commandLib, PrivilegeRoot)
+	new(SQLSystem).Setup(node, commandLib, PrivilegeRoot)
 
 	reactionHandlers = append(reactionHandlers, ThePosPlayBridge)
 	messageHandlers = append(messageHandlers, ThePosPlayBridge)
@@ -674,6 +680,38 @@ func handleEmptyChannel(s *discordgo.Session, m *discordgo.MessageCreate, args [
 		}
 	}
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🗑 %d messages on `%s`", len(messageIDs), args[0]))
+}
+
+func handleSetCommandPrivilege(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 2 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+	command, present := commandLib.Get(args[0])
+	if !present {
+		s.ChannelMessageSend(m.ChannelID, "🆖 invalid command")
+		return
+	}
+	switch args[1] {
+	case "nobody":
+		if command.Name != "setcmdpriv" {
+			command.RequirePrivilege = PrivilegeNobody
+		} else {
+			s.ChannelMessageSend(m.ChannelID, "https://www.youtube.com/watch?v=7qnd-hdmgfk")
+			return
+		}
+	case "root":
+		command.RequirePrivilege = PrivilegeRoot
+	case "admin":
+		command.RequirePrivilege = PrivilegeAdmin
+	case "everyone":
+		command.RequirePrivilege = PrivilegeEveryone
+	default:
+		s.ChannelMessageSend(m.ChannelID, "🆖 second argument must be `nobody`, `root`, `admin` or `everyone`")
+		return
+	}
+
+	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 
 func getEmojiSnowflakeForLine(id string) string {
