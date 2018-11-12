@@ -21,6 +21,7 @@ import (
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
+var started bool
 var muteManager = NewMuteManager()
 var commandLib *CommandLibrary
 var messageHandlers []MessageHandler
@@ -50,10 +51,13 @@ var cmdReceiver CommandReceiver
 // (exported so the posplay package can reach it)
 var ThePosPlayBridge = new(PosPlayBridge)
 
+var scriptSystem = new(ScriptSystem)
+
 // Start starts the Discord bot
 func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	log *log.Logger,
 	cmdRecv CommandReceiver) error {
+	started = true
 	node = snode
 	websiteURL = swebsiteURL
 	botLog = log
@@ -193,7 +197,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("stopevent", ThePosPlayBridge.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("markspamchannel", ThePosPlayBridge.handleMarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("unmarkspamchannel", ThePosPlayBridge.handleUnmarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
-	new(ScriptSystem).Setup(commandLib, PrivilegeRoot)
+	scriptSystem.Setup(commandLib, PrivilegeRoot)
 	new(SQLSystem).Setup(node, commandLib, PrivilegeRoot)
 
 	reactionHandlers = append(reactionHandlers, ThePosPlayBridge)
@@ -237,10 +241,15 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 
 // Stop stops the Discord bot
 func Stop() {
+	if !started {
+		return
+	}
+	started = false
 	// Cleanly close down the Discord session.
 	if session != nil {
 		session.Close()
 	}
+	scriptSystem.doClear()
 }
 
 func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate) {

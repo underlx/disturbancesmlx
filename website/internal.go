@@ -7,6 +7,7 @@ import (
 
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/discordbot"
 	"github.com/underlx/disturbancesmlx/utils"
 )
 
@@ -47,6 +48,9 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		case "computeMsgTypes":
 			compute.UpdateStatusMsgTypes(tx)
 			message = "Line status types recomputed"
+		case "killDiscordBot":
+			discordbot.Stop()
+			message = "Discord bot stopped"
 		}
 	}
 

@@ -318,6 +318,11 @@ func (ssys *ScriptSystem) handleStop(s *discordgo.Session, m *discordgo.MessageC
 }
 
 func (ssys *ScriptSystem) handleClear(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	ssys.doClear()
+	s.ChannelMessageSend(m.ChannelID, "🗑✅")
+}
+
+func (ssys *ScriptSystem) doClear() {
 	ssys.Lock()
 	defer ssys.Unlock()
 	for _, env := range ssys.envs {
@@ -327,7 +332,6 @@ func (ssys *ScriptSystem) handleClear(s *discordgo.Session, m *discordgo.Message
 	ssys.envs = make(map[uint]*vm.Env)
 	ssys.suspended = make(map[uint]bool)
 	ssys.src = make(map[uint]string)
-	s.ChannelMessageSend(m.ChannelID, "🗑✅")
 }
 
 func (ssys *ScriptSystem) handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
