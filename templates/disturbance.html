@@ -6,6 +6,7 @@
         {{template "component-disturbance.html" .Disturbance }}
         {{ if .CanEdit }}
           <form class="pure-form pure-form-aligned" method="POST">
+            {{ .CSRFfield }}
             <fieldset>
               <div class="pure-control-group">
                 <label for="notes">Notas</label>

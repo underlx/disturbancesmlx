@@ -80,6 +80,13 @@ func Initialize(ppconfig Config) error {
 		return errors.New("CSRF auth key not present in posplay keybox")
 	}
 
+	csrfOpts := []csrf.Option{}
+	csrfOpts = append(csrfOpts, csrf.FieldName(CSRFfieldName))
+	if DEBUG {
+		csrfOpts = append(csrfOpts, csrf.Secure(false))
+	}
+	csrfMiddleware = csrf.Protect([]byte(csrfAuthKey), csrfOpts...)
+
 	oauthConfig = &oauth2.Config{
 		RedirectURL:  config.PathPrefix + "/oauth/callback",
 		ClientID:     clientID,
@@ -90,13 +97,6 @@ func Initialize(ppconfig Config) error {
 			TokenURL: "https://discordapp.com/api/oauth2/token",
 		},
 	}
-
-	csrfOpts := []csrf.Option{}
-	csrfOpts = append(csrfOpts, csrf.FieldName(CSRFfieldName))
-	if DEBUG {
-		csrfOpts = append(csrfOpts, csrf.Secure(false))
-	}
-	csrfMiddleware = csrf.Protect([]byte(csrfAuthKey), csrfOpts...)
 
 	discordbot.ThePosPlayBridge.OnEventWinCallback = RegisterEventWinCallback
 	discordbot.ThePosPlayBridge.OnDiscussionParticipationCallback = RegisterDiscussionParticipationCallback

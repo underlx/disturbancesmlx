@@ -19,7 +19,7 @@ func WebServer() {
 
 	// main perturbacoes.pt website
 	website.Initialize(rootSqalxNode, webKeybox, webLog, reportHandler, vehicleHandler, statsHandler)
-	website.ConfigureRouter(router)
+	website.ConfigureRouter(router.PathPrefix("/").Subrouter())
 
 	posplayKeybox, present := secrets.GetBox("posplay")
 	if !present {

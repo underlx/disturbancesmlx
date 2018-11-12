@@ -19,6 +19,7 @@ import (
 
 	"encoding/json"
 
+	"github.com/gorilla/csrf"
 	"github.com/gorilla/feeds"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -34,9 +35,11 @@ var rootSqalxNode sqalx.Node
 var vehicleHandler *compute.VehicleHandler
 var reportHandler *compute.ReportHandler
 var statsHandler *compute.StatsHandler
+var csrfMiddleware func(http.Handler) http.Handler
 
 // PageCommons contains information that is required by most page templates
 type PageCommons struct {
+	CSRFfield string
 	PageTitle string
 	Lines     []struct {
 		*dataobjects.Line
@@ -90,6 +93,7 @@ func ConfigureRouter(router *mux.Router) {
 	if DEBUG {
 		router.Use(templateReloadingMiddleware)
 	}
+	router.Use(csrfMiddleware)
 }
 
 // Initialize initializes the package
@@ -104,23 +108,35 @@ func Initialize(snode sqalx.Node, webKeybox *keybox.Keybox, log *log.Logger,
 	authKey, present := webKeybox.Get("cookieAuthKey")
 	cipherKey, present2 := webKeybox.Get("cookieCipherKey")
 	if !present || !present2 {
-		webLog.Fatal("Cookie auth/cipher keys not present in keybox")
+		webLog.Fatal("Cookie auth/cipher keys not present in web keybox")
 	}
 
 	websiteURL, present = webKeybox.Get("websiteURL")
 	if !present {
-		webLog.Fatal("Website URL not present in keybox")
+		webLog.Fatal("Website URL not present in web keybox")
 	}
 
 	recaptchakey, present := webKeybox.Get("recaptchaKey")
 	if !present {
-		webLog.Fatal("reCAPTCHA key not present in keybox")
+		webLog.Fatal("reCAPTCHA key not present in web keybox")
 	}
 
 	webcaptcha = &recaptcha.R{
 		Secret:             recaptchakey,
 		TrustXForwardedFor: true,
 	}
+
+	csrfAuthKey, present := webKeybox.Get("csrfAuthKey")
+	if !present {
+		webLog.Fatal("CSRF auth key not present in web keybox")
+	}
+
+	csrfOpts := []csrf.Option{}
+	csrfOpts = append(csrfOpts, csrf.FieldName(CSRFfieldName))
+	if DEBUG {
+		csrfOpts = append(csrfOpts, csrf.Secure(false))
+	}
+	csrfMiddleware = csrf.Protect([]byte(csrfAuthKey), csrfOpts...)
 
 	sessionStore = sessions.NewCookieStore(
 		[]byte(authKey),
@@ -177,6 +193,7 @@ func InitPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 	}
 	defer tx.Commit() // read-only tx
 
+	commons.CSRFfield = string(csrf.TemplateField(r))
 	commons.PageTitle = title + " | Perturbações.pt"
 	commons.OfficialOnly = ShowOfficialDataOnly(w, r)
 	commons.DebugBuild = DEBUG

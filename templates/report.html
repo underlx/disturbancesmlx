@@ -10,6 +10,7 @@
       {{ if (or (eq (len .Message) 0) .MessageIsError ) }}
       <p>Se está a presenciar problemas no serviço do Metro, tais como tempos de espera demasiado elevados para a hora actual, sobrelotação das carruagens ou dos cais, ou incidentes com passageiros, seleccione as linhas afectadas:</p>
       <form class="pure-form pure-form-stacked" method="POST">
+          {{ .CSRFfield }}
           <fieldset>
               {{ range $index, $line := .ReportableLines }}
               <label for="line-{{ $line.ID }}" class="pure-checkbox" style="margin-top: 10px; font-size: 130%; font-weight: bold;">
