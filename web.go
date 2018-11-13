@@ -19,7 +19,6 @@ func WebServer() {
 
 	// main perturbacoes.pt website
 	website.Initialize(rootSqalxNode, webKeybox, webLog, reportHandler, vehicleHandler, statsHandler)
-	website.ConfigureRouter(router.PathPrefix("/").Subrouter())
 
 	posplayKeybox, present := secrets.GetBox("posplay")
 	if !present {
@@ -35,7 +34,9 @@ func WebServer() {
 		PathPrefix: website.BaseURL() + "/posplay",
 		GitCommit:  GitCommit})
 
+	// this order is important. see https://github.com/gorilla/mux/issues/411 (still open at the time of writing)
 	posplay.ConfigureRouter(router.PathPrefix("/posplay").Subrouter())
+	website.ConfigureRouter(router.PathPrefix("/").Subrouter())
 
 	webLog.Println("Starting Web server...")
 

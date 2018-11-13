@@ -35,7 +35,7 @@ var rootSqalxNode sqalx.Node
 var vehicleHandler *compute.VehicleHandler
 var reportHandler *compute.ReportHandler
 var statsHandler *compute.StatsHandler
-var csrfMiddleware func(http.Handler) http.Handler
+var csrfMiddleware mux.MiddlewareFunc
 
 // PageCommons contains information that is required by most page templates
 type PageCommons struct {
@@ -131,8 +131,7 @@ func Initialize(snode sqalx.Node, webKeybox *keybox.Keybox, log *log.Logger,
 		webLog.Fatal("CSRF auth key not present in web keybox")
 	}
 
-	csrfOpts := []csrf.Option{}
-	csrfOpts = append(csrfOpts, csrf.FieldName(CSRFfieldName))
+	csrfOpts := []csrf.Option{csrf.FieldName(CSRFfieldName), csrf.CookieName(CSRFcookieName)}
 	if DEBUG {
 		csrfOpts = append(csrfOpts, csrf.Secure(false))
 	}

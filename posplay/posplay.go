@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"log"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 
 	"github.com/gbl08ma/sqalx"
 	"github.com/gorilla/csrf"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 
 	"github.com/gbl08ma/keybox"
@@ -57,7 +57,7 @@ type Config struct {
 }
 
 var config Config
-var csrfMiddleware func(http.Handler) http.Handler
+var csrfMiddleware mux.MiddlewareFunc
 
 // Initialize initializes the PosPlay subsystem
 func Initialize(ppconfig Config) error {
@@ -80,8 +80,7 @@ func Initialize(ppconfig Config) error {
 		return errors.New("CSRF auth key not present in posplay keybox")
 	}
 
-	csrfOpts := []csrf.Option{}
-	csrfOpts = append(csrfOpts, csrf.FieldName(CSRFfieldName))
+	csrfOpts := []csrf.Option{csrf.FieldName(CSRFfieldName), csrf.CookieName(CSRFcookieName)}
 	if DEBUG {
 		csrfOpts = append(csrfOpts, csrf.Secure(false))
 	}
