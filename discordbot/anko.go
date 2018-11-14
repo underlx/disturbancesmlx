@@ -63,7 +63,7 @@ func (ssys *ScriptSystem) Setup(cl *CommandLibrary, privilege Privilege) {
 	packages.Packages["underlx"]["StopEvent"] = ThePosPlayBridge.StopEvent
 
 	packages.Packages["discordgo"] = make(map[string]interface{})
-	dopkg := packages.Packages["dataobjects"]
+	dopkg := packages.Packages["discordgo"]
 	for name, function := range DiscordGoFunctions {
 		if function.CanInterface() {
 			dopkg[name] = function.Interface()
