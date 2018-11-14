@@ -678,6 +678,8 @@ func buildStatsMessage() (*Embed, error) {
 	dbStr := fmt.Sprintf("%d ligações abertas", dbConnections)
 	embed.AddField("Database", dbStr)
 
+	embed.AddField("Goroutines", fmt.Sprintf("%d (%d CPUs)", runtime.NumGoroutine(), runtime.NumCPU()))
+
 	embed.Timestamp = time.Now().Format(time.RFC3339Nano)
 
 	return embed, nil
