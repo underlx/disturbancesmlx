@@ -35,11 +35,11 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:8caad0a2eebe600531934308a4fcb5b0e689ae5b1ba344c688d6124b3f45c64e"
+  digest = "1:c0cc1b669868f41a6ff46eb8272c15e88c0e71da3241b7ea721d87c24e56461a"
   name = "github.com/bwmarrin/discordgo"
   packages = ["."]
   pruneopts = "UT"
-  revision = "67729f3d95e80c3c60f97bd083d76f8244696f4d"
+  revision = "d6d46b0b1b1cb54da094161b5c910d70eca538b3"
 
 [[projects]]
   branch = "master"
