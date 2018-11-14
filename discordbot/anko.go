@@ -62,15 +62,24 @@ func (ssys *ScriptSystem) Setup(cl *CommandLibrary, privilege Privilege) {
 	packages.Packages["underlx"]["StartQuizEvent"] = ThePosPlayBridge.StartQuizEvent
 	packages.Packages["underlx"]["StopEvent"] = ThePosPlayBridge.StopEvent
 
-	if packages.Packages["discordgo"] == nil {
-		packages.Packages["discordgo"] = make(map[string]interface{})
+	packages.Packages["discordgo"] = make(map[string]interface{})
+	dopkg := packages.Packages["dataobjects"]
+	for name, function := range DiscordGoFunctions {
+		if function.CanInterface() {
+			dopkg[name] = function.Interface()
+		}
 	}
-	if packages.PackageTypes["discordgo"] == nil {
-		packages.PackageTypes["discordgo"] = make(map[string]interface{})
+	for name, item := range DiscordGoConsts {
+		dopkg[name] = item
 	}
-	packages.PackageTypes["discordgo"]["Session"] = discordgo.Session{}
-	packages.PackageTypes["discordgo"]["MessageCreate"] = discordgo.MessageCreate{}
-	packages.PackageTypes["discordgo"]["MessageReactionAdd"] = discordgo.MessageReactionAdd{}
+	for name, item := range DiscordGoVariables {
+		dopkg[name] = item
+	}
+	packages.PackageTypes["discordgo"] = make(map[string]interface{})
+	dotypes := packages.PackageTypes["discordgo"]
+	for name, item := range DiscordGoTypes {
+		dotypes[name] = item
+	}
 }
 
 func (ssys *ScriptSystem) handleRun(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {

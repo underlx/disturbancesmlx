@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"reflect"
 	"strings"
 	"syscall"
 
@@ -184,19 +183,15 @@ func (r *BotCommandReceiver) ConfigureAnkoPackage(packages, packageTypes map[str
 		}
 	}
 	for name, item := range dataobjects.Consts {
-		if item.CanInterface() {
-			dopkg[name] = item.Interface()
-		}
+		dopkg[name] = item
 	}
 	for name, item := range dataobjects.Variables {
-		if item.CanInterface() {
-			dopkg[name] = item.Interface()
-		}
+		dopkg[name] = item
 	}
 	packageTypes["dataobjects"] = make(map[string]interface{})
 	dotypes := packageTypes["dataobjects"]
 	for name, item := range dataobjects.Types {
-		dotypes[name] = reflect.New(item)
+		dotypes[name] = item
 	}
 
 	packages["uuid"] = make(map[string]interface{})
