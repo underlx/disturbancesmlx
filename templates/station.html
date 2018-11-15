@@ -44,10 +44,16 @@
         {{ end }}
       </div>
       <div class="pure-u-1" style="position: sticky; top: 0px; margin-top: 10px; background-color: white;"><p style="text-align: center;"><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#pois" class="pure-button">Pontos de Interesse</a> <a href="#trivia" class="pure-button">Trívia</a></p></div>
+      <div class="pure-u-1" style="overflow: visible">
+        <h2><a id="lobbies" class="anchor">Mapa de área local</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+        <div style="text-align: center">
+          <div id="mapid" class="geomap" style=""></div>
+        </div>
+      </div>
       <div class="pure-u-1">
           <h2><a id="lobbies" class="anchor">Átrios</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
           {{ range $index, $lobby := .Lobbies }}
-            <h3>Átrio {{ $lobby.Name }}</h3>
+            <h3>Átrio <span id="lobby-{{ $lobby.Name }}-title">{{ $lobby.Name }}</span></h3>
             <h4>Horário</h4>
             <p>
             {{ range $timetableLine := (index $.LobbySchedules $index) }}
@@ -111,4 +117,54 @@
       </div>
     </div>
   </div>
+  <script>
+    var map = L.map('mapid', {zoomSnap: 0});
+    map.attributionControl.setPrefix(false);
+    var markers = [];
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://github.com/underlx/data">Dados abertos UnderLX</a>, contribuidores do <a href="https://www.openstreetmap.org/">OpenStreetMap</a>',
+        maxZoom: 18
+    }).addTo(map);
+
+    var lobbyColors = [{{ if (eq (len .Lobbies) 1) }}"#000"{{else}}"#C040CE"{{end}}, "#4CAF50", "#142382", "#E0A63A", "#F15D2A"];
+    
+    {{ range $index, $lobby := .Lobbies }}
+      document.getElementById("lobby-{{ js ($lobby.Name) }}-title").style.color = lobbyColors[{{ $index }}];
+      {{ range $exit := (index $.LobbyExits $index) }}
+        markers.push(L.marker([{{ index $exit.WorldCoord 0}}, {{index $exit.WorldCoord 1}}],
+          {
+            title: "Saída para {{ range $idx, $street := $exit.Streets}}{{ js $street }}{{ if not (eq $idx (minus (len $exit.Streets) 1))}}, {{end}}{{end}}",
+            icon: L.divIcon({
+              className: 'map-marker {{ $exit.Type }}',
+              iconSize:null,
+              html:'<div class="icon" style="border-color: ' + lobbyColors[{{ $index }}] + '"></div><div class="arrow" style="border-color: ' + lobbyColors[{{ $index }} ] + ' transparent transparent transparent"></div>'
+            })
+          })
+          .addTo(map)
+          .bindPopup('<strong>Saída do átrio {{ js ($lobby.Name) }}</strong><br>{{ range $idx, $street := $exit.Streets}}{{ js $street }}{{ if not (eq $idx (minus (len $exit.Streets) 1))}}, {{end}}{{end}}'));
+      {{end}}
+    {{end}}
+    var markerGroup = new L.featureGroup(markers);
+    {{ range $index, $poi := .POIs }}
+      markers.push(L.marker([{{ index $poi.WorldCoord 0}}, {{index $poi.WorldCoord 1}}], {title: "{{ js (index $poi.Names $poi.MainLocale) }}"})
+        .addTo(map)
+        .bindPopup('{{ js (index $poi.Names $poi.MainLocale) }}<br><a target="_blank" class="pure-button" href="{{ js $poi.URL }} "><i class="fa fa-globe" aria-hidden="true"></i> Site</a>'));
+    {{end}}
+    var poiMarkerGroup = new L.featureGroup(markers);
+    map.fitBounds(markerGroup.getBounds().pad(0.2));
+
+    L.easyButton('<span style="font-size: 15px; margin-top: 5px;"><i id="expandicon" class="fa fa-arrows-alt" aria-hidden="true"></i></span>', function(btn, map){
+      document.getElementById("mapid").classList.toggle("expand");
+      document.getElementById("expandicon").classList.toggle("fa-arrows-alt");
+      document.getElementById("expandicon").classList.toggle("fa-times-circle");
+      document.getElementById("mapid").scrollIntoView();
+      map.invalidateSize();
+    }, {position: "topright"}).addTo(map);
+    L.easyButton('<span style="font-size: 15px; margin-top: 5px;"><i id="expandicon" class="fa fa-undo" aria-hidden="true"></i></span>', function(btn, map){
+      map.fitBounds(markerGroup.getBounds().pad(0.2));
+    }).addTo(map);
+    L.easyButton('<span style="font-size: 15px; margin-top: 5px;" title="Mostrar pontos de interesse"><i id="expandicon" class="fa fa-map-marker" aria-hidden="true"></i></span>', function(btn, map){
+      map.fitBounds(poiMarkerGroup.getBounds().pad(0.1));
+    }).addTo(map);
+  </script>
 {{template "footer.html" . }}
