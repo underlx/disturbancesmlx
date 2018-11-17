@@ -43,7 +43,7 @@
         <aside><p>Esta estação está encerrada por tempo indeterminado.</p></aside>
         {{ end }}
       </div>
-      <div class="pure-u-1" style="position: sticky; top: 0px; margin-top: 10px; background-color: white;"><p style="text-align: center;"><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#pois" class="pure-button">Pontos de Interesse</a> <a href="#trivia" class="pure-button">Trívia</a></p></div>
+      <div class="pure-u-1" id="sectionsbar" style="position: sticky; top: 0px; margin-top: 10px; background-color: white; z-index: 100000000"><p style="text-align: center;"><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#pois" class="pure-button">Pontos de Interesse</a> <a href="#trivia" class="pure-button">Trívia</a></p></div>
       <div class="pure-u-1" style="overflow: visible">
         <h2><a id="lobbies" class="anchor">Mapa de área local</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
         <div style="text-align: center">
@@ -155,6 +155,7 @@
 
     L.easyButton('<span style="font-size: 15px; margin-top: 5px;"><i id="expandicon" class="fa fa-arrows-alt" aria-hidden="true"></i></span>', function(btn, map){
       document.getElementById("mapid").classList.toggle("expand");
+      document.getElementById("sectionsbar").style.zIndex = document.getElementById("sectionsbar").style.zIndex > 1 ? 0 : 100000000;
       document.getElementById("expandicon").classList.toggle("fa-arrows-alt");
       document.getElementById("expandicon").classList.toggle("fa-times-circle");
       document.getElementById("mapid").scrollIntoView();
