@@ -52,55 +52,16 @@ func AverageSpeedFilter(node sqalx.Node, fromTime time.Time, toTime time.Time, y
 	var totalTime time.Duration
 	var totalDistance int64
 
-	processTrip := func(trip *dataobjects.Trip) error {
+	processTrip := func(trip *dataobjects.Trip) {
 		if !filter(trip) {
-			return nil
+			return
 		}
-		if len(trip.StationUses) <= 1 {
-			// station visit or invalid trip
-			// can't extract any data about connections
-			return nil
+		_, distance, duration, err := trip.AverageSpeed(tx)
+		if err != nil {
+			return
 		}
-
-		var startTime, endTime time.Time
-		for useIdx := 0; useIdx < len(trip.StationUses)-1; useIdx++ {
-			sourceUse := trip.StationUses[useIdx]
-
-			if sourceUse.Manual {
-				// manual path extensions don't contain valid time data
-				// skip
-				continue
-			}
-
-			if sourceUse.Type == dataobjects.Interchange ||
-				sourceUse.Type == dataobjects.Visit {
-				continue
-			}
-
-			targetUse := trip.StationUses[useIdx+1]
-
-			if targetUse.Manual {
-				// manual path extensions don't contain valid time data
-				// skip
-				continue
-			}
-
-			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID)
-			if err != nil {
-				// connection might no longer exist (closed stations, etc.)
-				// move on
-				mainLog.Printf("Connection from %s to %s skipped\n", sourceUse.Station.ID, targetUse.Station.ID)
-				return nil
-			}
-
-			totalDistance += int64(connection.WorldLength)
-			if startTime.IsZero() {
-				startTime = sourceUse.LeaveTime
-			}
-			endTime = targetUse.EntryTime
-		}
-		totalTime += endTime.Sub(startTime)
-		return nil
+		totalDistance += distance
+		totalTime += duration
 	}
 
 	// instantiate each trip from DB individually
@@ -112,9 +73,7 @@ func AverageSpeedFilter(node sqalx.Node, fromTime time.Time, toTime time.Time, y
 			return 0, err
 		}
 
-		if err = processTrip(trip); err != nil {
-			return 0, err
-		}
+		processTrip(trip)
 
 		if yieldFor > 0 {
 			time.Sleep(yieldFor)

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	sq "github.com/gbl08ma/squirrel"
 	"github.com/gbl08ma/sqalx"
+	sq "github.com/gbl08ma/squirrel"
 	"github.com/lib/pq"
 	"github.com/satori/go.uuid"
 )
@@ -181,6 +181,81 @@ func GetTripIDsBetween(node sqalx.Node, start time.Time, end time.Time) ([]strin
 			sq.Expr("end_time BETWEEN ? AND ?",
 				start, end),
 		}).
+		OrderBy("start_time ASC")
+	return getTripIDsWithSelect(node, s)
+}
+
+// AverageSpeed computes the average speed (km/h), total distance (m) and total duration of this trip
+func (trip *Trip) AverageSpeed(node sqalx.Node) (speed float64, totalDistance int64, totalDuration time.Duration, err error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	if len(trip.StationUses) <= 1 {
+		// station visit or invalid trip
+		// can't extract any data about connections
+		return 0, 0, 0, fmt.Errorf("Trip not suitable for computing average speed")
+	}
+
+	var startTime, endTime time.Time
+	for useIdx := 0; useIdx < len(trip.StationUses)-1; useIdx++ {
+		sourceUse := trip.StationUses[useIdx]
+
+		if sourceUse.Manual {
+			// manual path extensions don't contain valid time data
+			// skip
+			continue
+		}
+
+		if sourceUse.Type == Interchange ||
+			sourceUse.Type == Visit {
+			continue
+		}
+
+		targetUse := trip.StationUses[useIdx+1]
+
+		if targetUse.Manual {
+			// manual path extensions don't contain valid time data
+			// skip
+			continue
+		}
+
+		connection, err := GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID)
+		if err != nil {
+			// connection might no longer exist (closed stations, etc.)
+			// move on
+			return 0, 0, 0, fmt.Errorf("Trip contains now-invalid connection from %s to %s", sourceUse.Station.ID, targetUse.Station.ID)
+		}
+
+		totalDistance += int64(connection.WorldLength)
+		if startTime.IsZero() {
+			startTime = sourceUse.LeaveTime
+		}
+		endTime = targetUse.EntryTime
+	}
+	totalDuration = endTime.Sub(startTime)
+	km := float64(totalDistance) / 1000
+	return km / totalDuration.Hours(), totalDistance, totalDuration, nil
+}
+
+// SimultaneousTrips returns a slice containing trips that took place alongside this one
+func (trip *Trip) SimultaneousTrips(node sqalx.Node, excludeLongerThan time.Duration) ([]*Trip, error) {
+	s := sdb.Select().
+		Where(sq.NotEq{"id": trip.ID}).
+		Where(sq.LtOrEq{"end_time - start_time": Duration(excludeLongerThan)}).
+		Where(sq.Expr("(start_time, end_time) OVERLAPS (?, ?)", trip.StartTime, trip.EndTime)).
+		OrderBy("start_time ASC")
+	return getTripsWithSelect(node, s)
+}
+
+// SimultaneousTripIDs returns a slice containing IDs of the trips that took place alongside this one
+func (trip *Trip) SimultaneousTripIDs(node sqalx.Node, excludeLongerThan time.Duration) ([]string, error) {
+	s := sdb.Select().
+		Where(sq.NotEq{"id": trip.ID}).
+		Where(sq.LtOrEq{"end_time - start_time": Duration(excludeLongerThan)}).
+		Where(sq.Expr("(start_time, end_time) OVERLAPS (?, ?)", trip.StartTime, trip.EndTime)).
 		OrderBy("start_time ASC")
 	return getTripIDsWithSelect(node, s)
 }

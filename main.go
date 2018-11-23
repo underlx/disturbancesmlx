@@ -145,6 +145,58 @@ func main() {
 		}
 	}*/
 
+	/*if DEBUG {
+		loc, _ := time.LoadLocation("Europe/Lisbon")
+		start := time.Date(2017, time.May, 1, 0, 0, 0, 0, loc)
+		end := time.Date(2018, time.October, 14, 0, 0, 0, 0, loc)
+		points, err := compute.TripsScatterplotNumTripsVsAvgSpeed(rootSqalxNode, start, end, 12)
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+		f, err := os.Create("scatterplot.csv")
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+		f.WriteString("dow,hour,numusers,avgspeed\n")
+		for _, point := range points {
+			f.WriteString(fmt.Sprintf("%d,%d,%d,%.0f\n", point.DayOfWeek, point.Hour, point.NumUsers, point.AverageSpeed))
+		}
+		f.Close()
+
+		f, err = os.Create("scatterplot2.csv")
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+		tripsPerDow := make(map[int]map[int]map[int]map[float64]int)
+		//tripsPerHour := make(map[int]map[int]map[float64]int)
+		//tripsPerNumUsers := make(map[int]map[float64]int)
+		//tripsPerAvgSpeed := make(map[float64]int)
+		for _, point := range points {
+			if tripsPerDow[int(point.DayOfWeek)] == nil {
+				tripsPerDow[int(point.DayOfWeek)] = make(map[int]map[int]map[float64]int)
+			}
+			if tripsPerDow[int(point.DayOfWeek)][point.Hour] == nil {
+				tripsPerDow[int(point.DayOfWeek)][point.Hour] = make(map[int]map[float64]int)
+			}
+			if tripsPerDow[int(point.DayOfWeek)][point.Hour][point.NumUsers] == nil {
+				tripsPerDow[int(point.DayOfWeek)][point.Hour][point.NumUsers] = make(map[float64]int)
+			}
+			tripsPerDow[int(point.DayOfWeek)][point.Hour][point.NumUsers][point.AverageSpeed] = tripsPerDow[int(point.DayOfWeek)][point.Hour][point.NumUsers][point.AverageSpeed] + 1
+		}
+		f.WriteString("dow,hour,numusers,avgspeed,numtrips\n")
+		for dow, hourMap := range tripsPerDow {
+			for hour, numUserMap := range hourMap {
+				for numUser, avgSpeedMap := range numUserMap {
+					for avgSpeed, value := range avgSpeedMap {
+						f.WriteString(fmt.Sprintf("%d,%d,%d,%f,%d\n", dow, hour, numUser, avgSpeed, value))
+					}
+				}
+			}
+		}
+
+		f.Close()
+	}*/
+
 	for {
 		if DEBUG {
 			printLatestDisturbance(rootSqalxNode)
