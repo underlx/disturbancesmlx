@@ -43,7 +43,7 @@ const (
 	// MLClosedMessage corresponds to the format "Serviço encerrado"
 	MLClosedMessage StatusMessageType = "ML_CLOSED"
 	// MLCompositeMessage corresponds to the format:
-	// "[d|D]evido a $1$2"
+	// "[d|D]evido a $1$2$3"
 	// $1 may be one of:
 	// - "avaria na sinalização" (SIGNAL)
 	// - "avaria de comboio" (TRAIN)
@@ -52,11 +52,18 @@ const (
 	// - "incidente com passageiro" (PASSENGER)
 	// - "anomalia na estação" (STATION)
 	// $2 may be one of:
-	// - ", a circulação está interrompida desde as XX:XX. O tempo de reposição poderá ser superior a 15 minutos. Pedimos desculpa pelo incómodo" (SINCE)
-	// - " está interrompida a circulação. Não é possível prever a duração da interrupção, que poderá ser prolongada. Pedimos desculpa pelo incómodo causado" (NO_OUTLOOK)
-	// - " está interrompida a circulação na linha entre as estações XXXXXX e YYYYYY. Não é possível prever a duração da interrupção, que poderá ser prolongada. Pedimos desculpa pelo incómodo causado" (BETWEEN)
-	// - ", a circulação encontra-se com perturbações. O tempo de espera pode ser superior ao normal. Pedimos desculpa pelo incómodo" (DELAYED)
-	MLCompositeMessage StatusMessageType = "ML_%s_%s"
+	// - ", a circulação está interrompida desde as XX:XX." (SINCE)
+	// - " está interrompida a circulação." (HALTED)
+	// - " está interrompida a circulação na linha entre as estações YYY e ZZZ." (BETWEEN)
+	// - ", a circulação encontra-se com perturbações." (DELAYED)
+	// $3 may be one of:
+	// - " Não é possível prever a duração da interrupção, que poderá ser prolongada. Pedimos desculpa pelo incómodo causado" (LONGHALT, typically used with HALTED and BETWEEN)
+	// - " O tempo de espera pode ser superior ao normal. Pedimos desculpa pelo incómodo" (LONGWAIT, typically used with DELAYED)
+	// - " Esperamos retomar a circulação dentro de instantes" (SOON, typically used with SINCE)
+	// - " Esperamos retomar a circulação num período inferior a 15 minutos. Pedimos desculpa pelo incómodo" (UNDER15, typically used with SINCE)
+	// - " O tempo de reposição poderá ser superior a 15 minutos. Pedimos desculpa pelo incómodo" (OVER15, typically used with SINCE)
+	MLCompositeMessage StatusMessageType = "ML_%s_%s_%s"
+	// See also mlCompositeMessageMatcher in disturbance.go
 )
 
 // GetStatuses returns a slice with all registered statuses
@@ -178,18 +185,32 @@ func (status *Status) ComputeMsgType() {
 	switch {
 	case strings.Contains(status.Status, "a circulação está interrompida desde as"):
 		state = "SINCE"
-	case strings.Contains(status.Status, "está interrompida a circulação. Não é possível prever a duração da interrupção"):
-		state = "NO_OUTLOOK"
+	case strings.Contains(status.Status, "está interrompida a circulação."):
+		state = "HALTED"
 	case strings.Contains(status.Status, "está interrompida a circulação na linha entre as estações"):
 		state = "BETWEEN"
 	case strings.Contains(status.Status, "a circulação encontra-se com perturbações"):
 		state = "DELAYED"
 	}
 
-	if cause == "" || state == "" {
+	outlook := ""
+	switch {
+	case strings.Contains(status.Status, "Não é possível prever a duração da interrupção, que poderá ser prolongada"):
+		outlook = "LONGHALT"
+	case strings.Contains(status.Status, "O tempo de espera pode ser superior ao normal"):
+		outlook = "LONGWAIT"
+	case strings.Contains(status.Status, "Esperamos retomar a circulação dentro de instantes"):
+		outlook = "SOON"
+	case strings.Contains(status.Status, "Esperamos retomar a circulação num período inferior a 15 minutos"):
+		outlook = "UNDER15"
+	case strings.Contains(status.Status, "O tempo de reposição poderá ser superior a 15 minutos"):
+		outlook = "OVER15"
+	}
+
+	if cause == "" || state == "" || outlook == "" {
 		return
 	}
-	status.MsgType = StatusMessageType(fmt.Sprintf(string(MLCompositeMessage), cause, state))
+	status.MsgType = StatusMessageType(fmt.Sprintf(string(MLCompositeMessage), cause, state, outlook))
 }
 
 // Update adds or updates the status

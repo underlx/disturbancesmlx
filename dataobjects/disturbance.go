@@ -212,7 +212,7 @@ func (disturbance *Disturbance) LatestStatus() *Status {
 	return latest
 }
 
-var mlCompositeMessageMatcher = regexp.MustCompile("^ML_([0-9A-Z]+)_([0-9A-Z_]+)$")
+var mlCompositeMessageMatcher = regexp.MustCompile("^ML_([0-9A-Z]+)_([0-9A-Z]+)_([0-9A-Z]+)$")
 
 // Categories returns the categories for this disturbance
 func (disturbance *Disturbance) Categories() []DisturbanceCategory {
@@ -220,7 +220,7 @@ func (disturbance *Disturbance) Categories() []DisturbanceCategory {
 	deduplicator := make(map[DisturbanceCategory]bool)
 	for _, status := range disturbance.Statuses {
 		matches := mlCompositeMessageMatcher.FindStringSubmatch(string(status.MsgType))
-		if len(matches) == 3 {
+		if len(matches) == 4 {
 			var possibleCategory DisturbanceCategory
 			switch matches[1] {
 			case "SIGNAL":
