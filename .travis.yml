@@ -1,6 +1,6 @@
 language: go
 go:
-  - "1.10"
+  - "1.11.x"
 
 env:
   - DEP_VERSION="0.5.0"
@@ -29,6 +29,7 @@ notifications:
 # set -e enabled in bash. 
 before_script:
   - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/) # All the .go files, excluding vendor/
+  - echo $GO_FILES | xargs dos2unix                             # Make sure line endings are like gofmt wants (vscode's formatter does not change line endings)
   - go get golang.org/x/lint/golint                             # Linter
   - go get honnef.co/go/tools/cmd/megacheck                     # Badass static analyzer/linter
   - go get github.com/fzipp/gocyclo
@@ -36,9 +37,9 @@ before_script:
 # script always run to completion (set +e). All of these code checks are must haves
 # in a modern Go project.
 script:
-  - test -z $(gofmt -s -l $GO_FILES)         # Fail if a .go file hasn't been formatted with gofmt
+  - test -z "$(gofmt -s -l $GO_FILES)"         # Fail if a .go file hasn't been formatted with gofmt
   - go test -v -race ./...                   # Run all the tests with the race detector enabled
   - go vet ./...                             # go vet is the official Go static analyzer
   - megacheck ./...                          # "go vet on steroids" + linter
-  - gocyclo -over 19 $GO_FILES               # forbid code with huge functions
+  - gocyclo -over 70 $GO_FILES               # forbid code with huge functions
   - golint -set_exit_status $(go list ./...) # one last linter
