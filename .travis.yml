@@ -2,15 +2,23 @@ language: go
 go:
   - "1.10"
 
+env:
+  - DEP_VERSION="0.5.0"
+
 # Handle git submodules yourself
 git:
   submodules: false
 # Use sed to replace the SSH URL with the public URL, then initialize submodules
 before_install:
+  # Make dep available
+  - curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep
+  - chmod +x $GOPATH/bin/dep
+
   - sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
   - git submodule update --init --recursive
-  - go get github.com/bwmarrin/discordgo
-  - git -C $GOPATH/src/github.com/bwmarrin/discordgo checkout develop
+
+install:
+  - dep ensure
 
 # Don't email me the results of the test runs.
 notifications:
