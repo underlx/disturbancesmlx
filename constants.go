@@ -5,7 +5,7 @@ package main
 const (
 	// DEBUG is whether this is a debug build
 	DEBUG = true
-	
+
 	// MLnetworkID is the ID of the main network
 	MLnetworkID = "pt-ml"
 

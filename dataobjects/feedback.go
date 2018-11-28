@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	sq "github.com/gbl08ma/squirrel"
 	"github.com/gbl08ma/sqalx"
+	sq "github.com/gbl08ma/squirrel"
 )
 
 // Feedback is a piece of user feedback about the service,

@@ -36,7 +36,7 @@ func NewLineDisturbanceReportThroughAPI(pair *APIPair, line *Line, category stri
 			submitter:              pair,
 			submitterKey:           pair.Key,
 			strongReplayProtection: true,
-			time: time.Now(),
+			time:                   time.Now(),
 		},
 		category: category,
 		line:     line,
@@ -49,7 +49,7 @@ func NewLineDisturbanceReport(ipAddr string, line *Line, category string) *LineD
 		BaseReport: BaseReport{
 			submitterKey:           ipAddr,
 			strongReplayProtection: false,
-			time: time.Now(),
+			time:                   time.Now(),
 		},
 		category: category,
 		line:     line,
@@ -63,7 +63,7 @@ func NewLineDisturbanceReportDebug(line *Line, category string) *LineDisturbance
 		BaseReport: BaseReport{
 			submitterKey:           uuid.String(),
 			strongReplayProtection: true,
-			time: time.Now(),
+			time:                   time.Now(),
 		},
 		category: category,
 		line:     line,

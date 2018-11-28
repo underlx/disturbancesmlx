@@ -573,7 +573,7 @@ func buildPOIMessage(id string) (*Embed, error) {
 }
 
 func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
-	uptime := time.Now().Sub(botstats.StartTime)
+	uptime := time.Since(botstats.StartTime)
 	uptimenice := durafmt.Parse(uptime.Truncate(time.Second))
 	uptimestr := uptimenice.String()
 	uptimestr = strings.Replace(uptimestr, "year", "ano", 1)
@@ -670,7 +670,7 @@ func buildStatsMessage() (*Embed, error) {
 
 	dbConnections, apiRequests := cmdReceiver.GetStats()
 
-	uptime := time.Now().Sub(botstats.StartTime)
+	uptime := time.Since(botstats.StartTime)
 
 	apiStr := fmt.Sprintf("%d pedidos (%.02f/minuto)", apiRequests, float64(apiRequests)/uptime.Minutes())
 	embed.AddField("API", apiStr)

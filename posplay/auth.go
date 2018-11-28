@@ -14,7 +14,6 @@ import (
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/discordbot"
-	"golang.org/x/oauth2"
 )
 
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,8 +25,18 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
+	state := r.FormValue("state")
+
+	session, _ := config.Store.Get(r, SessionName)
+
+	if state != session.Values["oauthState"] {
+		config.Log.Println("Session state does not match state in callback request")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	code := r.FormValue("code")
-	token, err := oauthConfig.Exchange(oauth2.NoContext, code)
+	token, err := oauthConfig.Exchange(r.Context(), code)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -37,16 +46,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	if !token.Valid() {
 		config.Log.Println("Retrieved invalid token")
 		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	state := r.FormValue("state")
-
-	session, _ := config.Store.Get(r, SessionName)
-
-	if state != session.Values["oauthState"] {
-		config.Log.Println("Session state does not match state in callback request")
-		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 

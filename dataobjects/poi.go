@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	sq "github.com/gbl08ma/squirrel"
 	"github.com/gbl08ma/sqalx"
+	sq "github.com/gbl08ma/squirrel"
 )
 
 // POI is a Point of Interest
