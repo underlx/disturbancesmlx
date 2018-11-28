@@ -5,12 +5,6 @@ go:
 env:
   - DEP_VERSION="0.5.0"
 
-addons:
-  apt:
-    update: true
-    packages:
-    - dos2unix
-
 # Handle git submodules yourself
 git:
   submodules: false
@@ -35,7 +29,7 @@ notifications:
 # set -e enabled in bash. 
 before_script:
   - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/) # All the .go files, excluding vendor/
-  - echo $GO_FILES | xargs dos2unix                             # Make sure line endings are like gofmt wants (vscode's formatter does not change line endings)
+  - sed -i '' 's/\r$//' $GO_FILES                               # Make sure line endings are like gofmt wants (vscode's formatter does not change line endings)
   - go get golang.org/x/lint/golint                             # Linter
   - go get honnef.co/go/tools/cmd/megacheck                     # Badass static analyzer/linter
   - go get github.com/fzipp/gocyclo
