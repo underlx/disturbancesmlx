@@ -202,10 +202,10 @@ func (player *PPPlayer) RankBetween(node sqalx.Node, start, end time.Time) (int,
 		") AS leaderboard "+
 		"WHERE leaderboard.discord_id = $3;",
 		start, end, player.DiscordID)
-	defer rows.Close()
 	if err != nil {
 		return 0, err
 	}
+	defer rows.Close()
 	var rank int
 	for rows.Next() {
 		err := rows.Scan(&rank)

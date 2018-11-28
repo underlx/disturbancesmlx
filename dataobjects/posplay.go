@@ -28,10 +28,10 @@ func PPLeaderboardBetween(node sqalx.Node, start, end time.Time, size int, mustI
 		"WHERE timestamp BETWEEN $1 AND $2 "+
 		"GROUP BY discord_id LIMIT $3;",
 		start, end, size)
-	defer rows.Close()
 	if err != nil {
 		return []PPLeaderboardEntry{}, err
 	}
+	defer rows.Close()
 
 	entries := []PPLeaderboardEntry{}
 	var discordIDs []uint64

@@ -99,7 +99,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		beforeSend := time.Now()
 		msg, err := s.ChannelMessageSendComplex(m.ChannelID, msgSend)
 		if err == nil {
-			s.ChannelMessageEdit(m.ChannelID, msg.ID, fmt.Sprintf("🙌 RTT mensagem: %d ms", time.Now().Sub(beforeSend).Nanoseconds()/1000000))
+			s.ChannelMessageEdit(m.ChannelID, msg.ID, fmt.Sprintf("🙌 RTT mensagem: %d ms", time.Since(beforeSend).Nanoseconds()/1000000))
 		}
 	}))
 	commandLib.Register(NewCommand("stats", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {

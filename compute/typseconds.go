@@ -33,11 +33,6 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 	transferAvgNumerator := make(map[*dataobjects.Transfer]float64)
 	transferAvgDenominator := make(map[*dataobjects.Transfer]float64)
 
-	type ConnectionKey struct {
-		From string
-		To   string
-	}
-
 	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
 	// that ensures the pointers to the transfers stay the same throughout this transaction
 	// (i.e. only one instance of each connection is brought into memory)

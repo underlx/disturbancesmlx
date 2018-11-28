@@ -61,7 +61,7 @@ func NewSession(node sqalx.Node, r *http.Request, w http.ResponseWriter, discord
 
 	session, _ := config.Store.Get(r, SessionName)
 
-	session.Options.MaxAge = int(discordToken.Expiry.Sub(time.Now()).Seconds())
+	session.Options.MaxAge = int(time.Until(discordToken.Expiry).Seconds())
 	session.Options.HttpOnly = true
 	session.Options.Secure = !DEBUG
 	session.Values["session"] = ppsession
@@ -82,17 +82,11 @@ func refreshSession(r *http.Request, w http.ResponseWriter, ppsession *Session, 
 		return err
 	}
 
-	guildMember, projectGuildErr := discordbot.ProjectGuildMember(ppsession.DiscordInfo.ID)
-	if projectGuildErr != nil {
-		guildMember = nil
-		player.InGuild = false
-	}
-
 	ppsession.DisplayName = getDisplayNameFromNameType(player.NameType, ppsession.DiscordInfo, guildMember)
 
 	session, _ := config.Store.Get(r, SessionName)
 
-	session.Options.MaxAge = int(ppsession.DiscordToken.Expiry.Sub(time.Now()).Seconds())
+	session.Options.MaxAge = int(time.Until(ppsession.DiscordToken.Expiry).Seconds())
 	session.Options.HttpOnly = true
 	session.Options.Secure = !DEBUG
 	session.Values["session"] = ppsession

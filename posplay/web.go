@@ -348,6 +348,8 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 	p.GuildMember, err = discordbot.ProjectGuildMember(session.DiscordInfo.ID)
 	if err != nil {
 		p.GuildMember = nil
+		player.InGuild = false
+		p.JoinedServer = false
 	}
 
 	if r.Method == http.MethodPost {
