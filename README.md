@@ -1,4 +1,4 @@
-# disturbancesmlx [![Discord](https://img.shields.io/discord/334423823552217090.svg)](https://discord.gg/hhuC7fc) [![license](https://img.shields.io/github/license/gbl08ma/disturbancesmlx.svg)](https://github.com/underlx/disturbancesmlx/blob/master/LICENSE)
+# disturbancesmlx [![Discord](https://img.shields.io/discord/334423823552217090.svg)](https://discord.gg/hhuC7fc) [![license](https://img.shields.io/github/license/gbl08ma/disturbancesmlx.svg)](https://github.com/underlx/disturbancesmlx/blob/master/LICENSE) [![CI status](https://travis-ci.org/underlx/disturbancesmlx.svg?branch=master)](https://travis-ci.org/underlx/disturbancesmlx)
 Server for the UnderLX app, providing information about public transit networks and handling user-contributed information. It is also responsible for serving a fancy status page for the [Lisbon Metro](http://www.metrolisboa.pt/), scraping the official website for some of the information it shows. Live at https://perturbacoes.pt.
 
 The server is written in Go. It is compatible with PostgreSQL only and designed to run behind a reverse proxy (to handle e.g. HTTPS), although it does not need one for experimentation/development.
