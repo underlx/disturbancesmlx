@@ -447,6 +447,10 @@ span.pt-ml-interchange-center {
   padding-left: 1.5em;
 }
 
+.disturbance-note > img {
+  max-width: 600px;
+}
+
 .disturbance-note-title {
   display: block;
   font-family: 'Roboto', sans-serif;
