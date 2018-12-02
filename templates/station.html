@@ -64,7 +64,7 @@
             <ul class="exit-list">
             {{ range $exit := (index $.LobbyExits $index) }}
               <li class="{{ $exit.Type }}">
-                <a target="_blank"
+                <a target="_blank" rel="noopener"
                    href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $exit.WorldCoord 0) (index $exit.WorldCoord 1)) }}">
                   {{ range $idx, $street := $exit.Streets}}{{$street}}{{ if not (eq $idx (minus (len $exit.Streets) 1))}}, {{end}}{{end}}
                 </a>
@@ -102,10 +102,10 @@
           {{ range $index, $poi := .POIs }}
             <li style="margin-bottom: 15px">
               {{ index $poi.Names $poi.MainLocale }}<br>
-              <a target="_blank" class="pure-button" style="font-size: 75%"
+              <a target="_blank" rel="noopener" class="pure-button" style="font-size: 75%"
                   href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $poi.WorldCoord 0) (index $poi.WorldCoord 1)) }}"><i class="fa fa-map" aria-hidden="true"></i> Mapa</a>
               {{ if not (eq $poi.URL "") }}
-              <a target="_blank" class="pure-button" style="font-size: 75%" href="{{ $poi.URL }} "><i class="fa fa-globe" aria-hidden="true"></i> Site</a>
+              <a target="_blank" rel="noopener" class="pure-button" style="font-size: 75%" href="{{ $poi.URL }} "><i class="fa fa-globe" aria-hidden="true"></i> Site</a>
               {{end}}
             </li>
           {{end}}
@@ -148,7 +148,7 @@
     {{ range $index, $poi := .POIs }}
       markers.push(L.marker([{{ index $poi.WorldCoord 0}}, {{index $poi.WorldCoord 1}}], {title: "{{ js (index $poi.Names $poi.MainLocale) }}"})
         .addTo(map)
-        .bindPopup('{{ js (index $poi.Names $poi.MainLocale) }}<br><a target="_blank" class="pure-button" href="{{ js $poi.URL }} "><i class="fa fa-globe" aria-hidden="true"></i> Site</a>'));
+        .bindPopup('{{ js (index $poi.Names $poi.MainLocale) }}<br><a target="_blank" rel="noopener" class="pure-button" href="{{ js $poi.URL }} "><i class="fa fa-globe" aria-hidden="true"></i> Site</a>'));
     {{end}}
     var poiMarkerGroup = new L.featureGroup(markers);
     map.fitBounds(markerGroup.getBounds().pad(0.2));
