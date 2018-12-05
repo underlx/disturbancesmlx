@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"sort"
@@ -57,7 +58,11 @@ func GetClientIP(r *http.Request) (ip string) {
 		ip = r.RemoteAddr
 	}
 
-	return strings.Split(ip, ":")[0]
+	host, _, err := net.SplitHostPort(ip)
+	if err != nil {
+		return ip
+	}
+	return host
 }
 
 // FormatPortugueseMonth returns the Portuguese name for a month

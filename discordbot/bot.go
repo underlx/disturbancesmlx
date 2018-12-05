@@ -46,6 +46,7 @@ var websiteURL string
 var botLog *log.Logger
 var session *discordgo.Session
 var cmdReceiver CommandReceiver
+var adminChannelID string
 
 // ThePosPlayBridge is the PosPlayBridge of the bot
 // (exported so the posplay package can reach it)
@@ -69,7 +70,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		return errors.New("Discord bot token not present in keybox")
 	}
 
-	adminChannelID, _ := keybox.Get("adminChannel")
+	adminChannelID, _ = keybox.Get("adminChannel")
 	if !present {
 		adminChannelID = ""
 	}
@@ -250,6 +251,23 @@ func Stop() {
 		session.Close()
 	}
 	scriptSystem.doClear()
+}
+
+// CreateInvite creates a single-use invite for the specified channel
+func CreateInvite(channelID, requesterIPaddr string) (*discordgo.Invite, error) {
+	if !started || session == nil {
+		return nil, fmt.Errorf("Bot not ready")
+	}
+	invite := discordgo.Invite{
+		MaxAge:    600,
+		MaxUses:   1,
+		Temporary: false,
+	}
+	i, err := session.ChannelInviteCreate(channelID, invite)
+	if err == nil && adminChannelID != "" {
+		session.ChannelMessageSend(adminChannelID, "[CreateInvite] Invite "+i.Code+" created on request of "+requesterIPaddr)
+	}
+	return i, err
 }
 
 func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate) {

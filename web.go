@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/underlx/disturbancesmlx/discordbot"
 	"github.com/underlx/disturbancesmlx/posplay"
+	"github.com/underlx/disturbancesmlx/utils"
 	"github.com/underlx/disturbancesmlx/website"
 )
 
@@ -38,6 +40,12 @@ func WebServer() {
 	posplay.ConfigureRouter(router.PathPrefix("/posplay").Subrouter())
 	website.ConfigureRouter(router.PathPrefix("/").Subrouter())
 
+	channel, present := webKeybox.Get("discordInviteChannel")
+	fallbackInvite, present2 := webKeybox.Get("discordFallbackInvite")
+	if present && present2 {
+		router.HandleFunc("/discord", inviteHandler(channel, fallbackInvite))
+	}
+
 	webLog.Println("Starting Web server...")
 
 	server := http.Server{
@@ -50,4 +58,15 @@ func WebServer() {
 		webLog.Println(err)
 	}
 	webLog.Println("Web server terminated")
+}
+
+func inviteHandler(channelID, fallbackInviteURL string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		invite, err := discordbot.CreateInvite(channelID, utils.GetClientIP(r))
+		if err != nil {
+			http.Redirect(w, r, fallbackInviteURL, http.StatusTemporaryRedirect)
+			return
+		}
+		http.Redirect(w, r, "https://discord.gg/"+invite.Code, http.StatusTemporaryRedirect)
+	}
 }
