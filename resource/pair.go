@@ -190,6 +190,6 @@ func (r *Pair) Post(c *yarf.Context) error {
 		Secret:     pair.Secret,
 		Type:       pair.Type,
 		Activation: pair.Activation,
-	})
+	}, "no-cache, no-store, must-revalidate")
 	return nil
 }

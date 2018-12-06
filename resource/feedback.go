@@ -93,5 +93,5 @@ func (r *Feedback) render(c *yarf.Context, feedback *dataobjects.Feedback) {
 		Contents: feedback.Contents,
 	}
 
-	RenderData(c, data)
+	RenderData(c, data, "no-cache, no-store, must-revalidate")
 }

@@ -39,7 +39,7 @@ func (r *POI) Get(c *yarf.Context) error {
 		if err != nil {
 			return err
 		}
-		RenderData(c, apiPOI(*poi))
+		RenderData(c, apiPOI(*poi), "s-maxage=10")
 	} else {
 		pois, err := dataobjects.GetPOIs(tx)
 		if err != nil {
@@ -49,7 +49,7 @@ func (r *POI) Get(c *yarf.Context) error {
 		for i := range pois {
 			apipois[i] = apiPOI(*pois[i])
 		}
-		RenderData(c, apipois)
+		RenderData(c, apipois, "s-maxage=10")
 	}
 	return nil
 }

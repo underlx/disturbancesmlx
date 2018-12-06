@@ -88,7 +88,7 @@ func (r *Network) Get(c *yarf.Context) error {
 		for _, s := range schedules {
 			data.Schedule = append(data.Schedule, apiNetworkSchedule(*s))
 		}
-		RenderData(c, data)
+		RenderData(c, data, "s-maxage=10")
 	} else {
 		networks, err := dataobjects.GetNetworks(tx)
 		if err != nil {
@@ -126,7 +126,7 @@ func (r *Network) Get(c *yarf.Context) error {
 				apinetworks[i].Schedule = append(apinetworks[i].Schedule, apiNetworkSchedule(*s))
 			}
 		}
-		RenderData(c, apinetworks)
+		RenderData(c, apinetworks, "s-maxage=10")
 	}
 	return nil
 }

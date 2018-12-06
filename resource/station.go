@@ -132,9 +132,9 @@ func (r *Station) Get(c *yarf.Context) error {
 	}
 
 	if c.Param("id") != "" {
-		RenderData(c, apistations[0])
+		RenderData(c, apistations[0], "s-maxage=10")
 	} else {
-		RenderData(c, apistations)
+		RenderData(c, apistations, "s-maxage=10")
 	}
 	return nil
 }

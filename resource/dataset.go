@@ -57,7 +57,7 @@ func (r *Dataset) Get(c *yarf.Context) error {
 			NetworkID:         dataset.Network.ID,
 		}
 
-		RenderData(c, apidataset)
+		RenderData(c, apidataset, "s-maxage=10")
 	} else {
 		datasets, err := dataobjects.GetDatasets(tx)
 		if err != nil {
@@ -71,7 +71,7 @@ func (r *Dataset) Get(c *yarf.Context) error {
 			}
 		}
 
-		RenderData(c, apidatasets)
+		RenderData(c, apidatasets, "s-maxage=10")
 	}
 	return nil
 }

@@ -92,15 +92,17 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 			}
 		}
 
-		RenderData(c, data)
+		RenderData(c, data, "s-maxage=10")
 	} else {
 		var disturbances []*dataobjects.Disturbance
 		var err error
 		start := c.Request.URL.Query().Get("start")
+		cacheControl := "s-maxage=10"
 		if start == "" {
 			switch c.Request.URL.Query().Get("filter") {
 			case "ongoing":
 				disturbances, err = dataobjects.GetOngoingDisturbances(tx)
+				cacheControl = "no-cache, no-store, must-revalidate"
 			default:
 				disturbances, err = dataobjects.GetDisturbances(tx)
 			}
@@ -145,7 +147,7 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 				}
 			}
 		}
-		RenderData(c, apidisturbances)
+		RenderData(c, apidisturbances, cacheControl)
 	}
 	return nil
 }

@@ -36,6 +36,6 @@ func (r *AuthTest) Get(c *yarf.Context) error {
 	}{
 		Result: "ok",
 		Key:    pair.Key,
-	})
+	}, "no-cache, no-store, must-revalidate")
 	return nil
 }

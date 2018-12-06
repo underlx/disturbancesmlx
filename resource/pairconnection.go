@@ -73,7 +73,7 @@ func (r *PairConnection) Post(c *yarf.Context) error {
 			RenderData(c, apiPairConnectionResponse{
 				Result:      "connected",
 				ServiceName: handler.DisplayName(),
-			})
+			}, "no-cache, no-store, must-revalidate")
 			return tx.Commit()
 		}
 	}
@@ -81,7 +81,7 @@ func (r *PairConnection) Post(c *yarf.Context) error {
 	c.Response.WriteHeader(http.StatusNotFound)
 	RenderData(c, apiPairConnectionResponse{
 		Result: "failure",
-	})
+	}, "no-cache, no-store, must-revalidate")
 
 	return nil
 }

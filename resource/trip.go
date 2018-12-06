@@ -118,7 +118,7 @@ func (r *Trip) Get(c *yarf.Context) error {
 			}
 		}
 
-		RenderData(c, apitrips)
+		RenderData(c, apitrips, "private")
 	}
 
 	return nil
@@ -406,5 +406,5 @@ func (r *Trip) render(c *yarf.Context, trip *dataobjects.Trip) {
 		data.APIstationUses = append(data.APIstationUses, sw)
 	}
 
-	RenderData(c, data)
+	RenderData(c, data, "private")
 }

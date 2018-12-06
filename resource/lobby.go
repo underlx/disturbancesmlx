@@ -85,7 +85,7 @@ func (r *Lobby) Get(c *yarf.Context) error {
 			data.Schedule = append(data.Schedule, apiLobbySchedule(*s))
 		}
 
-		RenderData(c, data)
+		RenderData(c, data, "s-maxage=10")
 	} else {
 		var lobbies []*dataobjects.Lobby
 		var err error
@@ -123,7 +123,7 @@ func (r *Lobby) Get(c *yarf.Context) error {
 				apilobbies[i].Schedule = append(apilobbies[i].Schedule, apiLobbySchedule(*s))
 			}
 		}
-		RenderData(c, apilobbies)
+		RenderData(c, apilobbies, "s-maxage=10")
 	}
 	return nil
 }

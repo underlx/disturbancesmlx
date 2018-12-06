@@ -91,7 +91,7 @@ func (r *Stats) Get(c *yarf.Context) error {
 			return err
 		}
 
-		RenderData(c, stats)
+		RenderData(c, stats, "s-maxage=10")
 	} else {
 		statsMap := make(map[string]apiStats)
 		networks, err := dataobjects.GetNetworks(tx)
@@ -106,7 +106,7 @@ func (r *Stats) Get(c *yarf.Context) error {
 			}
 			statsMap[network.ID] = stats
 		}
-		RenderData(c, statsMap)
+		RenderData(c, statsMap, "s-maxage=10")
 	}
 	return nil
 }

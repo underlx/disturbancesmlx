@@ -51,7 +51,7 @@ func (r *Transfer) Get(c *yarf.Context) error {
 			ToID:        transfer.To.ID,
 		}
 
-		RenderData(c, data)
+		RenderData(c, data, "s-maxage=10")
 	} else {
 		transfers, err := dataobjects.GetTransfers(tx)
 		if err != nil {
@@ -66,7 +66,7 @@ func (r *Transfer) Get(c *yarf.Context) error {
 				ToID:        transfers[i].To.ID,
 			}
 		}
-		RenderData(c, apitransfers)
+		RenderData(c, apitransfers, "s-maxage=10")
 	}
 	return nil
 }

@@ -57,7 +57,7 @@ func (r *Announcement) Get(c *yarf.Context) error {
 			NetworkID:       anns[i].Network.ID,
 		}
 	}
-	RenderData(c, apianns)
+	RenderData(c, apianns, "s-maxage=10")
 
 	return nil
 }

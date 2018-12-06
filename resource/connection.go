@@ -51,7 +51,7 @@ func (r *Connection) Get(c *yarf.Context) error {
 			ToID:          connection.To.ID,
 		}
 
-		RenderData(c, data)
+		RenderData(c, data, "s-maxage=10")
 	} else {
 		connections, err := dataobjects.GetConnections(tx)
 		if err != nil {
@@ -65,7 +65,7 @@ func (r *Connection) Get(c *yarf.Context) error {
 				ToID:          connections[i].To.ID,
 			}
 		}
-		RenderData(c, apiconnections)
+		RenderData(c, apiconnections, "s-maxage=10")
 	}
 	return nil
 }

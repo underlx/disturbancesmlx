@@ -116,9 +116,9 @@ func (r *Line) Get(c *yarf.Context) error {
 	}
 
 	if c.Param("id") != "" {
-		RenderData(c, apilines[0])
+		RenderData(c, apilines[0], "s-maxage=10")
 	} else {
-		RenderData(c, apilines)
+		RenderData(c, apilines, "s-maxage=10")
 	}
 	return nil
 }

@@ -34,6 +34,6 @@ func (r *Meta) Get(c *yarf.Context) error {
 		Supported:        true,
 		Up:               true,
 		MinAndroidClient: 1,
-	})
+	}, "s-maxage=10")
 	return nil
 }
