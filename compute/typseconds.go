@@ -2,6 +2,7 @@ package compute
 
 import (
 	"math"
+	"sort"
 	"time"
 
 	"github.com/gbl08ma/sqalx"
@@ -244,4 +245,225 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 	}
 
 	return tx.Commit()
+}
+
+// TypicalSecondsEntry makes the items of the result of ComputeTypicalSeconds
+type TypicalSecondsEntry struct {
+	From        string
+	To          string
+	Weekday     int
+	Hour        int
+	Numerator   float64
+	Denominator int64
+}
+
+// TypicalSecondsByDowAndHour calculates TypicalSeconds per hour of day and week
+func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (connectionEntries, transferEntries []TypicalSecondsEntry, err error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	tripIDs, err := dataobjects.GetTripIDsBetween(tx, startTime, endTime)
+	if err != nil {
+		return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, err
+	}
+
+	mainLog.Printf("TypicalSecondsByDowAndHour: %d trip IDs\n", len(tripIDs))
+
+	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
+	// that ensures the pointers to the transfers stay the same throughout this transaction
+	// (i.e. only one instance of each transfer is brought into memory)
+	transferAvgNumerator := make(map[*dataobjects.Transfer]map[time.Weekday]map[int]float64)
+	transferAvgDenominator := make(map[*dataobjects.Transfer]map[time.Weekday]map[int]int64)
+
+	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
+	// that ensures the pointers to the transfers stay the same throughout this transaction
+	// (i.e. only one instance of each connection is brought into memory)
+	connectionAvgNumerator := make(map[*dataobjects.Connection]map[time.Weekday]map[int]float64)
+	connectionAvgDenominator := make(map[*dataobjects.Connection]map[time.Weekday]map[int]int64)
+
+	processTransfer := func(transfer *dataobjects.Transfer, use *dataobjects.StationUse) error {
+		seconds := use.LeaveTime.Sub(use.EntryTime).Seconds()
+		// if going from one line to another took more than 15 minutes,
+		// probably what really happened was that the client's clock was adjusted
+		// in the meantime, OR the user decided to go shop or something at the station
+		if seconds < 15*60 {
+			if transferAvgNumerator[transfer] == nil {
+				transferAvgNumerator[transfer] = make(map[time.Weekday]map[int]float64)
+				transferAvgDenominator[transfer] = make(map[time.Weekday]map[int]int64)
+			}
+			if transferAvgNumerator[transfer][use.EntryTime.Weekday()] == nil {
+				transferAvgNumerator[transfer][use.EntryTime.Weekday()] = make(map[int]float64)
+				transferAvgDenominator[transfer][use.EntryTime.Weekday()] = make(map[int]int64)
+			}
+			transferAvgNumerator[transfer][use.EntryTime.Weekday()][use.EntryTime.Hour()] += seconds - 20
+			transferAvgDenominator[transfer][use.EntryTime.Weekday()][use.EntryTime.Hour()]++
+		}
+		return nil
+	}
+
+	processConnection := func(connection *dataobjects.Connection, sourceUse *dataobjects.StationUse, targetUse *dataobjects.StationUse) error {
+		seconds := targetUse.EntryTime.Sub(sourceUse.LeaveTime).Seconds()
+		waitSeconds := sourceUse.LeaveTime.Sub(sourceUse.EntryTime).Seconds()
+		// if going from one station to another took more than 15 minutes,
+		// probably what really happened was that the client's clock was adjusted
+		// in the meantime
+		if seconds < 15*60 {
+			if connectionAvgNumerator[connection] == nil {
+				connectionAvgNumerator[connection] = make(map[time.Weekday]map[int]float64)
+				connectionAvgDenominator[connection] = make(map[time.Weekday]map[int]int64)
+			}
+			if connectionAvgNumerator[connection][sourceUse.EntryTime.Weekday()] == nil {
+				connectionAvgNumerator[connection][sourceUse.EntryTime.Weekday()] = make(map[int]float64)
+				connectionAvgDenominator[connection][sourceUse.EntryTime.Weekday()] = make(map[int]int64)
+			}
+
+			connectionAvgNumerator[connection][sourceUse.EntryTime.Weekday()][sourceUse.EntryTime.Hour()] += seconds + waitSeconds
+			connectionAvgDenominator[connection][sourceUse.EntryTime.Weekday()][sourceUse.EntryTime.Hour()]++
+		}
+		return nil
+	}
+
+	processTrip := func(trip *dataobjects.Trip) error {
+		if len(trip.StationUses) <= 1 {
+			// station visit or invalid trip
+			// can't extract any data about connections
+			return nil
+		}
+
+		for useIdx := 0; useIdx < len(trip.StationUses)-1; useIdx++ {
+			sourceUse := trip.StationUses[useIdx]
+
+			if sourceUse.Manual {
+				// manual path extensions don't contain valid time data
+				// skip
+				continue
+			}
+
+			// if this is a transfer, process it
+			if sourceUse.Type == dataobjects.Interchange {
+				transfer, err := dataobjects.GetTransfer(tx, sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
+				if err != nil {
+					// transfer might no longer exist (closed stations, etc.)
+					// move on
+					mainLog.Printf("%s: Transfer on %s from %s to %s skipped\n", trip.ID, sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
+					return nil
+				}
+
+				if err = processTransfer(transfer, sourceUse); err != nil {
+					return err
+				}
+			}
+
+			targetUse := trip.StationUses[useIdx+1]
+
+			if targetUse.Manual {
+				// manual path extensions don't contain valid time data
+				// skip
+				continue
+			}
+
+			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID)
+			if err != nil {
+				// connection might no longer exist (closed stations, etc.)
+				// move on
+				mainLog.Printf("%s: Connection from %s to %s skipped\n", trip.ID, sourceUse.Station.ID, targetUse.Station.ID)
+				continue
+			}
+			if useIdx+2 < len(trip.StationUses) && trip.StationUses[useIdx+2].EntryTime.Sub(targetUse.EntryTime) < 1*time.Second {
+				// this station use is certainly a forced extension to make up for a station the client did not capture correct times for
+				// skip
+				continue
+			}
+
+			if err = processConnection(connection, sourceUse, targetUse); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	// instantiate each trip from DB individually
+	// (instead of using dataobjects.GetTrips)
+	// to reduce memory usage
+	for i, tripID := range tripIDs {
+		trip, err := dataobjects.GetTrip(tx, tripID)
+		if err != nil {
+			return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, err
+		}
+
+		if err = processTrip(trip); err != nil {
+			return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, err
+		}
+
+		if i%5000 == 0 {
+			mainLog.Printf("TypicalSecondsByDowAndHour: processed %d of %d\n", i, len(tripIDs))
+		}
+	}
+
+	connections := []*dataobjects.Connection{}
+	for connection := range connectionAvgDenominator {
+		connections = append(connections, connection)
+	}
+	sort.Slice(connections, func(i, j int) bool {
+		if connections[i].From.ID == connections[j].From.ID {
+			return connections[i].To.ID < connections[j].To.ID
+		}
+		return connections[i].From.ID < connections[j].From.ID
+	})
+
+	connectionEntries = []TypicalSecondsEntry{}
+	for _, connection := range connections {
+		for weekday := time.Sunday; weekday <= time.Saturday; weekday++ {
+			if connectionAvgNumerator[connection][weekday] == nil {
+				connectionAvgNumerator[connection][weekday] = make(map[int]float64)
+				connectionAvgDenominator[connection][weekday] = make(map[int]int64)
+			}
+			for hour := 0; hour < 24; hour++ {
+				connectionEntries = append(connectionEntries, TypicalSecondsEntry{
+					From:        connection.From.ID,
+					To:          connection.To.ID,
+					Weekday:     int(weekday),
+					Hour:        hour,
+					Numerator:   connectionAvgNumerator[connection][weekday][hour],
+					Denominator: connectionAvgDenominator[connection][weekday][hour],
+				})
+			}
+		}
+	}
+
+	transfers := []*dataobjects.Transfer{}
+	for transfer := range transferAvgDenominator {
+		transfers = append(transfers, transfer)
+	}
+	sort.Slice(transfers, func(i, j int) bool {
+		if transfers[i].From.ID == transfers[j].From.ID {
+			return transfers[i].To.ID < transfers[j].To.ID
+		}
+		return transfers[i].From.ID < transfers[j].From.ID
+	})
+
+	transferEntries = []TypicalSecondsEntry{}
+	for _, transfer := range transfers {
+		for weekday := time.Sunday; weekday <= time.Saturday; weekday++ {
+			if transferAvgNumerator[transfer][weekday] == nil {
+				transferAvgNumerator[transfer][weekday] = make(map[int]float64)
+				transferAvgDenominator[transfer][weekday] = make(map[int]int64)
+			}
+			for hour := 0; hour < 24; hour++ {
+				transferEntries = append(transferEntries, TypicalSecondsEntry{
+					From:        transfer.From.ID,
+					To:          transfer.To.ID,
+					Weekday:     int(weekday),
+					Hour:        hour,
+					Numerator:   transferAvgNumerator[transfer][weekday][hour],
+					Denominator: transferAvgDenominator[transfer][weekday][hour],
+				})
+			}
+		}
+	}
+
+	return connectionEntries, transferEntries, nil
 }

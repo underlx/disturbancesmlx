@@ -197,6 +197,35 @@ func main() {
 		f.Close()
 	}*/
 
+	/*if DEBUG {
+		loc, _ := time.LoadLocation("Europe/Lisbon")
+		start := time.Date(2017, time.May, 1, 0, 0, 0, 0, loc)
+		end := time.Date(2018, time.October, 14, 0, 0, 0, 0, loc)
+		cEntries, tEntries, err := compute.TypicalSecondsByDowAndHour(rootSqalxNode, start, end)
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+		f, err := os.Create("connectionseconds.csv")
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+		f.WriteString("from,to,dow,hour,numerator,denominator\n")
+		for _, entry := range cEntries {
+			f.WriteString(fmt.Sprintf("%s,%s,%d,%d,%.0f,%d\n", entry.From, entry.To, entry.Weekday, entry.Hour, entry.Numerator, entry.Denominator))
+		}
+		f.Close()
+
+		f, err = os.Create("transferseconds.csv")
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+		f.WriteString("from,to,dow,hour,numerator,denominator\n")
+		for _, entry := range tEntries {
+			f.WriteString(fmt.Sprintf("%s,%s,%d,%d,%.0f,%d\n", entry.From, entry.To, entry.Weekday, entry.Hour, entry.Numerator, entry.Denominator))
+		}
+		f.Close()
+	}*/
+
 	for {
 		if DEBUG {
 			printLatestDisturbance(rootSqalxNode)
