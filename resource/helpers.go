@@ -82,6 +82,9 @@ func RenderUnauthorized(c *yarf.Context) {
 // RenderData takes a interface{} object and writes the encoded representation of it.
 // Encoding used will be idented JSON, non-idented JSON, Msgpack or XML
 func RenderData(c *yarf.Context, data interface{}, cacheControl string) {
+	if cacheControl != "" {
+		c.Response.Header().Set("Cache-Control", cacheControl)
+	}
 	accept := c.Request.Header.Get("Accept")
 	switch {
 	case strings.Contains(accept, "json"):
@@ -95,9 +98,6 @@ func RenderData(c *yarf.Context, data interface{}, cacheControl string) {
 	default:
 		c.Response.Header().Set("Content-Type", "application/json; charset=utf-8")
 		c.RenderJSONIndent(data)
-	}
-	if cacheControl != "" {
-		c.Response.Header().Set("Cache-Control", cacheControl)
 	}
 }
 
