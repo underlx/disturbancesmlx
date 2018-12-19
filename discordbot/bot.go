@@ -8,6 +8,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,8 +18,10 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/gbl08ma/sqalx"
+	cache "github.com/patrickmn/go-cache"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/utils"
 )
 
 var started bool
@@ -27,6 +30,7 @@ var commandLib *CommandLibrary
 var messageHandlers []MessageHandler
 var reactionHandlers []ReactionHandler
 var guildIDs sync.Map
+
 var botstats = stats{
 	DMChannels: make(map[string]bool),
 }
@@ -41,12 +45,20 @@ type stats struct {
 	VoiceChannelCount   int
 }
 
+var recentInvites *cache.Cache
+
+type inviteInfo struct {
+	Code            string
+	RequesterIPAddr string
+	RequestTime     time.Time
+	InviteTime      time.Time
+}
+
 var node sqalx.Node
 var websiteURL string
 var botLog *log.Logger
 var session *discordgo.Session
 var cmdReceiver CommandReceiver
-var adminChannelID string
 
 // ThePosPlayBridge is the PosPlayBridge of the bot
 // (exported so the posplay package can reach it)
@@ -63,6 +75,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	websiteURL = swebsiteURL
 	botLog = log
 	cmdReceiver = cmdRecv
+	recentInvites = cache.New(24*time.Hour, 1*time.Hour)
 	rand.Seed(time.Now().Unix())
 
 	discordToken, present := keybox.Get("token")
@@ -70,7 +83,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		return errors.New("Discord bot token not present in keybox")
 	}
 
-	adminChannelID, _ = keybox.Get("adminChannel")
+	adminChannelID, _ := keybox.Get("adminChannel")
 	if !present {
 		adminChannelID = ""
 	}
@@ -183,6 +196,12 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("sendcommand", handleSendCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendtochannel", handleSendToChannel).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("emptychannel", handleEmptyChannel).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("invitehistory", handleInviteHistory).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("startreactionevent", ThePosPlayBridge.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("startquizevent", ThePosPlayBridge.handleQuizStartCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("stopevent", ThePosPlayBridge.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("markspamchannel", ThePosPlayBridge.handleMarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("unmarkspamchannel", ThePosPlayBridge.handleUnmarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("setprefix", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		if len(args) == 0 {
 			commandLib.SetPrefix("")
@@ -192,12 +211,6 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		s.ChannelMessageSend(m.ChannelID, "✅")
 	}).WithRequirePrivilege(PrivilegeRoot))
 	commandLib.Register(NewCommand("setcmdpriv", handleSetCommandPrivilege).WithRequirePrivilege(PrivilegeRoot))
-
-	commandLib.Register(NewCommand("startreactionevent", ThePosPlayBridge.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
-	commandLib.Register(NewCommand("startquizevent", ThePosPlayBridge.handleQuizStartCommand).WithRequirePrivilege(PrivilegeAdmin))
-	commandLib.Register(NewCommand("stopevent", ThePosPlayBridge.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
-	commandLib.Register(NewCommand("markspamchannel", ThePosPlayBridge.handleMarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
-	commandLib.Register(NewCommand("unmarkspamchannel", ThePosPlayBridge.handleUnmarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
 	scriptSystem.Setup(commandLib, PrivilegeRoot)
 	new(SQLSystem).Setup(node, commandLib, PrivilegeRoot)
 
@@ -264,8 +277,18 @@ func CreateInvite(channelID, requesterIPaddr string) (*discordgo.Invite, error) 
 		Temporary: false,
 	}
 	i, err := session.ChannelInviteCreate(channelID, invite)
-	if err == nil && adminChannelID != "" {
-		session.ChannelMessageSend(adminChannelID, "[CreateInvite] Invite "+i.Code+" created on request of "+requesterIPaddr)
+	if err == nil {
+		uuid, err := uuid.NewV4()
+		if err != nil {
+			return i, err
+		}
+		inviteTime, _ := i.CreatedAt.Parse()
+		recentInvites.SetDefault(uuid.String(), inviteInfo{
+			Code:            i.Code,
+			RequesterIPAddr: requesterIPaddr,
+			RequestTime:     time.Now(),
+			InviteTime:      inviteTime,
+		})
 	}
 	return i, err
 }
@@ -707,6 +730,37 @@ func handleEmptyChannel(s *discordgo.Session, m *discordgo.MessageCreate, args [
 		}
 	}
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🗑 %d messages on `%s`", len(messageIDs), args[0]))
+}
+
+func handleInviteHistory(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	items := recentInvites.Items()
+	if len(items) == 0 {
+		s.ChannelMessageSend(m.ChannelID, "🏜")
+		return
+	}
+	invites := make([]inviteInfo, len(items))
+	i := 0
+	for _, item := range items {
+		invites[i] = item.Object.(inviteInfo)
+		i++
+	}
+	sort.Slice(invites, func(i, j int) bool {
+		return invites[i].RequestTime.Before(invites[j].RequestTime)
+	})
+	message := ""
+	for _, invite := range invites {
+		line := invite.RequestTime.UTC().Format(time.RFC3339)
+		if utils.DurationAbs(invite.RequestTime.Sub(invite.InviteTime)) > 5*time.Second {
+			line += " (" + invite.InviteTime.UTC().Format(time.RFC3339) + ")"
+		}
+		line += " - " + invite.RequesterIPAddr + " - " + invite.Code + "\n"
+		if len(message)+len(line) > 2000 {
+			s.ChannelMessageSend(m.ChannelID, message)
+			message = ""
+		}
+		message += line
+	}
+	s.ChannelMessageSend(m.ChannelID, message)
 }
 
 func handleSetCommandPrivilege(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {

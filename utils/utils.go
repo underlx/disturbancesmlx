@@ -250,3 +250,14 @@ func scheduleToString(schedule *dataobjects.LobbySchedule) string {
 	}
 	return text
 }
+
+// Int64Abs is math.Abs for int64
+func Int64Abs(n int64) int64 {
+	y := n >> 63
+	return (n ^ y) - y
+}
+
+// DurationAbs is math.Abs for time.Duration
+func DurationAbs(n time.Duration) time.Duration {
+	return time.Duration(Int64Abs(int64(n)))
+}
