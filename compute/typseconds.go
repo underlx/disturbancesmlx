@@ -257,17 +257,28 @@ type TypicalSecondsEntry struct {
 	Denominator int64
 }
 
+// TypicalSecondsMinMax returns per-connection/transfer max and min of ComputeTypicalSeconds
+type TypicalSecondsMinMax struct {
+	From string
+	To   string
+	Max  int64
+	Min  int64
+}
+
 // TypicalSecondsByDowAndHour calculates TypicalSeconds per hour of day and week
-func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (connectionEntries, transferEntries []TypicalSecondsEntry, err error) {
+func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
+	connectionEntries, transferEntries []TypicalSecondsEntry,
+	connectionMinMax, transferMinMax []TypicalSecondsMinMax,
+	err error) {
 	tx, err := node.Beginx()
 	if err != nil {
-		return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, err
+		return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, []TypicalSecondsMinMax{}, []TypicalSecondsMinMax{}, err
 	}
 	defer tx.Commit() // read-only tx
 
 	tripIDs, err := dataobjects.GetTripIDsBetween(tx, startTime, endTime)
 	if err != nil {
-		return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, err
+		return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, []TypicalSecondsMinMax{}, []TypicalSecondsMinMax{}, err
 	}
 
 	mainLog.Printf("TypicalSecondsByDowAndHour: %d trip IDs\n", len(tripIDs))
@@ -277,22 +288,28 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 	// (i.e. only one instance of each transfer is brought into memory)
 	transferAvgNumerator := make(map[*dataobjects.Transfer]map[time.Weekday]map[int]float64)
 	transferAvgDenominator := make(map[*dataobjects.Transfer]map[time.Weekday]map[int]int64)
+	transferMax := make(map[*dataobjects.Transfer]int64)
+	transferMin := make(map[*dataobjects.Transfer]int64)
 
 	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
 	// that ensures the pointers to the transfers stay the same throughout this transaction
 	// (i.e. only one instance of each connection is brought into memory)
 	connectionAvgNumerator := make(map[*dataobjects.Connection]map[time.Weekday]map[int]float64)
 	connectionAvgDenominator := make(map[*dataobjects.Connection]map[time.Weekday]map[int]int64)
+	connectionMax := make(map[*dataobjects.Connection]int64)
+	connectionMin := make(map[*dataobjects.Connection]int64)
 
 	processTransfer := func(transfer *dataobjects.Transfer, use *dataobjects.StationUse) error {
 		seconds := use.LeaveTime.Sub(use.EntryTime).Seconds()
 		// if going from one line to another took more than 15 minutes,
 		// probably what really happened was that the client's clock was adjusted
 		// in the meantime, OR the user decided to go shop or something at the station
-		if seconds < 15*60 {
+		if seconds < 15*60 && seconds > 10 {
 			if transferAvgNumerator[transfer] == nil {
 				transferAvgNumerator[transfer] = make(map[time.Weekday]map[int]float64)
 				transferAvgDenominator[transfer] = make(map[time.Weekday]map[int]int64)
+				transferMax[transfer] = math.MinInt64
+				transferMin[transfer] = math.MaxInt64
 			}
 			if transferAvgNumerator[transfer][use.EntryTime.Weekday()] == nil {
 				transferAvgNumerator[transfer][use.EntryTime.Weekday()] = make(map[int]float64)
@@ -300,6 +317,12 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 			}
 			transferAvgNumerator[transfer][use.EntryTime.Weekday()][use.EntryTime.Hour()] += seconds - 20
 			transferAvgDenominator[transfer][use.EntryTime.Weekday()][use.EntryTime.Hour()]++
+			if int64(math.Round(seconds-20)) > transferMax[transfer] {
+				transferMax[transfer] = int64(math.Round(seconds - 20))
+			}
+			if int64(math.Round(seconds-20)) < transferMin[transfer] {
+				transferMin[transfer] = int64(math.Round(seconds - 20))
+			}
 		}
 		return nil
 	}
@@ -310,10 +333,12 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 		// if going from one station to another took more than 15 minutes,
 		// probably what really happened was that the client's clock was adjusted
 		// in the meantime
-		if seconds < 15*60 {
+		if seconds < 15*60 && waitSeconds < 15*60 && (seconds > 10 || waitSeconds > 10) {
 			if connectionAvgNumerator[connection] == nil {
 				connectionAvgNumerator[connection] = make(map[time.Weekday]map[int]float64)
 				connectionAvgDenominator[connection] = make(map[time.Weekday]map[int]int64)
+				connectionMax[connection] = math.MinInt64
+				connectionMin[connection] = math.MaxInt64
 			}
 			if connectionAvgNumerator[connection][sourceUse.EntryTime.Weekday()] == nil {
 				connectionAvgNumerator[connection][sourceUse.EntryTime.Weekday()] = make(map[int]float64)
@@ -322,6 +347,12 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 
 			connectionAvgNumerator[connection][sourceUse.EntryTime.Weekday()][sourceUse.EntryTime.Hour()] += seconds + waitSeconds
 			connectionAvgDenominator[connection][sourceUse.EntryTime.Weekday()][sourceUse.EntryTime.Hour()]++
+			if int64(math.Round(seconds+waitSeconds)) > connectionMax[connection] {
+				connectionMax[connection] = int64(math.Round(seconds + waitSeconds))
+			}
+			if int64(math.Round(seconds+waitSeconds)) < connectionMin[connection] {
+				connectionMin[connection] = int64(math.Round(seconds + waitSeconds))
+			}
 		}
 		return nil
 	}
@@ -391,11 +422,11 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 	for i, tripID := range tripIDs {
 		trip, err := dataobjects.GetTrip(tx, tripID)
 		if err != nil {
-			return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, err
+			return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, []TypicalSecondsMinMax{}, []TypicalSecondsMinMax{}, err
 		}
 
 		if err = processTrip(trip); err != nil {
-			return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, err
+			return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, []TypicalSecondsMinMax{}, []TypicalSecondsMinMax{}, err
 		}
 
 		if i%5000 == 0 {
@@ -415,6 +446,7 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 	})
 
 	connectionEntries = []TypicalSecondsEntry{}
+	connectionMinMax = []TypicalSecondsMinMax{}
 	for _, connection := range connections {
 		for weekday := time.Sunday; weekday <= time.Saturday; weekday++ {
 			if connectionAvgNumerator[connection][weekday] == nil {
@@ -432,6 +464,12 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 				})
 			}
 		}
+		connectionMinMax = append(connectionMinMax, TypicalSecondsMinMax{
+			From: connection.From.ID,
+			To:   connection.To.ID,
+			Min:  connectionMin[connection],
+			Max:  connectionMax[connection],
+		})
 	}
 
 	transfers := []*dataobjects.Transfer{}
@@ -463,7 +501,13 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 				})
 			}
 		}
+		transferMinMax = append(transferMinMax, TypicalSecondsMinMax{
+			From: transfer.From.ID,
+			To:   transfer.To.ID,
+			Min:  transferMin[transfer],
+			Max:  transferMax[transfer],
+		})
 	}
 
-	return connectionEntries, transferEntries, nil
+	return connectionEntries, transferEntries, connectionMinMax, transferMinMax, nil
 }

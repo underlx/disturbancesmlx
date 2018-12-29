@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -201,7 +202,7 @@ func main() {
 		loc, _ := time.LoadLocation("Europe/Lisbon")
 		start := time.Date(2017, time.May, 1, 0, 0, 0, 0, loc)
 		end := time.Date(2018, time.October, 14, 0, 0, 0, 0, loc)
-		cEntries, tEntries, err := compute.TypicalSecondsByDowAndHour(rootSqalxNode, start, end)
+		cEntries, tEntries, cMinMax, tMinMax, err := compute.TypicalSecondsByDowAndHour(rootSqalxNode, start, end)
 		if err != nil {
 			mainLog.Fatalln(err)
 		}
@@ -222,6 +223,26 @@ func main() {
 		f.WriteString("from,to,dow,hour,numerator,denominator\n")
 		for _, entry := range tEntries {
 			f.WriteString(fmt.Sprintf("%s,%s,%d,%d,%.0f,%d\n", entry.From, entry.To, entry.Weekday, entry.Hour, entry.Numerator, entry.Denominator))
+		}
+		f.Close()
+
+		f, err = os.Create("connectionminmax.csv")
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+		f.WriteString("from,to,min,max\n")
+		for _, entry := range cMinMax {
+			f.WriteString(fmt.Sprintf("%s,%s,%d,%d\n", entry.From, entry.To, entry.Min, entry.Max))
+		}
+		f.Close()
+
+		f, err = os.Create("transferminmax.csv")
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+		f.WriteString("from,to,min,max\n")
+		for _, entry := range tMinMax {
+			f.WriteString(fmt.Sprintf("%s,%s,%d,%d\n", entry.From, entry.To, entry.Min, entry.Max))
 		}
 		f.Close()
 	}*/
