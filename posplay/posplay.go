@@ -208,7 +208,7 @@ func RegisterDiscussionParticipationCallback(userID string, XPreward int) bool {
 		return false
 	}
 	var newtx *dataobjects.PPXPTransaction
-	if len(lasttx) > 0 && lasttx[0].Type == "DISCORD_PARTICIPATION" {
+	if len(lasttx) > 0 && lasttx[0].Type == "DISCORD_PARTICIPATION" && time.Since(lasttx[0].Time) < 6*time.Hour && lasttx[0].Value < 100 {
 		// to avoid creating many micro-transactions, update the latest transaction, adding the new reward
 		newtx = lasttx[0]
 	} else {
