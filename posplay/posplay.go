@@ -208,8 +208,10 @@ func RegisterDiscussionParticipationCallback(userID string, XPreward int) bool {
 		return false
 	}
 	var newtx *dataobjects.PPXPTransaction
-	if len(lasttx) > 0 && lasttx[0].Type == "DISCORD_PARTICIPATION" && time.Since(lasttx[0].Time) < 6*time.Hour && lasttx[0].Value < 100 {
+	if len(lasttx) > 0 && lasttx[0].Type == "DISCORD_PARTICIPATION" &&
+		lasttx[0].Time.After(getWeekStart()) {
 		// to avoid creating many micro-transactions, update the latest transaction, adding the new reward
+		// the lasttx[0].Time.After(getWeekStart()) check prevents tx merging with old rewards, "bringing old XP into the current week"
 		newtx = lasttx[0]
 	} else {
 		txid, err := uuid.NewV4()
