@@ -85,6 +85,11 @@ func init() {
 	}
 }
 
+// ID implements resource.PairConnectionHandler
+func (h *ConnectionHandler) ID() string {
+	return "posplay"
+}
+
 // TryCreateConnection implements resource.PairConnectionHandler
 func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceName string, pair *dataobjects.APIPair) bool {
 	h.mu.Lock()
@@ -222,6 +227,41 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 	}
 
 	return true
+}
+
+// GetConnectionsForPair implements resource.PairConnectionHandler
+func (h *ConnectionHandler) GetConnectionsForPair(node sqalx.Node, pair *dataobjects.APIPair) ([]dataobjects.PairConnection, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Commit()
+
+	ppPair, err := dataobjects.GetPPPairForKey(tx, pair.Key)
+	if err != nil {
+		return []dataobjects.PairConnection{}, nil
+	}
+
+	info, err := playerXPinfoWithTx(tx, uidConvI(ppPair.DiscordID))
+	if err != nil {
+		return []dataobjects.PairConnection{}, err
+	}
+
+	return []dataobjects.PairConnection{&PairConnection{
+		pair:    pair,
+		created: ppPair.Paired,
+		extra: PairConnectionExtra{
+			DiscordID:     ppPair.DiscordID,
+			Username:      info.Username,
+			AvatarURL:     info.AvatarURL,
+			Level:         info.Level,
+			LevelProgress: info.LevelProgress,
+			XP:            info.XP,
+			XPthisWeek:    info.XPthisWeek,
+			Rank:          info.Rank,
+			RankThisWeek:  info.RankThisWeek,
+		},
+	}}, nil
 }
 
 // DisplayName implements resource.PairConnectionHandler

@@ -346,6 +346,10 @@ func playerXPinfo(userID string) (discordbot.PosPlayXPInfo, error) {
 	}
 	defer tx.Commit() // read-only tx
 
+	return playerXPinfoWithTx(tx, userID)
+}
+
+func playerXPinfoWithTx(tx sqalx.Node, userID string) (discordbot.PosPlayXPInfo, error) {
 	player, err := dataobjects.GetPPPlayer(tx, uidConvS(userID))
 	if err != nil {
 		return discordbot.PosPlayXPInfo{}, err
