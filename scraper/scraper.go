@@ -5,6 +5,7 @@ import (
 
 	"time"
 
+	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
@@ -20,7 +21,7 @@ type Scraper interface {
 // StatusScrapers can report duplicate states to the statusReporter
 type StatusScraper interface {
 	Scraper
-	Init(log *log.Logger,
+	Init(node sqalx.Node, log *log.Logger,
 		statusReporter func(status *dataobjects.Status),
 		topologyChangeCallback func(StatusScraper))
 	Networks() []*dataobjects.Network

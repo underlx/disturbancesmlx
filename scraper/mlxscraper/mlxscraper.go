@@ -2,7 +2,6 @@ package mlxscraper
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gbl08ma/sqalx"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/scraper"
@@ -24,12 +24,14 @@ type Scraper struct {
 	running                bool
 	ticker                 *time.Ticker
 	stopChan               chan struct{}
+	lineIDs                []string
+	lineNames              []string
+	detLineNames           []string
 	lines                  map[string]*dataobjects.Line
 	previousResponse       []byte
 	log                    *log.Logger
 	statusCallback         func(status *dataobjects.Status)
 	topologyChangeCallback func(scraper.StatusScraper)
-	firstUpdate            bool
 	lastUpdate             time.Time
 
 	URL     string
@@ -44,19 +46,36 @@ func (sc *Scraper) ID() string {
 }
 
 // Init initializes the scraper
-func (sc *Scraper) Init(log *log.Logger,
+func (sc *Scraper) Init(node sqalx.Node, log *log.Logger,
 	statusCallback func(status *dataobjects.Status),
 	topologyChangeCallback func(scraper.StatusScraper)) {
 	sc.log = log
 	sc.statusCallback = statusCallback
 	sc.topologyChangeCallback = topologyChangeCallback
+
+	sc.lineIDs = []string{"pt-ml-azul", "pt-ml-amarela", "pt-ml-verde", "pt-ml-vermelha"}
+	sc.lineNames = []string{"azul", "amarela", "verde", "vermelha"}
+	sc.detLineNames = []string{"Azul", "Amar", "Verde", "Verm"}
+
 	sc.lines = make(map[string]*dataobjects.Line)
-	sc.firstUpdate = true
+
+	tx, err := node.Beginx()
+	if err != nil {
+		log.Panicln(err)
+		return
+	}
+	defer tx.Commit() // read-only tx
+
+	for _, lineID := range sc.lineIDs {
+		sc.lines[lineID], err = dataobjects.GetLine(tx, lineID)
+		if err != nil {
+			log.Panicln(err)
+			return
+		}
+	}
 
 	sc.log.Println("Scraper initializing")
 	sc.update()
-	sc.log.Println("Scraper completed first fetch")
-	topologyChangeCallback(sc)
 }
 
 // Begin starts the scraper
@@ -111,65 +130,34 @@ func (sc *Scraper) update() {
 				return
 			}
 
-			if !sc.firstUpdate {
-				// if previousResponse is updated on the first update,
-				// status won't be collected on the second update
-				sc.previousResponse = content
-			}
-
-			newLines := make(map[string]*dataobjects.Line)
-
-			css := doc.Find("style").First().Text()
-
-			doc.Find("table").First().Find("tr").Each(func(i int, s *goquery.Selection) {
-				line := s.Find("td").First()
-
-				class, _ := line.Attr("class")
-				color := "000000"
-				classInCSS := strings.Index(css, class)
-				pound := strings.Index(css[classInCSS:], "#")
-				pound += classInCSS
-				if pound > -1 {
-					color = css[pound+1 : pound+7]
+			for i, lineID := range sc.lineIDs {
+				style, _ := doc.Find("#circ_" + sc.lineNames[i]).First().Find("span").Attr("style")
+				statusMsg := doc.Find("#det" + sc.detLineNames[i]).Contents().Not("strong").Text()
+				isDowntime := !strings.Contains(style, "#33FF00") && !strings.Contains(statusMsg, "Serviço encerrado")
+				if strings.HasSuffix(statusMsg, ".") {
+					statusMsg = statusMsg[0 : len(statusMsg)-1]
 				}
 
-				words := strings.Split(line.Find("img").AttrOr("alt", ""), " ")
-				if len(words) < 2 {
-					sc.log.Println("Could not parse line name")
+				sc.lastUpdate = time.Now().UTC()
+
+				id, err := uuid.NewV4()
+				if err != nil {
 					return
 				}
-				lineName := words[1]
-				lineID := fmt.Sprintf("%s-%s", sc.Network.ID, strings.ToLower(lineName))
-				newLines[lineID] = &dataobjects.Line{
-					Name:    lineName,
-					ID:      lineID,
-					Color:   color,
-					Network: sc.Networks()[0],
+				status := &dataobjects.Status{
+					ID:         id.String(),
+					Time:       time.Now().UTC(),
+					Line:       sc.lines[lineID],
+					IsDowntime: isDowntime,
+					Status:     statusMsg,
+					Source:     sc.Source,
 				}
+				status.ComputeMsgType()
+				sc.statusCallback(status)
+			}
 
-				if !sc.firstUpdate {
-					sc.lastUpdate = time.Now().UTC()
-					lstatus := line.Next()
-
-					id, err := uuid.NewV4()
-					if err != nil {
-						return
-					}
-					status := &dataobjects.Status{
-						ID:         id.String(),
-						Time:       time.Now().UTC(),
-						Line:       newLines[lineID],
-						IsDowntime: len(lstatus.Find(".semperturbacao").Nodes) == 0,
-						Status:     lstatus.Find("li").Text(),
-						Source:     sc.Source,
-					}
-					status.ComputeMsgType()
-					sc.statusCallback(status)
-				}
-			})
-			sc.lines = newLines
+			sc.previousResponse = content
 		}
-		sc.firstUpdate = false
 	}
 }
 
