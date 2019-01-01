@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"sort"
+	"strconv"
 
 	"strings"
 
@@ -16,23 +18,26 @@ import (
 	"github.com/gbl08ma/sqalx"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
-	"github.com/underlx/disturbancesmlx/scraper"
 )
 
 // Scraper is a scraper for the status of Metro de Lisboa
 type Scraper struct {
-	running                bool
-	ticker                 *time.Ticker
-	stopChan               chan struct{}
-	lineIDs                []string
-	lineNames              []string
-	detLineNames           []string
-	lines                  map[string]*dataobjects.Line
-	previousResponse       []byte
-	log                    *log.Logger
-	statusCallback         func(status *dataobjects.Status)
-	topologyChangeCallback func(scraper.StatusScraper)
-	lastUpdate             time.Time
+	running           bool
+	ticker            *time.Ticker
+	stopChan          chan struct{}
+	lineIDs           []string
+	lineNames         []string
+	detLineNames      []string
+	freqLineNames     []string
+	estadoLineNames   []string
+	freqRegexp        *regexp.Regexp
+	numCarsRegexp     *regexp.Regexp
+	lines             map[string]*dataobjects.Line
+	previousResponse  []byte
+	log               *log.Logger
+	statusCallback    func(status *dataobjects.Status)
+	conditionCallback func(condition *dataobjects.LineCondition)
+	lastUpdate        time.Time
 
 	URL     string
 	Network *dataobjects.Network
@@ -48,14 +53,18 @@ func (sc *Scraper) ID() string {
 // Init initializes the scraper
 func (sc *Scraper) Init(node sqalx.Node, log *log.Logger,
 	statusCallback func(status *dataobjects.Status),
-	topologyChangeCallback func(scraper.StatusScraper)) {
+	conditionCallback func(condition *dataobjects.LineCondition)) {
 	sc.log = log
 	sc.statusCallback = statusCallback
-	sc.topologyChangeCallback = topologyChangeCallback
+	sc.conditionCallback = conditionCallback
 
 	sc.lineIDs = []string{"pt-ml-azul", "pt-ml-amarela", "pt-ml-verde", "pt-ml-vermelha"}
 	sc.lineNames = []string{"azul", "amarela", "verde", "vermelha"}
+	sc.estadoLineNames = []string{"Azul", "Amarela", "Verde", "Vermelha"}
 	sc.detLineNames = []string{"Azul", "Amar", "Verde", "Verm"}
+	sc.freqLineNames = []string{"", "Amarela", "Verde", "Vermelha"}
+	sc.freqRegexp = regexp.MustCompile("[0-9]{2}:[0-9]{2}")
+	sc.numCarsRegexp = regexp.MustCompile("[0-9]+")
 
 	sc.lines = make(map[string]*dataobjects.Line)
 
@@ -134,8 +143,34 @@ func (sc *Scraper) update() {
 				style, _ := doc.Find("#circ_" + sc.lineNames[i]).First().Find("span").Attr("style")
 				statusMsg := doc.Find("#det" + sc.detLineNames[i]).Contents().Not("strong").Text()
 				isDowntime := !strings.Contains(style, "#33FF00") && !strings.Contains(statusMsg, "Serviço encerrado")
+				statusMsg = strings.TrimSpace(statusMsg)
 				if strings.HasSuffix(statusMsg, ".") {
 					statusMsg = statusMsg[0 : len(statusMsg)-1]
+				}
+
+				freqMsg := doc.Find("#freqLinha" + sc.freqLineNames[i]).First().Not("strong").Not("span").Text()
+				freqMsg = sc.freqRegexp.FindString(freqMsg)
+				var freq time.Duration
+				if freqMsg != "" {
+					for i, part := range strings.Split(freqMsg, ":") {
+						num, err := strconv.Atoi(part)
+						if err != nil {
+							break
+						}
+						switch i {
+						case 0:
+							freq += time.Duration(num) * time.Minute
+						case 1:
+							freq += time.Duration(num) * time.Second
+						}
+					}
+				}
+
+				numCarsMsg := doc.Find("#estado" + sc.estadoLineNames[i]).First().Find("#unidadesTraccao").Not("strong").Text()
+				numCarsMsg = sc.numCarsRegexp.FindString(numCarsMsg)
+				var numCars int
+				if numCarsMsg != "" {
+					numCars, _ = strconv.Atoi(numCarsMsg)
 				}
 
 				sc.lastUpdate = time.Now().UTC()
@@ -154,6 +189,20 @@ func (sc *Scraper) update() {
 				}
 				status.ComputeMsgType()
 				sc.statusCallback(status)
+
+				id, err = uuid.NewV4()
+				if err != nil {
+					return
+				}
+				condition := &dataobjects.LineCondition{
+					ID:             id.String(),
+					Time:           dataobjects.Time(time.Now().UTC()),
+					Line:           sc.lines[lineID],
+					TrainCars:      numCars,
+					TrainFrequency: dataobjects.Duration(freq),
+					Source:         sc.Source,
+				}
+				sc.conditionCallback(condition)
 			}
 
 			sc.previousResponse = content

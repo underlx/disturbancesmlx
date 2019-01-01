@@ -78,7 +78,16 @@ CREATE TABLE IF NOT EXISTS "line_status" (
     downtime BOOL NOT NULL,
     status TEXT NOT NULL,
     source VARCHAR(36) NOT NULL REFERENCES source (id),
-    msgtype VARCHAR(36) NOT NULL,
+    msgtype VARCHAR(36) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "line_condition" (
+    id VARCHAR(36) PRIMARY KEY,
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+    mline VARCHAR(36) NOT NULL REFERENCES mline (id),
+    train_cars INT NOT NULL,
+    train_frequency INTERVAL NOT NULL,
+    source VARCHAR(36) NOT NULL REFERENCES source (id)
 );
 
 CREATE TABLE IF NOT EXISTS "line_disturbance" (

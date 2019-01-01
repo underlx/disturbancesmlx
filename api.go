@@ -54,7 +54,9 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/networks/:id", new(resource.Network).WithNode(rootSqalxNode))
 
 	v1.Add("/lines", new(resource.Line).WithNode(rootSqalxNode))
-	v1.Add("/lines/:id", new(resource.Line).WithNode(rootSqalxNode))
+	v1.Add("/lines/:id", new(resource.Line).WithNode(rootSqalxNode)) // contains logic for when :id is "conditions" to handle /lines/conditions
+	v1.Add("/lines/conditions/:id", new(resource.LineCondition).WithNode(rootSqalxNode))
+	v1.Add("/lines/:lineid/conditions", new(resource.LineCondition).WithNode(rootSqalxNode))
 
 	v1.Add("/stations", new(resource.Station).WithNode(rootSqalxNode))
 	v1.Add("/stations/:id", new(resource.Station).WithNode(rootSqalxNode))

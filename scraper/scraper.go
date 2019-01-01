@@ -23,7 +23,7 @@ type StatusScraper interface {
 	Scraper
 	Init(node sqalx.Node, log *log.Logger,
 		statusReporter func(status *dataobjects.Status),
-		topologyChangeCallback func(StatusScraper))
+		conditionCallback func(condition *dataobjects.LineCondition))
 	Networks() []*dataobjects.Network
 	Lines() []*dataobjects.Line
 	LastUpdate() time.Time

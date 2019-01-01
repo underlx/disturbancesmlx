@@ -59,8 +59,11 @@ func (r *Line) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	var lines []*dataobjects.Line
-
-	if c.Param("id") != "" {
+	if c.Param("id") == "conditions" {
+		// yarf's router is a bit limited
+		nc := yarf.NewContext(c.Request, c.Response)
+		return new(LineCondition).WithNode(r.node).Get(nc)
+	} else if c.Param("id") != "" {
 		line, err := dataobjects.GetLine(tx, c.Param("id"))
 		if err != nil {
 			return err

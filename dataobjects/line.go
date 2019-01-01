@@ -585,6 +585,22 @@ func (line *Line) Statuses(node sqalx.Node) ([]*Status, error) {
 	return getStatusesWithSelect(node, s)
 }
 
+// LastStatus returns the latest status for this line
+func (line *Line) LastStatus(node sqalx.Node) (*Status, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"mline": line.ID}).
+		OrderBy("timestamp DESC").
+		Limit(1)
+	status, err := getStatusesWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	if len(status) == 0 {
+		return nil, errors.New("Status not found")
+	}
+	return status[0], nil
+}
+
 // AddStatus associates a new status with this line, and runs the disturbance
 // start/end logic
 func (line *Line) AddStatus(node sqalx.Node, status *Status, letNotify bool) error {
@@ -599,9 +615,16 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status, letNotify bool) err
 	}
 	defer tx.Rollback()
 
-	err = status.Update(tx)
-	if err != nil {
-		return err
+	// do not add duplicate status
+	lastStatus, err := line.LastStatus(tx)
+	if err != nil || lastStatus.IsDowntime != status.IsDowntime || lastStatus.Status != status.Status || lastStatus.Source.Official != status.Source.Official {
+		err = status.Update(tx)
+		if err != nil {
+			return err
+		}
+	} else {
+		// our work here is done
+		return tx.Commit()
 	}
 
 	ongoing, err := line.OngoingDisturbances(tx, false)
@@ -611,16 +634,6 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status, letNotify bool) err
 	if len(ongoing) > 0 {
 		// there's an ongoing disturbance
 		disturbance := ongoing[len(ongoing)-1]
-
-		previousStatus := disturbance.LatestStatus()
-		if previousStatus != nil &&
-			status.Status == previousStatus.Status &&
-			status.IsDowntime == previousStatus.IsDowntime &&
-			status.Source.Official == previousStatus.Source.Official {
-			// do not add repeated status to disturbance (nor issue a new notif)
-			// our work here is done
-			return tx.Commit()
-		}
 
 		if !status.IsDowntime {
 			// "close" this disturbance
@@ -690,6 +703,29 @@ func (line *Line) AddStatus(node sqalx.Node, status *Status, letNotify bool) err
 		}
 	}
 	return tx.Commit()
+}
+
+// Conditions returns all the conditions for this line
+func (line *Line) Conditions(node sqalx.Node) ([]*LineCondition, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"mline": line.ID})
+	return getLineConditionsWithSelect(node, s)
+}
+
+// LastCondition returns the latest condition for this line
+func (line *Line) LastCondition(node sqalx.Node) (*LineCondition, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"mline": line.ID}).
+		OrderBy("timestamp DESC").
+		Limit(1)
+	conditions, err := getLineConditionsWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	if len(conditions) == 0 {
+		return nil, errors.New("LineCondition not found")
+	}
+	return conditions[0], nil
 }
 
 // Update adds or updates the line

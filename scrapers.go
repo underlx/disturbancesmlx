@@ -67,7 +67,7 @@ func SetUpScrapers(node sqalx.Node) error {
 		},
 		Period: 1 * time.Minute,
 	}
-	mlxscr.Init(rootSqalxNode, l, handleNewStatusNotify, handleTopologyChange)
+	mlxscr.Init(rootSqalxNode, l, handleNewStatusNotify, handleNewCondition)
 	mlxscr.Begin()
 	scrapers[mlxscr.ID()] = mlxscr
 	return tx.Commit()
@@ -106,35 +106,23 @@ func handleNewStatus(status *dataobjects.Status, allowNotify bool) {
 	lastChange = time.Now().UTC()
 }
 
-func handleTopologyChange(s scraper.StatusScraper) {
+func handleNewCondition(condition *dataobjects.LineCondition) {
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		mainLog.Println(err)
 		return
 	}
 	defer tx.Rollback()
-	for _, newnetwork := range s.Networks() {
-		_, err := dataobjects.GetNetwork(tx, newnetwork.ID)
+
+	latest, err := condition.Line.LastCondition(tx)
+	if err != nil || latest.TrainCars != condition.TrainCars || latest.TrainFrequency != condition.TrainFrequency {
+		err = condition.Update(tx)
 		if err != nil {
-			mainLog.Println("New network " + newnetwork.ID)
-			err = newnetwork.Update(tx)
-			if err != nil {
-				mainLog.Println(err)
-				return
-			}
+			mainLog.Println(err)
+			return
 		}
 	}
-	for _, newline := range s.Lines() {
-		_, err := dataobjects.GetLine(tx, newline.ID)
-		if err != nil {
-			mainLog.Println("New line " + newline.ID)
-			err = newline.Update(tx)
-			if err != nil {
-				mainLog.Println(err)
-				return
-			}
-		}
-	}
+
 	tx.Commit()
 }
 
