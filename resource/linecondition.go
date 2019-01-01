@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"time"
+
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
@@ -13,7 +15,7 @@ type LineCondition struct {
 
 type apiLineCondition struct {
 	ID             string               `msgpack:"id" json:"id"`
-	Time           dataobjects.Time     `msgpack:"time" json:"time"`
+	Time           time.Time            `msgpack:"time" json:"time"`
 	Line           *dataobjects.Line    `msgpack:"-" json:"-"`
 	TrainCars      int                  `msgpack:"trainCars" json:"trainCars"`
 	TrainFrequency dataobjects.Duration `msgpack:"trainFrequency" json:"trainFrequency"`

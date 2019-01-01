@@ -196,7 +196,7 @@ func (sc *Scraper) update() {
 				}
 				condition := &dataobjects.LineCondition{
 					ID:             id.String(),
-					Time:           dataobjects.Time(time.Now().UTC()),
+					Time:           time.Now().UTC(),
 					Line:           sc.lines[lineID],
 					TrainCars:      numCars,
 					TrainFrequency: dataobjects.Duration(freq),

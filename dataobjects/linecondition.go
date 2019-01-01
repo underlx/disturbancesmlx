@@ -3,6 +3,7 @@ package dataobjects
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/gbl08ma/sqalx"
 	sq "github.com/gbl08ma/squirrel"
@@ -11,7 +12,7 @@ import (
 // LineCondition represents the operational condition of a Line at a certain point in time
 type LineCondition struct {
 	ID             string
-	Time           Time
+	Time           time.Time
 	Line           *Line
 	TrainCars      int
 	TrainFrequency Duration
