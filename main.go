@@ -86,6 +86,16 @@ func main() {
 	}
 	fcmcl = fcm.NewFcmClient(fcmServerKey)
 
+	go StatsSender()
+	go WebServer()
+	go DiscordBot()
+
+	certPath := DefaultClientCertPath
+	if len(os.Args) > 1 {
+		certPath = os.Args[1]
+	}
+	go APIserver(certPath)
+
 	err = SetUpScrapers(rootSqalxNode)
 	if err != nil {
 		mainLog.Fatalln(err)
@@ -99,16 +109,6 @@ func main() {
 
 	SetUpAnnouncements(facebookAccessToken)
 	defer TearDownAnnouncements()
-
-	go StatsSender()
-	go WebServer()
-	go DiscordBot()
-
-	certPath := DefaultClientCertPath
-	if len(os.Args) > 1 {
-		certPath = os.Args[1]
-	}
-	go APIserver(certPath)
 
 	go func() {
 		time.Sleep(5 * time.Second)

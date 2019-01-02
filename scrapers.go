@@ -57,8 +57,10 @@ func SetUpScrapers(node sqalx.Node) error {
 
 	l := log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime)
 	mlxscr = &mlxscraper.Scraper{
-		URL:     "https://www.metrolisboa.pt/estado_linhas.php?security=d02ff87f2d",
-		Network: network,
+		StatusCallback:    handleNewStatusNotify,
+		ConditionCallback: handleNewCondition,
+		URL:               "https://www.metrolisboa.pt/estado_linhas.php?security=d02ff87f2d",
+		Network:           network,
 		Source: &dataobjects.Source{
 			ID:        "mlxscraper-pt-ml",
 			Name:      "Metro de Lisboa estado_Linhas.php",
@@ -67,7 +69,7 @@ func SetUpScrapers(node sqalx.Node) error {
 		},
 		Period: 1 * time.Minute,
 	}
-	mlxscr.Init(rootSqalxNode, l, handleNewStatusNotify, handleNewCondition)
+	mlxscr.Init(rootSqalxNode, l)
 	mlxscr.Begin()
 	scrapers[mlxscr.ID()] = mlxscr
 	return tx.Commit()

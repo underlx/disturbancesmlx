@@ -21,9 +21,7 @@ type Scraper interface {
 // StatusScrapers can report duplicate states to the statusReporter
 type StatusScraper interface {
 	Scraper
-	Init(node sqalx.Node, log *log.Logger,
-		statusReporter func(status *dataobjects.Status),
-		conditionCallback func(condition *dataobjects.LineCondition))
+	Init(node sqalx.Node, log *log.Logger)
 	Networks() []*dataobjects.Network
 	Lines() []*dataobjects.Line
 	LastUpdate() time.Time

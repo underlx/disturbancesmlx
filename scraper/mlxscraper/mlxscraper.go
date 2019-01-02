@@ -22,27 +22,28 @@ import (
 
 // Scraper is a scraper for the status of Metro de Lisboa
 type Scraper struct {
-	running           bool
-	ticker            *time.Ticker
-	stopChan          chan struct{}
-	lineIDs           []string
-	lineNames         []string
-	detLineNames      []string
-	freqLineNames     []string
-	estadoLineNames   []string
-	freqRegexp        *regexp.Regexp
-	numCarsRegexp     *regexp.Regexp
-	lines             map[string]*dataobjects.Line
-	previousResponse  []byte
-	log               *log.Logger
-	statusCallback    func(status *dataobjects.Status)
-	conditionCallback func(condition *dataobjects.LineCondition)
-	lastUpdate        time.Time
+	running          bool
+	ticker           *time.Ticker
+	stopChan         chan struct{}
+	lineIDs          []string
+	lineNames        []string
+	detLineNames     []string
+	freqLineNames    []string
+	estadoLineNames  []string
+	freqRegexp       *regexp.Regexp
+	numCarsRegexp    *regexp.Regexp
+	lines            map[string]*dataobjects.Line
+	previousResponse []byte
+	log              *log.Logger
+	lastUpdate       time.Time
 
-	URL     string
-	Network *dataobjects.Network
-	Source  *dataobjects.Source
-	Period  time.Duration
+	StatusCallback    func(status *dataobjects.Status)
+	ConditionCallback func(condition *dataobjects.LineCondition)
+	URL               string
+	Network           *dataobjects.Network
+	Source            *dataobjects.Source
+	Period            time.Duration
+	HTTPClient        *http.Client
 }
 
 // ID returns the ID of this scraper
@@ -51,12 +52,8 @@ func (sc *Scraper) ID() string {
 }
 
 // Init initializes the scraper
-func (sc *Scraper) Init(node sqalx.Node, log *log.Logger,
-	statusCallback func(status *dataobjects.Status),
-	conditionCallback func(condition *dataobjects.LineCondition)) {
+func (sc *Scraper) Init(node sqalx.Node, log *log.Logger) {
 	sc.log = log
-	sc.statusCallback = statusCallback
-	sc.conditionCallback = conditionCallback
 
 	sc.lineIDs = []string{"pt-ml-azul", "pt-ml-amarela", "pt-ml-verde", "pt-ml-vermelha"}
 	sc.lineNames = []string{"azul", "amarela", "verde", "vermelha"}
@@ -67,6 +64,12 @@ func (sc *Scraper) Init(node sqalx.Node, log *log.Logger,
 	sc.numCarsRegexp = regexp.MustCompile("[0-9]+")
 
 	sc.lines = make(map[string]*dataobjects.Line)
+
+	if sc.HTTPClient == nil {
+		sc.HTTPClient = &http.Client{
+			Timeout: 10 * time.Second,
+		}
+	}
 
 	tx, err := node.Beginx()
 	if err != nil {
@@ -115,14 +118,14 @@ func (sc *Scraper) scrape() {
 }
 
 func (sc *Scraper) update() {
-	response, err := http.Get(sc.URL)
+	response, err := sc.HTTPClient.Get(sc.URL)
 	if err != nil {
 		sc.log.Println(err)
 		return
 	}
 	defer response.Body.Close()
 	// making sure they don't troll us
-	if response.ContentLength < 1024*1024 {
+	if response.ContentLength < 1024*1024 && response.StatusCode == http.StatusOK {
 		var buf bytes.Buffer
 		tee := io.TeeReader(response.Body, &buf)
 		content, err := ioutil.ReadAll(tee)
@@ -132,6 +135,10 @@ func (sc *Scraper) update() {
 		}
 		if !bytes.Equal(content, sc.previousResponse) {
 			sc.log.Printf("New status with length %d\n", len(content))
+			if len(content) < 1000 {
+				sc.log.Println("Length too short, probably an error message and not the content we want, ignoring")
+				return
+			}
 
 			doc, err := goquery.NewDocumentFromReader(&buf)
 			if err != nil {
@@ -188,7 +195,7 @@ func (sc *Scraper) update() {
 					Source:     sc.Source,
 				}
 				status.ComputeMsgType()
-				sc.statusCallback(status)
+				sc.StatusCallback(status)
 
 				id, err = uuid.NewV4()
 				if err != nil {
@@ -202,7 +209,7 @@ func (sc *Scraper) update() {
 					TrainFrequency: dataobjects.Duration(freq),
 					Source:         sc.Source,
 				}
-				sc.conditionCallback(condition)
+				sc.ConditionCallback(condition)
 			}
 
 			sc.previousResponse = content
