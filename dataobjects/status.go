@@ -42,6 +42,9 @@ const (
 	MLSolvedMessage StatusMessageType = "ML_SOLVED"
 	// MLClosedMessage corresponds to the format "Serviço encerrado"
 	MLClosedMessage StatusMessageType = "ML_CLOSED"
+	// MLSpecialServiceMessage corresponds to the format "Serviço especial$1" (only observed $1 so far is " de passagem de ano")
+	MLSpecialServiceMessage StatusMessageType = "ML_SPECIAL"
+
 	// MLCompositeMessage corresponds to the format:
 	// "[d|D]evido a $1$2$3"
 	// $1 may be one of:
@@ -150,6 +153,9 @@ func (status *Status) ComputeMsgType() {
 		return
 	case strings.Contains(status.Status, "Serviço encerrado"):
 		status.MsgType = MLClosedMessage
+		return
+	case strings.Contains(status.Status, "Serviço especial"):
+		status.MsgType = MLSpecialServiceMessage
 		return
 	case strings.Contains(status.Status, "Os utilizadores comunicaram problemas na circulação"):
 		status.MsgType = ReportBeginMessage
