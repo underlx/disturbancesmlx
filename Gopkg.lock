@@ -39,7 +39,7 @@
   name = "github.com/bwmarrin/discordgo"
   packages = ["."]
   pruneopts = "UT"
-  revision = "d6d46b0b1b1cb54da094161b5c910d70eca538b3"
+  revision = "4abf4d7de66a762edc6baa292a0ddc3f0c7d2fb7"
 
 [[projects]]
   branch = "master"
@@ -201,15 +201,15 @@
   revision = "9c34010b2b7e75be8b84cfbdd65b16c3de863f35"
 
 [[projects]]
-  digest = "1:dbc7470653016fea1d24b04a99d8e35a5ba4ebb183e72cc3f5d62966245501cb"
+  digest = "1:0d7b20e0c7da983f61e7a45fc4c5a722528bb06b07ec1208d5b28b40e3670fff"
   name = "github.com/jackc/pgx"
   packages = [
     "pgio",
     "pgtype",
   ]
   pruneopts = "UT"
-  revision = "89f1e6ac7276b61d885db5e5aed6fcbedd1c7e31"
-  version = "v3.2.0"
+  revision = "c59c9cac59ab95eceb0c12ff338923c62f411ea2"
+  version = "v3.3.0"
 
 [[projects]]
   branch = "master"
@@ -288,12 +288,12 @@
   version = "v2.1.0"
 
 [[projects]]
-  digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
   name = "github.com/pkg/errors"
   packages = ["."]
   pruneopts = "UT"
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
 
 [[projects]]
   branch = "master"
@@ -368,7 +368,7 @@
     "ssh/terminal",
   ]
   pruneopts = "UT"
-  revision = "eb0de9b17e854e9b1ccd9963efafc79862359959"
+  revision = "ff983b9c42bc9fbf91556e191cc8efb585c16908"
 
 [[projects]]
   branch = "master"
@@ -382,29 +382,29 @@
     "html/charset",
   ]
   pruneopts = "UT"
-  revision = "adae6a3d119ae4890b46832a2e88a95adc62b8e7"
+  revision = "1e06a53dbb7e2ed46e91183f219db23c6943c532"
 
 [[projects]]
   branch = "master"
-  digest = "1:0142ef85bbc356750e329654ef29734ff05bd70ec9d8c1f46e39a3e97683318f"
+  digest = "1:5276e08fe6a1dfdb65b4f46a2e5d5c9e00be6e499105e441049c3c04a0c83b36"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
     "internal",
   ]
   pruneopts = "UT"
-  revision = "8f65e3013ebad444f13bc19536f7865efc793816"
+  revision = "d668ce993890a79bda886613ee587a69dd5da7a6"
 
 [[projects]]
   branch = "master"
-  digest = "1:0c7cb58af944f9690af91474a75371eecfe54c1ce3771a8dc08924430ee785d3"
+  digest = "1:5ee4df7ab18e945607ac822de8d10b180baea263b5e8676a1041727543b9c1e4"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "4ed8d59d0b35e1e29334a206d1b3f38b1e5dfb31"
+  revision = "48ac38b7c8cbedd50b1613c0fccacfc7d88dfcdf"
 
 [[projects]]
   digest = "1:4392fcf42d5cf0e3ff78c96b2acf8223d49e4fdc53eb77c99d2f8dfe4680e006"
@@ -436,7 +436,7 @@
   version = "v0.3.0"
 
 [[projects]]
-  digest = "1:f3e1b3a06bd06ceb7fc9e118875d1379f481c971d006fcac7a6d52b42d44d041"
+  digest = "1:bdfceba6be2f23ad710a04a0ed5e42ea212f091f044d1413412048745efea1a3"
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -452,8 +452,8 @@
     "urlfetch",
   ]
   pruneopts = "UT"
-  revision = "4a4468ece617fc8205e99368fa2200e9d1fad421"
-  version = "v1.3.0"
+  revision = "e9657d882bb81064595ca3b56cbe2546bbabf7b1"
+  version = "v1.4.0"
 
 [[projects]]
   digest = "1:38b469493eb173db9c03321d64adcad4c7991ea0a19b5edc5bdc094f0e8c7384"
