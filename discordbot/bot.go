@@ -52,6 +52,7 @@ type inviteInfo struct {
 	RequesterIPAddr string
 	RequestTime     time.Time
 	InviteTime      time.Time
+	UTMsource       string
 }
 
 var node sqalx.Node
@@ -267,7 +268,7 @@ func Stop() {
 }
 
 // CreateInvite creates a single-use invite for the specified channel
-func CreateInvite(channelID, requesterIPaddr string) (*discordgo.Invite, error) {
+func CreateInvite(channelID, requesterIPaddr, utmSource string) (*discordgo.Invite, error) {
 	if !started || session == nil {
 		return nil, fmt.Errorf("Bot not ready")
 	}
@@ -288,6 +289,7 @@ func CreateInvite(channelID, requesterIPaddr string) (*discordgo.Invite, error) 
 			RequesterIPAddr: requesterIPaddr,
 			RequestTime:     time.Now(),
 			InviteTime:      inviteTime,
+			UTMsource:       utmSource,
 		})
 	}
 	return i, err
@@ -753,7 +755,11 @@ func handleInviteHistory(s *discordgo.Session, m *discordgo.MessageCreate, args 
 		if utils.DurationAbs(invite.RequestTime.Sub(invite.InviteTime)) > 5*time.Second {
 			line += " (" + invite.InviteTime.UTC().Format(time.RFC3339) + ")"
 		}
-		line += " - " + invite.RequesterIPAddr + " - " + invite.Code + "\n"
+		line += " - " + invite.RequesterIPAddr + " - " + invite.Code
+		if invite.UTMsource != "" {
+			line += " - " + invite.UTMsource
+		}
+		line += "\n"
 		if len(message)+len(line) > 2000 {
 			s.ChannelMessageSend(m.ChannelID, message)
 			message = ""

@@ -62,7 +62,7 @@ func WebServer() {
 
 func inviteHandler(channelID, fallbackInviteURL string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		invite, err := discordbot.CreateInvite(channelID, utils.GetClientIP(r))
+		invite, err := discordbot.CreateInvite(channelID, utils.GetClientIP(r), r.URL.Query().Get("utm_source"))
 		if err != nil {
 			http.Redirect(w, r, fallbackInviteURL, http.StatusTemporaryRedirect)
 			return
