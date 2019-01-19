@@ -27,8 +27,14 @@ import (
 var oauthConfig *oauth2.Config
 var webtemplate *template.Template
 
+type lightXPTXinfo struct {
+	id         string
+	actualDiff int
+}
+
 var tripSubmissionsChan = make(chan string, 100)
 var tripEditsChan = make(chan string, 100)
+var xpTxChan = make(chan lightXPTXinfo, 100)
 
 const (
 	// PrivateLBPrivacy is used when users don't want to appear in leaderboards
@@ -102,6 +108,10 @@ func Initialize(ppconfig Config) error {
 	discordbot.ThePosPlayBridge.PlayerXPInfo = playerXPinfo
 
 	ReloadTemplates()
+	err := ReloadAchievements()
+	if err != nil {
+		return err
+	}
 
 	go serialProcessor()
 
@@ -150,39 +160,25 @@ func RegisterEventWinCallback(userID, messageID string, XPreward int, eventType 
 		return false
 	}
 
-	txid, err := uuid.NewV4()
-	if err != nil {
-		config.Log.Println(err)
-		return false
-	}
-
-	xptx := &dataobjects.PPXPTransaction{
-		ID:        txid.String(),
-		DiscordID: player.DiscordID,
-		Time:      time.Now(),
-		Type:      eventType,
-		Value:     XPreward,
-	}
-	xptx.MarshalExtra(map[string]interface{}{
+	err = DoXPTransaction(tx, player, time.Now(), XPreward, eventType, map[string]interface{}{
 		"event_id": messageID,
-	})
-
-	err = xptx.Update(tx)
+	}, false)
 	if err != nil {
 		config.Log.Println(err)
 		return false
 	}
+
+	tx.DeferToCommit(func() {
+		discordbot.SendDMtoUser(userID, &discordgo.MessageSend{
+			Content: fmt.Sprintf("Acabou de receber %d XP pela participação num evento no servidor de Discord do UnderLX 👍", XPreward),
+		})
+	})
 
 	err = tx.Commit()
 	if err != nil {
 		config.Log.Println(err)
 		return false
 	}
-
-	discordbot.SendDMtoUser(userID, &discordgo.MessageSend{
-		Content: fmt.Sprintf("Acabou de receber %d XP pela participação num evento no servidor de Discord do UnderLX 👍", XPreward),
-	})
-
 	return true
 }
 
@@ -202,32 +198,7 @@ func RegisterDiscussionParticipationCallback(userID string, XPreward int) bool {
 		return false
 	}
 
-	lasttx, err := player.XPTransactionsLimit(tx, 1)
-	if err != nil {
-		config.Log.Println(err)
-		return false
-	}
-	var newtx *dataobjects.PPXPTransaction
-	if len(lasttx) > 0 && lasttx[0].Type == "DISCORD_PARTICIPATION" &&
-		lasttx[0].Time.After(getWeekStart()) {
-		// to avoid creating many micro-transactions, update the latest transaction, adding the new reward
-		// the lasttx[0].Time.After(getWeekStart()) check prevents tx merging with old rewards, "bringing old XP into the current week"
-		newtx = lasttx[0]
-	} else {
-		txid, err := uuid.NewV4()
-		if err != nil {
-			config.Log.Println(err)
-			return false
-		}
-		newtx = &dataobjects.PPXPTransaction{
-			ID:        txid.String(),
-			DiscordID: player.DiscordID,
-			Type:      "DISCORD_PARTICIPATION",
-		}
-	}
-	newtx.Time = time.Now()
-	newtx.Value += XPreward
-	err = newtx.Update(tx)
+	err = DoXPTransaction(tx, player, time.Now(), XPreward, "DISCORD_PARTICIPATION", nil, true)
 	if err != nil {
 		config.Log.Println(err)
 		return false
@@ -241,6 +212,57 @@ func RegisterDiscussionParticipationCallback(userID string, XPreward int) bool {
 	return true
 }
 
+// DoXPTransaction adds a XP transaction to a user, performing the necessary checks and
+// calling the necessary handlers
+func DoXPTransaction(node sqalx.Node, player *dataobjects.PPPlayer, when time.Time, value int, txType string, extra map[string]interface{}, attemptMerge bool) error {
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	lasttx, err := player.XPTransactionsLimit(tx, 1)
+	if err != nil {
+		return err
+	}
+	var newtx *dataobjects.PPXPTransaction
+	if attemptMerge && len(lasttx) > 0 && lasttx[0].Type == txType &&
+		lasttx[0].Time.After(getWeekStart()) {
+		// to avoid creating many micro-transactions, update the latest transaction, adding the new reward
+		// the lasttx[0].Time.After(getWeekStart()) check prevents tx merging with old rewards, "bringing old XP into the current week"
+		newtx = lasttx[0]
+	} else {
+		txid, err := uuid.NewV4()
+		if err != nil {
+			return err
+		}
+		newtx = &dataobjects.PPXPTransaction{
+			ID:        txid.String(),
+			DiscordID: player.DiscordID,
+			Type:      txType,
+		}
+	}
+	newtx.Time = when
+	newtx.Value += value
+	if extra != nil {
+		newtx.MarshalExtra(extra)
+	}
+
+	err = newtx.Update(tx)
+	if err != nil {
+		return err
+	}
+
+	tx.DeferToCommit(func() {
+		xpTxChan <- lightXPTXinfo{
+			id:         newtx.ID,
+			actualDiff: value,
+		}
+	})
+
+	return tx.Commit()
+}
+
 func serialProcessor() {
 	for {
 		select {
@@ -249,8 +271,21 @@ func serialProcessor() {
 			if err != nil {
 				config.Log.Println(err)
 			}
+			err = processTripForAchievements(id)
+			if err != nil {
+				config.Log.Println(err)
+			}
 		case id := <-tripEditsChan:
 			err := processTripEditForReward(id)
+			if err != nil {
+				config.Log.Println(err)
+			}
+			err = processTripEditForAchievements(id)
+			if err != nil {
+				config.Log.Println(err)
+			}
+		case info := <-xpTxChan:
+			err := processXPTxForAchievements(info.id, info.actualDiff)
 			if err != nil {
 				config.Log.Println(err)
 			}
@@ -319,6 +354,17 @@ func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
 		return "Participação em desafio no Discord do UnderLX"
 	case "DISCORD_PARTICIPATION":
 		return "Participação na discussão no Discord do UnderLX"
+	case "ACHIEVEMENT_REWARD":
+		id, ok := extra["achievement_id"].(string)
+		if ok {
+			allAchievementsMutex.RLock()
+			defer allAchievementsMutex.RUnlock()
+			a, ok2 := allAchievementsByID[id]
+			if ok2 {
+				return fmt.Sprintf("Proeza \"%s\" alcançada", a.Names[a.MainLocale])
+			}
+		}
+		return "Proeza alcançada"
 	default:
 		// ideally this should never show
 		return "Bónus genérico"

@@ -136,20 +136,7 @@ func addNewPlayer(node sqalx.Node, discordUser *discordgo.User, inGuild bool) (*
 		return nil, err
 	}
 
-	id, err := uuid.NewV4()
-	if err != nil {
-		return nil, err
-	}
-
-	xptx := &dataobjects.PPXPTransaction{
-		ID:        id.String(),
-		DiscordID: uidConvS(discordUser.ID),
-		Time:      time.Now(),
-		Type:      "SIGNUP_BONUS",
-		Value:     50,
-	}
-
-	err = xptx.Update(tx)
+	err = DoXPTransaction(tx, player, player.Joined, 50, "SIGNUP_BONUS", nil, false)
 	if err != nil {
 		return nil, err
 	}

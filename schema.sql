@@ -310,3 +310,28 @@ CREATE TABLE IF NOT EXISTS "pp_xp_tx" (
     type VARCHAR(36) NOT NULL,
     extra TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS "pp_achievement" (
+    id VARCHAR(36) PRIMARY KEY,
+    strategy VARCHAR(36) NOT NULL,
+    config TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    xp_reward INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS "pp_achievement_name" (
+    id VARCHAR(36) REFERENCES pp_achievement (id),
+    main BOOLEAN NOT NULL,
+    lang VARCHAR(5) NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    PRIMARY KEY (id, lang)
+);
+
+CREATE TABLE IF NOT EXISTS "pp_player_has_achievement" (
+    discord_id BIGINT REFERENCES pp_player (discord_id),
+    achievement_id VARCHAR(36) REFERENCES pp_achievement (id),
+    achieved TIMESTAMP WITH TIME ZONE,
+    extra TEXT NOT NULL,
+    PRIMARY KEY (discord_id, achievement_id)
+);

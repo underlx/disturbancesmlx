@@ -177,12 +177,18 @@ func (player *PPPlayer) Level(node sqalx.Node) (int, int, float64, error) {
 	if err != nil {
 		return 0, 0, 0, err
 	}
+	level, progress := PosPlayPlayerLevel(xp)
+	return xp, level, progress, nil
+}
+
+// PosPlayPlayerLevel computes the PosPlay level and the % of progression to the next level given the XP total
+func PosPlayPlayerLevel(totalXP int) (int, float64) {
 	// progression = (xp/c)^(1/b)
 	// c = 22.8376671827315
 	// b = 1.62265355291952, 1/b = 0.6162744956869
-	progression := math.Pow(float64(xp)/22.8376671827315, 0.6162744956869)
+	progression := math.Pow(float64(totalXP)/22.8376671827315, 0.6162744956869)
 	level, part := math.Modf(progression)
-	return xp, int(level), part * 100, nil
+	return int(level), part * 100
 }
 
 // RankBetween returns the global XP rank for this player within the specified time interval
@@ -214,6 +220,35 @@ func (player *PPPlayer) RankBetween(node sqalx.Node, start, end time.Time) (int,
 		}
 	}
 	return rank, rows.Err()
+}
+
+// Achievements returns the PPPlayerAchievements for this player
+// (achieved and non-achieved)
+func (player *PPPlayer) Achievements(node sqalx.Node) ([]*PPPlayerAchievement, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"discord_id": player.DiscordID}).
+		OrderBy("achieved ASC")
+	achievements, err := getPPPlayerAchievementsWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	return achievements, nil
+}
+
+// Achievement returns the PPPlayerAchievement for this player corresponding
+// to the given achievement ID
+func (player *PPPlayer) Achievement(node sqalx.Node, achievementID string) (*PPPlayerAchievement, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"discord_id": player.DiscordID}).
+		Where(sq.Eq{"achievement_id": achievementID})
+	achievements, err := getPPPlayerAchievementsWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	if len(achievements) == 0 {
+		return nil, errors.New("PPPlayerAchievement not found")
+	}
+	return achievements[0], nil
 }
 
 var anonymousPlayerNames = []string{

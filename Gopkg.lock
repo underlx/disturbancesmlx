@@ -74,11 +74,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:67449bf207c0e6e8dd78e231519c1c937f67e403eb84ceaca0c57fb4c5877184"
+  digest = "1:4db0b79a86a88d98e03630cf7577f049966ada5731a41a77ae72f09e9151bc2b"
   name = "github.com/gbl08ma/sqalx"
   packages = ["."]
   pruneopts = "UT"
-  revision = "64352042484f1b28f2d26e1fa2e13476482a6a32"
+  revision = "93a3673e08e726f49f8533a688056f090c889061"
 
 [[projects]]
   branch = "v1"

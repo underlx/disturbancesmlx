@@ -8,7 +8,6 @@ import (
 	"unicode"
 
 	"github.com/bwmarrin/discordgo"
-	uuid "github.com/satori/go.uuid"
 
 	"github.com/dchest/uniuri"
 	"github.com/gbl08ma/sqalx"
@@ -168,62 +167,50 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 	}
 
 	if len(txs) == 0 {
-		id, err := uuid.NewV4()
-		if err != nil {
-			config.Log.Println(err)
-			return false
-		}
-
-		xptx := &dataobjects.PPXPTransaction{
-			ID:        id.String(),
-			DiscordID: process.DiscordID,
-			Time:      pppair.Paired,
-			Type:      "PAIR_BONUS",
-			Value:     30,
-		}
-
-		err = xptx.Update(tx)
+		err = DoXPTransaction(tx, player, pppair.Paired, 30, "PAIR_BONUS", nil, false)
 		if err != nil {
 			config.Log.Println(err)
 			return false
 		}
 	}
 
-	// commit and send notifications
+	// send notifications after tx commits successfully
+	tx.DeferToCommit(func() {
+		process.Completed = true
+
+		content := ""
+
+		if process.RemovedExisting {
+			content = "Acabou de trocar o dispositivo associado com a sua conta PosPlay.\n"
+			content += "Dispositivo anterior: **" + existing.DeviceName + "**\n"
+			content += "Novo dispositivo: **" + deviceName + "**"
+			if removedExistingKey {
+				content += "(anteriormente associado com outra conta)"
+			}
+		} else {
+			content = "Acabou de associar um dispositivo (**" + deviceName + "**) com a sua conta PosPlay."
+			if removedExistingKey {
+				content += " Este dispositivo estava anteriormente associado com outra conta."
+			}
+		}
+
+		discordbot.SendDMtoUser(uidConvI(process.DiscordID), &discordgo.MessageSend{
+			Content: content,
+		})
+
+		if removedExistingKey {
+			discordbot.SendDMtoUser(uidConvI(existingPair.DiscordID), &discordgo.MessageSend{
+				Content: "⚠ O dispositivo **" + existingPair.DeviceName + "** passou a estar associado com outra conta PosPlay.\n" +
+					"Se esta não foi uma acção iniciada por si, certifique-se que mais ninguém tem acesso ao seu aparelho, e torne a associá-lo a esta conta.\n" +
+					"Em caso de dúvida, contacte-nos através do endereço de email underlx@tny.im",
+			})
+		}
+	})
+
 	err = tx.Commit()
 	if err != nil {
 		config.Log.Println(err)
 		return false
-	}
-
-	process.Completed = true
-
-	content := ""
-
-	if process.RemovedExisting {
-		content = "Acabou de trocar o dispositivo associado com a sua conta PosPlay.\n"
-		content += "Dispositivo anterior: **" + existing.DeviceName + "**\n"
-		content += "Novo dispositivo: **" + deviceName + "**"
-		if removedExistingKey {
-			content += "(anteriormente associado com outra conta)"
-		}
-	} else {
-		content = "Acabou de associar um dispositivo (**" + deviceName + "**) com a sua conta PosPlay."
-		if removedExistingKey {
-			content += " Este dispositivo estava anteriormente associado com outra conta."
-		}
-	}
-
-	discordbot.SendDMtoUser(uidConvI(process.DiscordID), &discordgo.MessageSend{
-		Content: content,
-	})
-
-	if removedExistingKey {
-		discordbot.SendDMtoUser(uidConvI(existingPair.DiscordID), &discordgo.MessageSend{
-			Content: "⚠ O dispositivo **" + existingPair.DeviceName + "** passou a estar associado com outra conta PosPlay.\n" +
-				"Se esta não foi uma acção iniciada por si, certifique-se que mais ninguém tem acesso ao seu aparelho, e torne a associá-lo a esta conta.\n" +
-				"Em caso de dúvida, contacte-nos através do endereço de email underlx@tny.im",
-		})
 	}
 
 	return true

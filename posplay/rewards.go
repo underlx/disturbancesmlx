@@ -4,7 +4,6 @@ import (
 	"math"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
@@ -27,11 +26,6 @@ func processTripForReward(id string) error {
 		return nil
 	}
 
-	txid, err := uuid.NewV4()
-	if err != nil {
-		return err
-	}
-
 	reward, nstations, ninterchanges, offpeak := computeTripXPReward(trip)
 	if reward == 0 {
 		// no reward, no transaction
@@ -47,21 +41,13 @@ func processTripForReward(id string) error {
 		reward = int(math.Round(float64(reward) * 1.1))
 	}
 
-	xptx := &dataobjects.PPXPTransaction{
-		ID:        txid.String(),
-		DiscordID: pair.DiscordID,
-		Time:      time.Now(),
-		Type:      "TRIP_SUBMIT_REWARD",
-		Value:     reward,
-	}
-	xptx.MarshalExtra(map[string]interface{}{
-		"trip_id":           trip.ID,
-		"station_count":     nstations,
-		"interchange_count": ninterchanges,
-		"offpeak":           offpeak,
-	})
-
-	err = xptx.Update(tx)
+	err = DoXPTransaction(tx, player, trip.SubmitTime, reward, "TRIP_SUBMIT_REWARD",
+		map[string]interface{}{
+			"trip_id":           trip.ID,
+			"station_count":     nstations,
+			"interchange_count": ninterchanges,
+			"offpeak":           offpeak,
+		}, false)
 	if err != nil {
 		return err
 	}
@@ -119,23 +105,14 @@ func processTripEditForReward(id string) error {
 		return nil
 	}
 
-	txid, err := uuid.NewV4()
+	player, err := dataobjects.GetPPPlayer(tx, pair.DiscordID)
 	if err != nil {
 		return err
 	}
 
-	xptx := &dataobjects.PPXPTransaction{
-		ID:        txid.String(),
-		DiscordID: pair.DiscordID,
-		Time:      time.Now(),
-		Type:      "TRIP_CONFIRM_REWARD",
-		Value:     5,
-	}
-	xptx.MarshalExtra(map[string]interface{}{
+	err = DoXPTransaction(tx, player, trip.EditTime, 5, "TRIP_CONFIRM_REWARD", map[string]interface{}{
 		"trip_id": trip.ID,
-	})
-
-	err = xptx.Update(tx)
+	}, false)
 	if err != nil {
 		return err
 	}

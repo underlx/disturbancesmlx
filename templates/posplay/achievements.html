@@ -1,0 +1,47 @@
+{{template "header.html" . }}
+  <div class="widecontent">
+    <div class="pure-g">
+      <div class="pure-u-1 pure-u-md-1-3" style="text-align: center;">
+          {{template "sidebar.html" . }}
+      </div>
+      <div class="pure-u-1 pure-u-md-2-3">
+        <h1>Proezas</h1>
+        {{ range $ach := .Achieved }}
+          <div class="pure-g" style="border: 1px #ccc solid; margin-top: 1em; padding: 10px">
+            <div class="pure-u-3-4">
+              <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
+            </div>
+            <div class="pure-u-1-4" style="text-align: right">
+              {{ $ach.XPReward }} XP<br>
+            </div>
+            <div class="pure-u-1">{{ index $ach.Descriptions $ach.MainLocale }}</div>
+            <div class="pure-u-1" style="margin-top: 10px; text-align: right; font-size: 0.8em;">
+              Alcançada em {{ formatTime (index $.Achieving $ach.ID).AchievedTime }}
+            </div>
+          </div>
+        {{ else }}
+        <p>Ainda não alcançou nenhuma proeza.</p>
+        {{ end }}
+        <div style="height: 2em"></div>
+        {{ range $ach := .NonAchieved }}
+          <div class="pure-g" style="border: 1px #ccc solid; margin-top: 1em; padding: 10px">
+            <div class="pure-u-3-4">
+              <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
+            </div>
+            <div class="pure-u-1-4" style="text-align: right">
+              {{ $ach.XPReward }} XP
+            </div>
+            <div class="pure-u-1">{{ index $ach.Descriptions $ach.MainLocale }}</div>
+            {{ if gt (index $.ProgressTotal $ach.ID) 0 }}
+            <div class="pure-u-1 progress-bar" style="margin-top: 10px">
+              <div class="bar positive" style="width: {{ (index $.ProgressPct $ach.ID) }}%;"></div>
+              <div class="bar negative" style="width: {{ minus 100 (index $.ProgressPct $ach.ID) }}%"></div>
+              <span>{{ (index $.ProgressCurrent $ach.ID) }} / {{ (index $.ProgressTotal $ach.ID) }}</span>
+            </div>
+            {{end}}
+          </div>
+        {{ end }}
+      </div>
+    </div>
+  </div>
+{{template "footer.html" . }}
