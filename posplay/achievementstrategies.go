@@ -1,6 +1,7 @@
 package posplay
 
 import (
+	"strings"
 	"time"
 
 	"github.com/thoas/go-funk"
@@ -11,6 +12,7 @@ import (
 func init() {
 	dataobjects.RegisterPPAchievementStrategy(new(ReachLevelAchievementStrategy))
 	dataobjects.RegisterPPAchievementStrategy(new(VisitStationsAchievementStrategy))
+	dataobjects.RegisterPPAchievementStrategy(new(VisitThroughoutLineAchievementStrategy))
 }
 
 // StubAchievementStrategy partially implements dataobjects.PPAchievementStrategy
@@ -236,4 +238,118 @@ func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchie
 	existingData.UnmarshalExtra(&extra)
 
 	return len(extra.VisitedStations), len(config.Stations), nil
+}
+
+// VisitThroughoutLineAchievementStrategy is an achievement strategy that rewards users when they visit one line from one end to another in a single trip
+type VisitThroughoutLineAchievementStrategy struct {
+	StubAchievementStrategy
+}
+
+type visitThroughoutLineConfig struct {
+	Line      string `json:"line"`      // line ID or "*"
+	Direction string `json:"direction"` // "ascending", "descending" or "*"
+}
+
+// ID returns the ID for this PPAchievementStrategy
+func (s *VisitThroughoutLineAchievementStrategy) ID() string {
+	return "visit_throughout_line"
+}
+
+// HandleTrip implements dataobjects.PPAchievementStrategy
+func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
+	if err == nil && existingData.Achieved {
+		// the player already has this achievement
+		return tx.Commit()
+	}
+
+	var config visitThroughoutLineConfig
+	context.Achievement.UnmarshalConfig(&config)
+
+	possibleLines := []*dataobjects.Line{}
+	if config.Line == "*" {
+		possibleLines, err = dataobjects.GetLines(tx)
+		if err != nil {
+			return err
+		}
+	} else {
+		line, err := dataobjects.GetLine(tx, config.Line)
+		if err != nil {
+			return err
+		}
+		possibleLines = []*dataobjects.Line{line}
+	}
+	possibleNeedles := []string{}
+	for _, line := range possibleLines {
+		stations, err := line.Stations(tx)
+		if err != nil {
+			return err
+		}
+		closed := make(map[string]bool)
+		for _, station := range stations {
+			closed[station.ID], err = station.Closed(tx)
+			if err != nil {
+				return err
+			}
+		}
+
+		switch config.Direction {
+		case "ascending", "up", "*":
+			needle := ""
+			for _, station := range stations {
+				if !closed[station.ID] {
+					needle += station.ID + "|"
+				}
+			}
+			possibleNeedles = append(possibleNeedles, needle)
+			if config.Direction == "*" {
+				goto descending
+			}
+		descending:
+			fallthrough
+		case "descending", "down":
+			stations = funk.Reverse(stations).([]*dataobjects.Station)
+			needle := ""
+			for _, station := range stations {
+				if !closed[station.ID] {
+					needle += station.ID + "|"
+				}
+			}
+			possibleNeedles = append(possibleNeedles, needle)
+		}
+	}
+
+	haystack := ""
+	for _, uses := range trip.StationUses {
+		haystack += uses.Station.ID + "|"
+	}
+
+	found := false
+	for _, needle := range possibleNeedles {
+		if strings.Contains(haystack, needle) {
+			found = true
+			break
+		}
+	}
+
+	if found {
+		// ensure the achievement reward tx always appears after the cause by adding 1 ms
+		err = achieveAchievement(tx, context.Player, context.Achievement, trip.SubmitTime.Add(1*time.Millisecond))
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// Progress implements dataobjects.PPAchievementStrategy
+func (s *VisitThroughoutLineAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
+	return 0, 0, nil
 }
