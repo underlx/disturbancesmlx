@@ -37,6 +37,29 @@
   <link rel="stylesheet" type="text/css" href="https://unpkg.com/cal-heatmap@3.6.2/cal-heatmap.css"> 
 
   <link rel="stylesheet" type="text/css" href="/static/css/custom.css?v=11"/>
+
+  <style>
+  html, body {
+    height: 100%;
+  }
+  body {
+    background-image: url(/static/img/bg-posplay.svg);
+    background-position: center 400px;
+    background-repeat: repeat-x;
+    background-size: auto 600px;
+    display: flex;
+    flex-direction: column;
+  }
+  .widecontent {
+    background-color: rgba(255, 255, 255, 0.85);
+  }
+  .contentcontainer {
+    flex: 1 0 auto;
+  }
+  .footer {
+    flex-shrink: 0;
+  }
+  </style>
 </head>
 
 <body>
@@ -59,3 +82,4 @@
       {{end}}
     </div>
   </div>
+  <div class="contentcontainer">
