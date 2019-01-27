@@ -451,7 +451,7 @@ func achievementsPage(w http.ResponseWriter, r *http.Request) {
 		ProgressPct:     make(map[string]int),
 	}
 
-	p.pageCommons, err = initPageCommons(tx, w, r, "Desafios", session, player)
+	p.pageCommons, err = initPageCommons(tx, w, r, "Proezas", session, player)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

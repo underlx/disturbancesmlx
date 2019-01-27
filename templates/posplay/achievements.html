@@ -12,7 +12,7 @@
               <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
             </div>
             <div class="pure-u-1-4" style="text-align: right">
-              {{ $ach.XPReward }} XP<br>
+              {{ if gt $ach.XPReward 0 }}{{ $ach.XPReward }} XP{{end}}
             </div>
             <div class="pure-u-1">{{ index $ach.Descriptions $ach.MainLocale }}</div>
             <div class="pure-u-1" style="margin-top: 10px; text-align: right; font-size: 0.8em;">
@@ -29,7 +29,7 @@
               <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
             </div>
             <div class="pure-u-1-4" style="text-align: right">
-              {{ $ach.XPReward }} XP
+              {{ if gt $ach.XPReward 0 }}{{ $ach.XPReward }} XP{{end}}
             </div>
             <div class="pure-u-1">{{ index $ach.Descriptions $ach.MainLocale }}</div>
             {{ if gt (index $.ProgressTotal $ach.ID) 0 }}
