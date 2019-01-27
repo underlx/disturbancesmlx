@@ -3,6 +3,7 @@ package resource
 import (
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/posplay"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -69,6 +70,10 @@ func (r *DisturbanceReport) Post(c *yarf.Context) error {
 
 	report := dataobjects.NewLineDisturbanceReportThroughAPI(pair, line, request.Category)
 	err = r.reportHandler.HandleLineDisturbanceReport(report)
+
+	if err == nil {
+		posplay.RegisterReport(report)
+	}
 
 	return err
 }

@@ -144,6 +144,23 @@ func processTripEditForAchievements(id string) error {
 	return tx.Commit()
 }
 
+func processReportForAchievements(report dataobjects.Report) error {
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	switch r := report.(type) {
+	case *dataobjects.LineDisturbanceReport:
+		forEachAchievementWithIDorPair(tx, 0, report.Submitter().Key, func(context *dataobjects.PPAchievementContext) {
+			context.Achievement.Strategy.HandleDisturbanceReport(context, r)
+		})
+	}
+
+	return tx.Commit()
+}
+
 func processXPTxForAchievements(id string, actualValueDiff int) error {
 	tx, err := config.Node.Beginx()
 	if err != nil {

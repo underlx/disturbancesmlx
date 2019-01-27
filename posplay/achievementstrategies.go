@@ -13,6 +13,7 @@ func init() {
 	dataobjects.RegisterPPAchievementStrategy(new(ReachLevelAchievementStrategy))
 	dataobjects.RegisterPPAchievementStrategy(new(VisitStationsAchievementStrategy))
 	dataobjects.RegisterPPAchievementStrategy(new(VisitThroughoutLineAchievementStrategy))
+	dataobjects.RegisterPPAchievementStrategy(new(SubmitAchievementStrategy))
 }
 
 // StubAchievementStrategy partially implements dataobjects.PPAchievementStrategy
@@ -27,6 +28,11 @@ func (s *StubAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementC
 
 // HandleTripEdit implements dataobjects.PPAchievementStrategy
 func (s *StubAchievementStrategy) HandleTripEdit(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+	return nil
+}
+
+// HandleDisturbanceReport implements dataobjects.PPAchievementStrategy
+func (s *StubAchievementStrategy) HandleDisturbanceReport(context *dataobjects.PPAchievementContext, report *dataobjects.LineDisturbanceReport) error {
 	return nil
 }
 
@@ -272,7 +278,7 @@ func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *dataobjects
 	var config visitThroughoutLineConfig
 	context.Achievement.UnmarshalConfig(&config)
 
-	possibleLines := []*dataobjects.Line{}
+	var possibleLines []*dataobjects.Line
 	if config.Line == "*" {
 		possibleLines, err = dataobjects.GetLines(tx)
 		if err != nil {
@@ -352,4 +358,108 @@ func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *dataobjects
 // Progress implements dataobjects.PPAchievementStrategy
 func (s *VisitThroughoutLineAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
 	return 0, 0, nil
+}
+
+// SubmitAchievementStrategy is an achievement strategy that rewards users when they submit a trip, trip edit, or disturbance report
+type SubmitAchievementStrategy struct {
+	StubAchievementStrategy
+}
+
+type submitConfig struct {
+	Type string `json:"type"` // "trip", "trip_edit" or "disturbance_report"
+}
+
+// ID returns the ID for this PPAchievementStrategy
+func (s *SubmitAchievementStrategy) ID() string {
+	return "submit"
+}
+
+// HandleTrip implements dataobjects.PPAchievementStrategy
+func (s *SubmitAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+	var config submitConfig
+	context.Achievement.UnmarshalConfig(&config)
+	if config.Type != "trip" {
+		return nil
+	}
+
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
+	if err == nil && existingData.Achieved {
+		// the player already has this achievement
+		return tx.Commit()
+	}
+
+	if len(trip.StationUses) > 1 {
+		// ensure the achievement reward tx always appears after the cause by adding 1 ms
+		err = achieveAchievement(tx, context.Player, context.Achievement, trip.SubmitTime.Add(1*time.Millisecond))
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// HandleTripEdit implements dataobjects.PPAchievementStrategy
+func (s *SubmitAchievementStrategy) HandleTripEdit(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+	var config submitConfig
+	context.Achievement.UnmarshalConfig(&config)
+	if config.Type != "trip_edit" {
+		return nil
+	}
+
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
+	if err == nil && existingData.Achieved {
+		// the player already has this achievement
+		return tx.Commit()
+	}
+
+	if len(trip.StationUses) > 1 {
+		// ensure the achievement reward tx always appears after the cause by adding 1 ms
+		err = achieveAchievement(tx, context.Player, context.Achievement, trip.SubmitTime.Add(1*time.Millisecond))
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// HandleDisturbanceReport implements dataobjects.PPAchievementStrategy
+func (s *SubmitAchievementStrategy) HandleDisturbanceReport(context *dataobjects.PPAchievementContext, report *dataobjects.LineDisturbanceReport) error {
+	var config submitConfig
+	context.Achievement.UnmarshalConfig(&config)
+	if config.Type != "disturbance_report" {
+		return nil
+	}
+
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
+	if err == nil && existingData.Achieved {
+		// the player already has this achievement
+		return tx.Commit()
+	}
+
+	err = achieveAchievement(tx, context.Player, context.Achievement, report.Time())
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

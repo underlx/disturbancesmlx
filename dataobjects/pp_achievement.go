@@ -23,6 +23,7 @@ type PPAchievementStrategy interface {
 	ID() string
 	HandleTrip(context *PPAchievementContext, trip *Trip) error
 	HandleTripEdit(context *PPAchievementContext, trip *Trip) error
+	HandleDisturbanceReport(context *PPAchievementContext, report *LineDisturbanceReport) error
 	HandleXPTransaction(context *PPAchievementContext, transaction *PPXPTransaction, actualValueDiff int) error
 	Progress(context *PPAchievementContext) (current, total int, err error)
 }

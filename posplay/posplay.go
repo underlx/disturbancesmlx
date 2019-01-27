@@ -34,6 +34,7 @@ type lightXPTXinfo struct {
 
 var tripSubmissionsChan = make(chan string, 100)
 var tripEditsChan = make(chan string, 100)
+var reportsChan = make(chan dataobjects.Report, 100)
 var xpTxChan = make(chan lightXPTXinfo, 100)
 
 const (
@@ -126,6 +127,11 @@ func RegisterTripSubmission(trip *dataobjects.Trip) {
 // RegisterTripFirstEdit schedules a trip resubmission (edit, confirmation) for analysis
 func RegisterTripFirstEdit(trip *dataobjects.Trip) {
 	tripEditsChan <- trip.ID
+}
+
+// RegisterReport schedules a report for analysis
+func RegisterReport(report dataobjects.Report) {
+	reportsChan <- report
 }
 
 // RegisterEventWinCallback gives a user a XP reward for a Discord event, if he has not received a reward for that event yet
@@ -281,6 +287,11 @@ func serialProcessor() {
 				config.Log.Println(err)
 			}
 			err = processTripEditForAchievements(id)
+			if err != nil {
+				config.Log.Println(err)
+			}
+		case report := <-reportsChan:
+			err := processReportForAchievements(report)
 			if err != nil {
 				config.Log.Println(err)
 			}
