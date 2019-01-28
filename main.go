@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/underlx/disturbancesmlx/ankiddie"
+
 	fcm "github.com/NaySoftware/go-fcm"
 	"github.com/gbl08ma/sqalx"
 	"github.com/jmoiron/sqlx"
@@ -29,6 +31,7 @@ var (
 	lastChange       time.Time
 	apiTotalRequests int
 
+	kiddie         *ankiddie.Ankiddie
 	vehicleHandler *compute.VehicleHandler
 	reportHandler  *compute.ReportHandler
 	statsHandler   *compute.StatsHandler
@@ -70,6 +73,8 @@ func main() {
 	if err != nil {
 		mainLog.Fatalln(err)
 	}
+
+	kiddie = ankiddie.New(ankoPackageConfigurator)
 
 	statsHandler = compute.NewStatsHandler()
 	vehicleHandler = compute.NewVehicleHandler()

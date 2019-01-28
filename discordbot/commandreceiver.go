@@ -1,6 +1,9 @@
 package discordbot
 
-import "github.com/underlx/disturbancesmlx/dataobjects"
+import (
+	"github.com/underlx/disturbancesmlx/ankiddie"
+	"github.com/underlx/disturbancesmlx/dataobjects"
+)
 
 // CommandReceiver is used to send commands and exchange information with the code that set up a bot
 type CommandReceiver interface {
@@ -46,6 +49,6 @@ type CommandReceiver interface {
 	// SendCommandMetaBroadcast sends a FCM message containing a command to run on some/all clients
 	SendCommandMetaBroadcast(versionFilter, localeFilter, command string, args ...string)
 
-	// ConfigureAnkoPackage asks the bot host to set up the package for the anko script system
-	ConfigureAnkoPackage(packages, packageTypes map[string]map[string]interface{})
+	// GetAnkiddie returns a reference to the global Ankiddie system
+	GetAnkiddie() *ankiddie.Ankiddie
 }

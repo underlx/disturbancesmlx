@@ -264,7 +264,6 @@ func Stop() {
 	if session != nil {
 		session.Close()
 	}
-	scriptSystem.doClear()
 }
 
 // CreateInvite creates a single-use invite for the specified channel
