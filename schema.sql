@@ -286,6 +286,14 @@ CREATE TABLE IF NOT EXISTS "station_has_poi" (
     poi_id VARCHAR(36) NOT NULL REFERENCES poi (id)
 );
 
+CREATE TABLE IF NOT EXISTS "script" (
+    id VARCHAR(36) PRIMARY KEY,
+    type VARCHAR(36) NOT NULL,
+    autorun INT NOT NULL,
+    code TEXT NOT NULL,
+    notes TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS "pp_player" (
     discord_id BIGINT PRIMARY KEY,
     joined TIMESTAMP WITH TIME ZONE NOT NULL,

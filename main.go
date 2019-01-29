@@ -73,15 +73,18 @@ func main() {
 	if err != nil {
 		mainLog.Fatalln(err)
 	}
+	mainLog.Println("Database opened")
 
-	kiddie = ankiddie.New(ankoPackageConfigurator)
+	kiddie = ankiddie.New(rootSqalxNode, ankoPackageConfigurator)
+	err = kiddie.StartAutorun(0, false, defaultAnkoOut)
+	if err != nil {
+		mainLog.Fatalln(err)
+	}
 
 	statsHandler = compute.NewStatsHandler()
 	vehicleHandler = compute.NewVehicleHandler()
 	// done like this to ensure rootSqalxNode is not nil at this point
 	reportHandler = compute.NewReportHandler(statsHandler, rootSqalxNode, handleNewStatus)
-
-	mainLog.Println("Database opened")
 
 	compute.Initialize(rootSqalxNode, mainLog)
 
@@ -90,6 +93,11 @@ func main() {
 		mainLog.Fatalln("Firebase server key not present in keybox")
 	}
 	fcmcl = fcm.NewFcmClient(fcmServerKey)
+
+	err = kiddie.StartAutorun(1, false, defaultAnkoOut)
+	if err != nil {
+		mainLog.Fatalln(err)
+	}
 
 	go StatsSender()
 	go WebServer()
@@ -114,6 +122,11 @@ func main() {
 
 	SetUpAnnouncements(facebookAccessToken)
 	defer TearDownAnnouncements()
+
+	err = kiddie.StartAutorun(2, true, defaultAnkoOut)
+	if err != nil {
+		mainLog.Fatalln(err)
+	}
 
 	go func() {
 		time.Sleep(5 * time.Second)

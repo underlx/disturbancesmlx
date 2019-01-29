@@ -40,6 +40,16 @@ func DiscordBot() {
 		return
 	}
 
+	outFn := defaultAnkoOut
+	adminChannelID, present := discordBox.Get("adminChannel")
+	if present {
+		outFn = discordbot.BuildAnkoOutFunction(adminChannelID)
+	}
+	err = kiddie.StartAutorun(3, true, outFn)
+	if err != nil {
+		mainLog.Fatalln(err)
+	}
+
 	// Wait here until CTRL-C or other term signal is received.
 	discordLog.Println("Bot is now running.")
 	sc := make(chan os.Signal, 1)

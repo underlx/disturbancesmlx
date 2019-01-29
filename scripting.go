@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gbl08ma/sqalx"
 	uuid "github.com/satori/go.uuid"
+	"github.com/underlx/disturbancesmlx/ankiddie"
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/discordbot"
@@ -84,4 +85,9 @@ func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 	packageTypes["uuid"]["UUID"] = uuid.UUID{}
 
 	discordbot.AnkoPackageConfigurator(packages, packageTypes)
+}
+
+func defaultAnkoOut(env *ankiddie.Environment, msg string) error {
+	mainLog.Printf("[AnkoEnv%d] %s", env.EID(), msg)
+	return nil
 }

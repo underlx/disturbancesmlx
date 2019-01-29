@@ -3,20 +3,27 @@ package ankiddie
 import (
 	"sync"
 
+	"github.com/underlx/disturbancesmlx/dataobjects"
+
 	"github.com/gbl08ma/anko/packages"
 	"github.com/gbl08ma/anko/vm"
+	"github.com/gbl08ma/sqalx"
 )
 
 // Ankiddie manages the execution of anko scripts
 type Ankiddie struct {
 	m     sync.Mutex
+	node  sqalx.Node
 	envs  map[uint]*Environment
 	curID uint
 }
 
+const scriptType = "anko"
+
 // New returns a new Ankiddie
-func New(packageConfigurator func(packages, packageTypes map[string]map[string]interface{})) *Ankiddie {
+func New(node sqalx.Node, packageConfigurator func(packages, packageTypes map[string]map[string]interface{})) *Ankiddie {
 	ankiddie := &Ankiddie{
+		node: node,
 		envs: make(map[uint]*Environment),
 	}
 
@@ -31,6 +38,17 @@ func (ssys *Ankiddie) NewEnvWithCode(code string, out func(env *Environment, msg
 	ssys.m.Lock()
 	defer ssys.m.Unlock()
 	env := ssys.newEnv(ssys.curID, code, out)
+	ssys.envs[env.eid] = env
+	ssys.curID++
+	return env
+}
+
+// NewEnvWithScript returns a new Environment ready to run the provided dataobjects.Script
+func (ssys *Ankiddie) NewEnvWithScript(script *dataobjects.Script, out func(env *Environment, msg string) error) *Environment {
+	ssys.m.Lock()
+	defer ssys.m.Unlock()
+	env := ssys.newEnv(ssys.curID, script.Code, out)
+	env.scriptID = script.ID
 	ssys.envs[env.eid] = env
 	ssys.curID++
 	return env
@@ -71,4 +89,28 @@ func (ssys *Ankiddie) FullReset() {
 		vm.Interrupt(env.vm)
 	}
 	ssys.envs = make(map[uint]*Environment)
+}
+
+// StartAutorun executes scripts at the specified autorun level
+func (ssys *Ankiddie) StartAutorun(level int, async bool, out func(env *Environment, msg string) error) error {
+	tx, err := ssys.node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Commit() // read-only tx
+
+	scripts, err := dataobjects.GetAutorunScriptsWithType(tx, scriptType, level)
+	if err != nil {
+		return err
+	}
+
+	for _, script := range scripts {
+		env := ssys.NewEnvWithScript(script, out)
+		if async {
+			go env.Start()
+		} else {
+			env.Start()
+		}
+	}
+	return nil
 }

@@ -6,6 +6,9 @@ import (
 	"reflect"
 	"time"
 
+	uuid "github.com/satori/go.uuid"
+	"github.com/underlx/disturbancesmlx/dataobjects"
+
 	"github.com/gbl08ma/anko/core"
 	"github.com/gbl08ma/anko/packages"
 	"github.com/gbl08ma/anko/vm"
@@ -22,14 +25,17 @@ type Environment struct {
 	started   bool
 	suspended bool
 	src       string
+	srcDirty  bool
+	scriptID  string
 }
 
 func (ssys *Ankiddie) newEnv(eid uint, code string, out func(env *Environment, msg string) error) *Environment {
 	env := &Environment{
-		ssys: ssys,
-		eid:  eid,
-		src:  code,
-		vm:   vm.NewEnv(),
+		ssys:      ssys,
+		eid:       eid,
+		src:       code,
+		suspended: true,
+		vm:        vm.NewEnv(),
 	}
 	packages.DefineImport(env.vm)
 	core.Import(env.vm)
@@ -76,6 +82,7 @@ func (ssys *Ankiddie) newEnv(eid uint, code string, out func(env *Environment, m
 func (env *Environment) Start() (interface{}, error) {
 	env.ssys.m.Lock()
 	env.started = true
+	env.suspended = false
 	env.ssys.m.Unlock()
 	return env.vm.Execute(env.src)
 }
@@ -99,6 +106,7 @@ func (env *Environment) Restart() (interface{}, error) {
 	env.ssys.m.Lock()
 	vm.Interrupt(env.vm)
 	env.suspended = false
+	env.started = true
 	vm.ClearInterrupt(env.vm)
 	env.ssys.m.Unlock()
 	return env.vm.Execute(env.src)
@@ -109,7 +117,9 @@ func (env *Environment) Execute(source string, appendToSrc bool) (interface{}, e
 	env.ssys.m.Lock()
 	if appendToSrc {
 		env.src = fmt.Sprintf("%s\n// Added on %s:\n%s", env.src, time.Now().Format(time.RFC3339), source)
+		env.srcDirty = true
 	}
+	env.started = true
 	env.suspended = false
 	vm.ClearInterrupt(env.vm)
 	env.ssys.m.Unlock()
@@ -121,9 +131,73 @@ func (env *Environment) Forget() {
 	env.ssys.ForgetEnv(env)
 }
 
+// SaveScript saves the script to the database under the specified ID
+// If no ID is provided, the script is saved under its original ID
+// If the script did not have an ID associated, a UUID is generated
+func (env *Environment) SaveScript(id string) (*dataobjects.Script, error) {
+	tx, err := env.ssys.node.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	env.ssys.m.Lock()
+	defer env.ssys.m.Unlock()
+
+	if id == "" {
+		id = env.scriptID
+		if id == "" {
+			uid, err := uuid.NewV4()
+			if err != nil {
+				return nil, err
+			}
+			id = uid.String()
+		}
+	}
+
+	script, err := dataobjects.GetScript(tx, id)
+	if err != nil {
+		script = &dataobjects.Script{
+			ID:      id,
+			Autorun: -1,
+		}
+	}
+
+	script.Type = scriptType
+	script.Code = env.src
+
+	err = script.Update(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	tx.DeferToCommit(func() {
+		env.ssys.m.Lock()
+		env.srcDirty = false
+		env.ssys.m.Unlock()
+	})
+	return script, tx.Commit()
+}
+
 // EID returns the environment ID
 func (env *Environment) EID() uint {
 	return env.eid
+}
+
+// ScriptID returns the script ID associated with this environment
+func (env *Environment) ScriptID() string {
+	return env.scriptID
+}
+
+// Dirty returns whether the code associated with this environment has had changes
+// since the environment was created
+func (env *Environment) Dirty() bool {
+	return env.srcDirty
+}
+
+// Started returns whether execution has ever started in this environment
+func (env *Environment) Started() bool {
+	return env.started
 }
 
 // Suspended returns whether execution is suspended in this environment

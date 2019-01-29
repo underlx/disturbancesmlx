@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thoas/go-funk"
+
 	"github.com/gbl08ma/keybox"
 
 	"github.com/bwmarrin/discordgo"
@@ -84,7 +86,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		return errors.New("Discord bot token not present in keybox")
 	}
 
-	adminChannelID, _ := keybox.Get("adminChannel")
+	adminChannelID, present := keybox.Get("adminChannel")
 	if !present {
 		adminChannelID = ""
 	}
@@ -146,7 +148,12 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		showAll := len(args) > 0 && args[0] == "full" &&
 			(commandLib.isAdminChannel(m.ChannelID) || m.Author.ID == selfApp.Owner.ID)
 		msg := "**Comandos suportados**\n"
-		for _, command := range commandLib.commands {
+		ifcommands := funk.Values(commandLib.commands)
+		commands := ifcommands.([]*Command)
+		sort.Slice(commands, func(i, j int) bool {
+			return commands[i].Name < commands[j].Name
+		})
+		for _, command := range commands {
 			if command.RequirePrivilege == PrivilegeEveryone || showAll {
 				msg += commandLib.prefix + command.Name
 				if command.RequirePrivilege == PrivilegeNobody {
@@ -212,7 +219,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		s.ChannelMessageSend(m.ChannelID, "✅")
 	}).WithRequirePrivilege(PrivilegeRoot))
 	commandLib.Register(NewCommand("setcmdpriv", handleSetCommandPrivilege).WithRequirePrivilege(PrivilegeRoot))
-	scriptSystem.Setup(commandLib, PrivilegeRoot)
+	scriptSystem.Setup(node, commandLib, PrivilegeRoot)
 	new(SQLSystem).Setup(node, commandLib, PrivilegeRoot)
 
 	reactionHandlers = append(reactionHandlers, ThePosPlayBridge)
