@@ -28,11 +28,17 @@ import (
 )
 
 var started bool
-var muteManager = NewMuteManager()
 var commandLib *CommandLibrary
-var messageHandlers []MessageHandler
-var reactionHandlers []ReactionHandler
 var guildIDs sync.Map
+
+// TheMuteManager manages for which channels the bot is muted
+var TheMuteManager = NewMuteManager()
+
+// MessageHandlers is the list of MessageHandlers that process messages
+var MessageHandlers []MessageHandler
+
+// ReactionHandlers is the list of ReactionHandlers that process reactions
+var ReactionHandlers []ReactionHandler
 
 var botstats = stats{
 	DMChannels: make(map[string]bool),
@@ -116,7 +122,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	}
 
 	commandLib = NewCommandLibrary("$", selfApp.Owner.ID).WithAdminChannel(adminChannelID)
-	messageHandlers = append(messageHandlers, commandLib)
+	MessageHandlers = append(MessageHandlers, commandLib)
 	commandLib.Register(NewCommand("ping", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		embed := NewEmbed()
 		addMuteEmbed(embed, m.ChannelID)
@@ -189,7 +195,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 				muteDuration = time.Duration(mins) * time.Minute
 			}
 		}
-		muteManager.MuteChannel(m.ChannelID, muteDuration)
+		TheMuteManager.MuteChannel(m.ChannelID, muteDuration)
 		if muteDuration.Minutes() < 60.0 {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🤐 por %d minutos", int(math.Round(muteDuration.Minutes()))))
 		} else {
@@ -197,15 +203,15 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		}
 	}))
 	commandLib.Register(NewCommand("unmute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		muteManager.UnmuteChannel(m.ChannelID)
+		TheMuteManager.UnmuteChannel(m.ChannelID)
 		s.ChannelMessageSend(m.ChannelID, "🤗")
 	}))
 	commandLib.Register(NewCommand("permamute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		muteManager.PermaMuteChannel(m.ChannelID)
+		TheMuteManager.PermaMuteChannel(m.ChannelID)
 		s.ChannelMessageSend(m.ChannelID, "🤐💀")
 	}).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("permaunmute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		muteManager.PermaUnmuteChannel(m.ChannelID)
+		TheMuteManager.PermaUnmuteChannel(m.ChannelID)
 		s.ChannelMessageSend(m.ChannelID, "🤗🙌")
 	}).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("setstatus", handleStatus).WithRequirePrivilege(PrivilegeAdmin))
@@ -236,22 +242,22 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	scriptSystem.Setup(node, commandLib, PrivilegeRoot)
 	new(SQLSystem).Setup(node, commandLib, PrivilegeRoot)
 
-	reactionHandlers = append(reactionHandlers, ThePosPlayBridge)
-	messageHandlers = append(messageHandlers, ThePosPlayBridge)
+	ReactionHandlers = append(ReactionHandlers, ThePosPlayBridge)
+	MessageHandlers = append(MessageHandlers, ThePosPlayBridge)
 
 	infoHandler, err := NewInfoHandler(node)
 	if err != nil {
 		return err
 	}
-	messageHandlers = append(messageHandlers, infoHandler)
-	reactionHandlers = append(reactionHandlers, infoHandler)
+	MessageHandlers = append(MessageHandlers, infoHandler)
+	ReactionHandlers = append(ReactionHandlers, infoHandler)
 
 	/*disduper := new(bot.Disduper)
 	err = disduper.InitIntegrated(log, session)
 	if err != nil {
 		return err
 	}
-	messageHandlers = append(messageHandlers, disduper)*/
+	MessageHandlers = append(MessageHandlers, disduper)*/
 
 	user, err := dg.User("@me")
 	if err != nil {
@@ -382,7 +388,7 @@ func messageReactionAdd(s *discordgo.Session, m *discordgo.MessageReactionAdd) {
 		return
 	}
 
-	for _, handler := range reactionHandlers {
+	for _, handler := range ReactionHandlers {
 		if handler.HandleReaction(s, m) {
 			return
 		}
@@ -397,8 +403,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	muted := muteManager.MutedAny(m.ChannelID)
-	for _, handler := range messageHandlers {
+	muted := TheMuteManager.MutedAny(m.ChannelID)
+	for _, handler := range MessageHandlers {
 		if handler.HandleMessage(s, m, muted) {
 			return
 		}

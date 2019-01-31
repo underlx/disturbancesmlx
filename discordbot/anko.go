@@ -355,32 +355,7 @@ func AnkoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 	packages["underlx"]["BotStats"] = func() *stats {
 		return &botstats
 	}
-	packages["underlx"]["MessageHandlers"] = func() []MessageHandler {
-		return messageHandlers
-	}
-	packages["underlx"]["ReactionHandlers"] = func() []ReactionHandler {
-		return reactionHandlers
-	}
 	packages["underlx"]["StartReactionEvent"] = ThePosPlayBridge.StartReactionEvent
 	packages["underlx"]["StartQuizEvent"] = ThePosPlayBridge.StartQuizEvent
 	packages["underlx"]["StopEvent"] = ThePosPlayBridge.StopEvent
-
-	packages["discordgo"] = make(map[string]interface{})
-	dopkg := packages["discordgo"]
-	for name, function := range DiscordGoFunctions {
-		if function.CanInterface() {
-			dopkg[name] = function.Interface()
-		}
-	}
-	for name, item := range DiscordGoConsts {
-		dopkg[name] = item
-	}
-	for name, item := range DiscordGoVariables {
-		dopkg[name] = item
-	}
-	packageTypes["discordgo"] = make(map[string]interface{})
-	dotypes := packageTypes["discordgo"]
-	for name, item := range DiscordGoTypes {
-		dotypes[name] = item
-	}
 }

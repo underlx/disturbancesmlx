@@ -1,12 +1,16 @@
 package main
 
 import (
+	"reflect"
+
 	"github.com/gbl08ma/sqalx"
-	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/ankiddie"
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/discordbot"
+	"github.com/underlx/disturbancesmlx/posplay"
+	"github.com/underlx/disturbancesmlx/utils"
+	"github.com/underlx/disturbancesmlx/website"
 )
 
 func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interface{}) {
@@ -24,65 +28,44 @@ func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 		return reportHandler
 	}
 
-	packages["compute"] = make(map[string]interface{})
-	packages["compute"]["AverageSpeed"] = compute.AverageSpeed
-	packages["compute"]["AverageSpeedFilter"] = compute.AverageSpeedFilter
-	packages["compute"]["AverageSpeedCached"] = compute.AverageSpeedCached
-	packages["compute"]["UpdateTypicalSeconds"] = compute.UpdateTypicalSeconds
-	packages["compute"]["UpdateStatusMsgTypes"] = compute.UpdateStatusMsgTypes
+	type pkgInfo struct {
+		Name      string
+		Types     map[string]reflect.Type
+		Functions map[string]reflect.Value
+		Consts    map[string]reflect.Value
+		Variables map[string]reflect.Value
+	}
 
-	packages["dataobjects"] = make(map[string]interface{})
-	dopkg := packages["dataobjects"]
-	for name, function := range dataobjects.Functions {
-		if function.CanInterface() {
-			dopkg[name] = function.Interface()
+	processPkg := func(pkg pkgInfo) {
+		packages[pkg.Name] = make(map[string]interface{})
+		dopkg := packages[pkg.Name]
+		for name, function := range pkg.Functions {
+			if function.CanInterface() {
+				dopkg[name] = function.Interface()
+			}
+		}
+		for name, item := range pkg.Consts {
+			dopkg[name] = item
+		}
+		for name, item := range pkg.Variables {
+			dopkg[name] = item
+		}
+		packageTypes[pkg.Name] = make(map[string]interface{})
+		dotypes := packageTypes[pkg.Name]
+		for name, item := range pkg.Types {
+			dotypes[name] = item
 		}
 	}
-	for name, item := range dataobjects.Consts {
-		dopkg[name] = item
-	}
-	for name, item := range dataobjects.Variables {
-		dopkg[name] = item
-	}
-	packageTypes["dataobjects"] = make(map[string]interface{})
-	dotypes := packageTypes["dataobjects"]
-	for name, item := range dataobjects.Types {
-		dotypes[name] = item
-	}
 
-	packages["uuid"] = make(map[string]interface{})
-	packages["uuid"]["V1"] = uuid.V1
-	packages["uuid"]["V2"] = uuid.V2
-	packages["uuid"]["V3"] = uuid.V3
-	packages["uuid"]["V4"] = uuid.V4
-	packages["uuid"]["V5"] = uuid.V5
-	packages["uuid"]["VariantNCS"] = uuid.VariantNCS
-	packages["uuid"]["VariantRFC4122"] = uuid.VariantRFC4122
-	packages["uuid"]["VariantMicrosoft"] = uuid.VariantMicrosoft
-	packages["uuid"]["VariantFuture"] = uuid.VariantFuture
-	packages["uuid"]["DomainGroup"] = uuid.DomainGroup
-	packages["uuid"]["DomainOrg"] = uuid.DomainOrg
-	packages["uuid"]["DomainPerson"] = uuid.DomainPerson
-	packages["uuid"]["Size"] = uuid.Size
-	packages["uuid"]["NamespaceDNS"] = uuid.NamespaceDNS
-	packages["uuid"]["NamespaceOID"] = uuid.NamespaceOID
-	packages["uuid"]["NamespaceURL"] = uuid.NamespaceURL
-	packages["uuid"]["NamespaceX500"] = uuid.NamespaceX500
-	packages["uuid"]["Nil"] = uuid.Nil
-	packages["uuid"]["Equal"] = uuid.Equal
-	packages["uuid"]["FromBytes"] = uuid.FromBytes
-	packages["uuid"]["FromBytesOrNil"] = uuid.FromBytesOrNil
-	packages["uuid"]["FromString"] = uuid.FromString
-	packages["uuid"]["FromStringOrNil"] = uuid.FromStringOrNil
-	packages["uuid"]["Must"] = uuid.Must
-	packages["uuid"]["NewV1"] = uuid.NewV1
-	packages["uuid"]["NewV2"] = uuid.NewV2
-	packages["uuid"]["NewV3"] = uuid.NewV3
-	packages["uuid"]["NewV4"] = uuid.NewV4
-	packages["uuid"]["NewV5"] = uuid.NewV5
-	packageTypes["uuid"] = make(map[string]interface{})
-	packageTypes["uuid"]["NullUUID"] = uuid.NullUUID{}
-	packageTypes["uuid"]["UUID"] = uuid.UUID{}
+	processPkg(pkgInfo{"compute", compute.Types, compute.Functions, compute.Consts, compute.Variables})
+	processPkg(pkgInfo{"dataobjects", dataobjects.Types, dataobjects.Functions, dataobjects.Consts, dataobjects.Variables})
+	processPkg(pkgInfo{"discordbot", discordbot.Types, discordbot.Functions, discordbot.Consts, discordbot.Variables})
+	processPkg(pkgInfo{"posplay", posplay.Types, posplay.Functions, posplay.Consts, posplay.Variables})
+	processPkg(pkgInfo{"utils", utils.Types, utils.Functions, utils.Consts, utils.Variables})
+	processPkg(pkgInfo{"website", website.Types, website.Functions, website.Consts, website.Variables})
+
+	processPkg(pkgInfo{"discordgo", extpkgDiscordGoTypes, extpkgDiscordGoFunctions, extpkgDiscordGoConsts, extpkgDiscordGoVariables})
+	processPkg(pkgInfo{"uuid", extpkgUUIDTypes, extpkgUUIDFunctions, extpkgUUIDConsts, extpkgUUIDVariables})
 
 	discordbot.AnkoPackageConfigurator(packages, packageTypes)
 }

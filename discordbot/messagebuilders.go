@@ -616,7 +616,7 @@ func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
 	serversStr += fmt.Sprintf("%d canais de grupo\n", botstats.GroupDMChannelCount)
 
 	embed.AddField("Entidades do Discord", serversStr)
-	for _, handler := range messageHandlers {
+	for _, handler := range MessageHandlers {
 		handled := handler.MessagesHandled()
 		actedUpon := handler.MessagesActedUpon()
 
@@ -631,7 +631,7 @@ func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
 		}
 		embed.AddField("Utilização do processador de mensagens "+handler.Name(), statsStr)
 	}
-	for _, handler := range reactionHandlers {
+	for _, handler := range ReactionHandlers {
 		handled := handler.ReactionsHandled()
 		actedUpon := handler.ReactionsActedUpon()
 
@@ -766,9 +766,9 @@ func buildPosPlayXPMessage(m *discordgo.MessageCreate) (*Embed, error) {
 }
 
 func addMuteEmbed(embed *Embed, channelID string) {
-	if muteManager.MutedPermanently(channelID) {
+	if TheMuteManager.MutedPermanently(channelID) {
 		embed.AddField("Estou em modo silencioso permanente neste canal", "Apenas irei responder a comandos directos 🤐")
-	} else if muteManager.MutedTemporarily(channelID) {
+	} else if TheMuteManager.MutedTemporarily(channelID) {
 		embed.AddField("Estou em modo silencioso neste canal. Diga `"+commandLib.prefix+"unmute` para me deixar falar mais.", "Apenas irei responder a comandos directos 🤐")
 	}
 }
