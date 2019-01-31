@@ -686,10 +686,6 @@ func handleSendToChannel(s *discordgo.Session, m *discordgo.MessageCreate, args 
 		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
 		return
 	}
-
-	var netClient = &http.Client{
-		Timeout: time.Second * 10,
-	}
 	response, err := netClient.Get(args[1])
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
