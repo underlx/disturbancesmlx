@@ -23,9 +23,13 @@ var Types = map[string]reflect.Type{
 
 var Functions = map[string]reflect.Value{
 	"AnkoPackageConfigurator": reflect.ValueOf(AnkoPackageConfigurator),
+	"BotStats":                reflect.ValueOf(BotStats),
 	"BuildAnkoOutFunction":    reflect.ValueOf(BuildAnkoOutFunction),
 	"ComesFromDM":             reflect.ValueOf(ComesFromDM),
 	"CreateInvite":            reflect.ValueOf(CreateInvite),
+	"GetMessageHandlers":      reflect.ValueOf(GetMessageHandlers),
+	"GetMuteManager":          reflect.ValueOf(GetMuteManager),
+	"GetReactionHandlers":     reflect.ValueOf(GetReactionHandlers),
 	"NewCommand":              reflect.ValueOf(NewCommand),
 	"NewCommandLibrary":       reflect.ValueOf(NewCommandLibrary),
 	"NewEmbed":                reflect.ValueOf(NewEmbed),
@@ -33,15 +37,15 @@ var Functions = map[string]reflect.Value{
 	"NewMuteManager":          reflect.ValueOf(NewMuteManager),
 	"ProjectGuildMember":      reflect.ValueOf(ProjectGuildMember),
 	"SendDMtoUser":            reflect.ValueOf(SendDMtoUser),
+	"SetMessageHandlers":      reflect.ValueOf(SetMessageHandlers),
+	"SetMuteManager":          reflect.ValueOf(SetMuteManager),
+	"SetReactionHandlers":     reflect.ValueOf(SetReactionHandlers),
 	"Start":                   reflect.ValueOf(Start),
 	"Stop":                    reflect.ValueOf(Stop),
 	"User":                    reflect.ValueOf(User),
 }
 
 var Variables = map[string]reflect.Value{
-	"MessageHandlers":  reflect.ValueOf(&MessageHandlers),
-	"ReactionHandlers": reflect.ValueOf(&ReactionHandlers),
-	"TheMuteManager":   reflect.ValueOf(&TheMuteManager),
 	"ThePosPlayBridge": reflect.ValueOf(&ThePosPlayBridge),
 }
 

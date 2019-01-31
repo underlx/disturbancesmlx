@@ -45,10 +45,17 @@ func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 			}
 		}
 		for name, item := range pkg.Consts {
-			dopkg[name] = item
+			if item.CanInterface() {
+				dopkg[name] = item.Interface()
+			}
 		}
 		for name, item := range pkg.Variables {
-			dopkg[name] = item
+			if item.CanInterface() {
+				if item.Kind() == reflect.Ptr {
+					item = item.Elem()
+				}
+				dopkg[name] = item.Interface()
+			}
 		}
 		packageTypes[pkg.Name] = make(map[string]interface{})
 		dotypes := packageTypes[pkg.Name]

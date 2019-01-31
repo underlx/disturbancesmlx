@@ -31,17 +31,49 @@ var started bool
 var commandLib *CommandLibrary
 var guildIDs sync.Map
 
-// TheMuteManager manages for which channels the bot is muted
-var TheMuteManager = NewMuteManager()
+var muteManager = NewMuteManager()
 
-// MessageHandlers is the list of MessageHandlers that process messages
-var MessageHandlers []MessageHandler
+// GetMuteManager returns the MuteManager the bot is using
+func GetMuteManager() *MuteManager {
+	return muteManager
+}
 
-// ReactionHandlers is the list of ReactionHandlers that process reactions
-var ReactionHandlers []ReactionHandler
+// SetMuteManager sets the MuteManager the bot is using
+func SetMuteManager(m *MuteManager) {
+	muteManager = m
+}
+
+var messageHandlers []MessageHandler
+
+// GetMessageHandlers returns the MessageHandlers the bot is using
+func GetMessageHandlers() []MessageHandler {
+	return messageHandlers
+}
+
+// SetMessageHandlers sets the MessageHandlers the bot is using
+func SetMessageHandlers(m []MessageHandler) {
+	messageHandlers = m
+}
+
+var reactionHandlers []ReactionHandler
+
+// GetReactionHandlers returns the ReactionHandlers the bot is using
+func GetReactionHandlers() []ReactionHandler {
+	return reactionHandlers
+}
+
+// SetReactionHandlers sets the ReactionHandlers the bot is using
+func SetReactionHandlers(m []ReactionHandler) {
+	reactionHandlers = m
+}
 
 var botstats = stats{
 	DMChannels: make(map[string]bool),
+}
+
+// BotStats returns the bot stats
+func BotStats() *stats {
+	return &botstats
 }
 
 type stats struct {
@@ -122,7 +154,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	}
 
 	commandLib = NewCommandLibrary("$", selfApp.Owner.ID).WithAdminChannel(adminChannelID)
-	MessageHandlers = append(MessageHandlers, commandLib)
+	messageHandlers = append(messageHandlers, commandLib)
 	commandLib.Register(NewCommand("ping", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 		embed := NewEmbed()
 		addMuteEmbed(embed, m.ChannelID)
@@ -195,7 +227,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 				muteDuration = time.Duration(mins) * time.Minute
 			}
 		}
-		TheMuteManager.MuteChannel(m.ChannelID, muteDuration)
+		muteManager.MuteChannel(m.ChannelID, muteDuration)
 		if muteDuration.Minutes() < 60.0 {
 			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("🤐 por %d minutos", int(math.Round(muteDuration.Minutes()))))
 		} else {
@@ -203,15 +235,15 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		}
 	}))
 	commandLib.Register(NewCommand("unmute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		TheMuteManager.UnmuteChannel(m.ChannelID)
+		muteManager.UnmuteChannel(m.ChannelID)
 		s.ChannelMessageSend(m.ChannelID, "🤗")
 	}))
 	commandLib.Register(NewCommand("permamute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		TheMuteManager.PermaMuteChannel(m.ChannelID)
+		muteManager.PermaMuteChannel(m.ChannelID)
 		s.ChannelMessageSend(m.ChannelID, "🤐💀")
 	}).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("permaunmute", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-		TheMuteManager.PermaUnmuteChannel(m.ChannelID)
+		muteManager.PermaUnmuteChannel(m.ChannelID)
 		s.ChannelMessageSend(m.ChannelID, "🤗🙌")
 	}).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("setstatus", handleStatus).WithRequirePrivilege(PrivilegeAdmin))
@@ -242,15 +274,15 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	scriptSystem.Setup(node, commandLib, PrivilegeRoot)
 	new(SQLSystem).Setup(node, commandLib, PrivilegeRoot)
 
-	ReactionHandlers = append(ReactionHandlers, ThePosPlayBridge)
-	MessageHandlers = append(MessageHandlers, ThePosPlayBridge)
+	reactionHandlers = append(reactionHandlers, ThePosPlayBridge)
+	messageHandlers = append(messageHandlers, ThePosPlayBridge)
 
 	infoHandler, err := NewInfoHandler(node)
 	if err != nil {
 		return err
 	}
-	MessageHandlers = append(MessageHandlers, infoHandler)
-	ReactionHandlers = append(ReactionHandlers, infoHandler)
+	messageHandlers = append(messageHandlers, infoHandler)
+	reactionHandlers = append(reactionHandlers, infoHandler)
 
 	/*disduper := new(bot.Disduper)
 	err = disduper.InitIntegrated(log, session)
@@ -388,7 +420,7 @@ func messageReactionAdd(s *discordgo.Session, m *discordgo.MessageReactionAdd) {
 		return
 	}
 
-	for _, handler := range ReactionHandlers {
+	for _, handler := range reactionHandlers {
 		if handler.HandleReaction(s, m) {
 			return
 		}
@@ -403,8 +435,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	muted := TheMuteManager.MutedAny(m.ChannelID)
-	for _, handler := range MessageHandlers {
+	muted := muteManager.MutedAny(m.ChannelID)
+	for _, handler := range messageHandlers {
 		if handler.HandleMessage(s, m, muted) {
 			return
 		}
