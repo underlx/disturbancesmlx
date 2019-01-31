@@ -2,6 +2,8 @@ package discordbot
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -29,6 +31,7 @@ func (ssys *ScriptSystem) Setup(node sqalx.Node, cl *CommandLibrary, privilege P
 	cl.Register(NewCommand("ankoclear", ssys.handleClear).WithRequirePrivilege(privilege))
 	cl.Register(NewCommand("ankostatus", ssys.handleStatus).WithRequirePrivilege(privilege))
 	cl.Register(NewCommand("ankosavescript", ssys.handleSaveScript).WithRequirePrivilege(privilege))
+	cl.Register(NewCommand("ankouploadscript", ssys.handleUploadScript).WithRequirePrivilege(privilege))
 	cl.Register(NewCommand("ankolistscripts", ssys.handleListScripts).WithRequirePrivilege(privilege))
 	cl.Register(NewCommand("ankoautorunscript", ssys.handleAutorunScript).WithRequirePrivilege(privilege))
 }
@@ -233,6 +236,46 @@ func (ssys *ScriptSystem) handleSaveScript(s *discordgo.Session, m *discordgo.Me
 		return
 	}
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("💾📜🆔`%s`", script.ID))
+}
+
+func (ssys *ScriptSystem) handleUploadScript(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(m.Attachments) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing attachments")
+		return
+	}
+	for i, attachment := range m.Attachments {
+		response, err := netClient.Get(attachment.URL)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			return
+		}
+		content, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			return
+		}
+		response.Body.Close()
+
+		contentType := http.DetectContentType(content)
+		if !strings.HasPrefix(contentType, "text/plain") {
+			s.ChannelMessageSend(m.ChannelID, "❌📎 not plain text")
+			return
+		}
+
+		id := ""
+		if i < len(args) {
+			id = args[i]
+		} else {
+			id = attachment.Filename
+		}
+
+		script, err := cmdReceiver.GetAnkiddie().SaveScript(id, string(content))
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			return
+		}
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("💾📜🆔`%s`", script.ID))
+	}
 }
 
 func (ssys *ScriptSystem) handleListScripts(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {

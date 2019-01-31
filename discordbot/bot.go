@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"net"
 	"net/http"
 	"sort"
 	"strconv"
@@ -69,6 +70,18 @@ var ThePosPlayBridge = new(PosPlayBridge)
 
 var scriptSystem = new(ScriptSystem)
 
+var netTransport = &http.Transport{
+	Dial: (&net.Dialer{
+		Timeout: 10 * time.Second,
+	}).Dial,
+	TLSHandshakeTimeout: 10 * time.Second,
+}
+
+var netClient = &http.Client{
+	Timeout:   time.Second * 10,
+	Transport: netTransport,
+}
+
 // Start starts the Discord bot
 func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	log *log.Logger,
@@ -79,7 +92,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	botLog = log
 	cmdReceiver = cmdRecv
 	recentInvites = cache.New(24*time.Hour, 1*time.Hour)
-	rand.Seed(time.Now().Unix())
+	rand.Seed(time.Now().UnixNano())
 
 	discordToken, present := keybox.Get("token")
 	if !present {

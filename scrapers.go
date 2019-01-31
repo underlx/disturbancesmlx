@@ -59,7 +59,6 @@ func SetUpScrapers(node sqalx.Node) error {
 	mlxscr = &mlxscraper.Scraper{
 		StatusCallback:    handleNewStatusNotify,
 		ConditionCallback: handleNewCondition,
-		URL:               "https://www.metrolisboa.pt/estado_linhas.php?security=d02ff87f2d",
 		Network:           network,
 		Source: &dataobjects.Source{
 			ID:        "mlxscraper-pt-ml",

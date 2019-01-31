@@ -3,6 +3,7 @@ package ankiddie
 import (
 	"sync"
 
+	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 
 	"github.com/gbl08ma/anko/packages"
@@ -113,4 +114,41 @@ func (ssys *Ankiddie) StartAutorun(level int, async bool, out func(env *Environm
 		}
 	}
 	return nil
+}
+
+// SaveScript saves a script to the database under the specified ID
+// If no ID is provided, a UUID is generated
+// If a script with the same ID already existed, it is overwritten
+func (ssys *Ankiddie) SaveScript(id string, code string) (*dataobjects.Script, error) {
+	tx, err := ssys.node.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	if id == "" {
+		uid, err := uuid.NewV4()
+		if err != nil {
+			return nil, err
+		}
+		id = uid.String()
+	}
+
+	script, err := dataobjects.GetScript(tx, id)
+	if err != nil {
+		script = &dataobjects.Script{
+			ID:      id,
+			Autorun: -1,
+		}
+	}
+
+	script.Type = scriptType
+	script.Code = code
+
+	err = script.Update(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return script, tx.Commit()
 }

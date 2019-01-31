@@ -2,9 +2,12 @@ package mlxscraper
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"io"
 	"io/ioutil"
 	"log"
+	mathrand "math/rand"
 	"net/http"
 	"regexp"
 	"sort"
@@ -37,9 +40,11 @@ type Scraper struct {
 	log              *log.Logger
 	lastUpdate       time.Time
 
+	lastRandom       string
+	randomGeneration time.Time
+
 	StatusCallback    func(status *dataobjects.Status)
 	ConditionCallback func(condition *dataobjects.LineCondition)
-	URL               string
 	Network           *dataobjects.Network
 	Source            *dataobjects.Source
 	Period            time.Duration
@@ -53,6 +58,7 @@ func (sc *Scraper) ID() string {
 
 // Init initializes the scraper
 func (sc *Scraper) Init(node sqalx.Node, log *log.Logger) {
+	mathrand.Seed(time.Now().UnixNano())
 	sc.log = log
 
 	sc.lineIDs = []string{"pt-ml-azul", "pt-ml-amarela", "pt-ml-verde", "pt-ml-vermelha"}
@@ -103,6 +109,17 @@ func (sc *Scraper) Running() bool {
 	return sc.running
 }
 
+func (sc *Scraper) getURL() string {
+	if time.Since(sc.randomGeneration) > 0 {
+		bytes := make([]byte, 5)
+		if _, err := rand.Read(bytes); err == nil {
+			sc.lastRandom = hex.EncodeToString(bytes)
+			sc.randomGeneration = time.Now().Add(time.Duration(4*60+mathrand.Intn(8*60)) * time.Minute)
+		}
+	}
+	return "https://www.metrolisboa.pt/estado_linhas.php?security=" + sc.lastRandom
+}
+
 func (sc *Scraper) scrape() {
 	sc.update()
 	sc.log.Println("Scraper completed second fetch")
@@ -118,7 +135,7 @@ func (sc *Scraper) scrape() {
 }
 
 func (sc *Scraper) update() {
-	response, err := sc.HTTPClient.Get(sc.URL)
+	response, err := sc.HTTPClient.Get(sc.getURL())
 	if err != nil {
 		sc.log.Println(err)
 		return
