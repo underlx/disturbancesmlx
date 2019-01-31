@@ -352,9 +352,6 @@ func AnkoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 	packages["underlx"]["DiscordSession"] = func() *discordgo.Session {
 		return session
 	}
-	packages["underlx"]["BotStats"] = func() *stats {
-		return &botstats
-	}
 	packages["underlx"]["StartReactionEvent"] = ThePosPlayBridge.StartReactionEvent
 	packages["underlx"]["StartQuizEvent"] = ThePosPlayBridge.StartQuizEvent
 	packages["underlx"]["StopEvent"] = ThePosPlayBridge.StopEvent

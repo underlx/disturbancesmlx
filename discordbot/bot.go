@@ -67,16 +67,17 @@ func SetReactionHandlers(m []ReactionHandler) {
 	reactionHandlers = m
 }
 
-var botstats = stats{
+var botstats = Stats{
 	DMChannels: make(map[string]bool),
 }
 
 // BotStats returns the bot stats
-func BotStats() *stats {
+func BotStats() *Stats {
 	return &botstats
 }
 
-type stats struct {
+// Stats contains bot stats
+type Stats struct {
 	StartTime           time.Time
 	UserCount           int
 	BotCount            int
