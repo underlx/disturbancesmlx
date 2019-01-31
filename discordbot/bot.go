@@ -221,6 +221,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("startreactionevent", ThePosPlayBridge.handleStartCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("startquizevent", ThePosPlayBridge.handleQuizStartCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("stopevent", ThePosPlayBridge.handleStopCommand).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("reloadachievements", ThePosPlayBridge.handleReloadAchievements).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("markspamchannel", ThePosPlayBridge.handleMarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("unmarkspamchannel", ThePosPlayBridge.handleUnmarkSpamChannel).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("setprefix", func(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
