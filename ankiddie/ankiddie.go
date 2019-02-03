@@ -7,7 +7,6 @@ import (
 	"github.com/underlx/disturbancesmlx/dataobjects"
 
 	"github.com/gbl08ma/anko/packages"
-	"github.com/gbl08ma/anko/vm"
 	"github.com/gbl08ma/sqalx"
 )
 
@@ -78,7 +77,7 @@ func (ssys *Ankiddie) Environments() map[uint]*Environment {
 func (ssys *Ankiddie) ForgetEnv(env *Environment) {
 	ssys.m.Lock()
 	defer ssys.m.Unlock()
-	vm.Interrupt(env.vm)
+	env.cancel()
 	delete(ssys.envs, env.eid)
 }
 
@@ -87,7 +86,7 @@ func (ssys *Ankiddie) FullReset() {
 	ssys.m.Lock()
 	defer ssys.m.Unlock()
 	for _, env := range ssys.envs {
-		vm.Interrupt(env.vm)
+		env.cancel()
 	}
 	ssys.envs = make(map[uint]*Environment)
 }

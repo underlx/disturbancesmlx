@@ -1,8 +1,12 @@
 package ankiddie
 
-import "reflect"
+import (
+	"context"
+	"reflect"
+)
 
-func ankoStrengthen(fn interface{}, argsForTypes ...interface{}) interface{} {
+func ankoStrengthen(ctx context.Context, fn interface{}, argsForTypes []interface{}) interface{} {
+	// fn is the original anko function
 	fType := reflect.TypeOf(fn)
 	if fType == nil || fType.Kind() != reflect.Func {
 		return fn
@@ -13,7 +17,8 @@ func ankoStrengthen(fn interface{}, argsForTypes ...interface{}) interface{} {
 
 	i := 0
 	transformReturn := false
-	for ; i < fType.NumIn() && i < len(argsForTypes); i++ {
+	// anko functions now take a context as the first argument, hence fType.NumIn()-1
+	for ; i < fType.NumIn()-1 && i < len(argsForTypes); i++ {
 		if argsForTypes[i] == nil {
 			break
 		}
@@ -35,12 +40,13 @@ func ankoStrengthen(fn interface{}, argsForTypes ...interface{}) interface{} {
 	variadic := fType.IsVariadic()
 	funcType := reflect.FuncOf(ins, outs, variadic)
 	transformedFunc := reflect.MakeFunc(funcType, func(in []reflect.Value) []reflect.Value {
-		args := make([]reflect.Value, len(in))
+		args := make([]reflect.Value, len(in)+1)
+		args[0] = reflect.ValueOf(ctx)
 		for i, arg := range in {
 			// functions in anko always appear to golang as if all their arguments were reflect.Values
 			// if we don't wrap args like this, Call below complains that e.g.
 			// "panic: reflect: Call using *discordgo.Session as type reflect.Value"
-			args[i] = reflect.ValueOf(arg)
+			args[i+1] = reflect.ValueOf(arg)
 		}
 		result := reflect.ValueOf(fn).Call(args)
 		// we must also convert the result, because all anko functions always return (reflect.Value, error)

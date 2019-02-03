@@ -28,6 +28,7 @@ var Functions = map[string]reflect.Value{
 	"RegisterReport":                          reflect.ValueOf(RegisterReport),
 	"RegisterTripFirstEdit":                   reflect.ValueOf(RegisterTripFirstEdit),
 	"RegisterTripSubmission":                  reflect.ValueOf(RegisterTripSubmission),
+	"RegisterXPTransaction":                   reflect.ValueOf(RegisterXPTransaction),
 	"ReloadAchievements":                      reflect.ValueOf(ReloadAchievements),
 	"ReloadTemplates":                         reflect.ValueOf(ReloadTemplates),
 }

@@ -1,6 +1,7 @@
 package ankiddie
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -17,11 +18,16 @@ import (
 // ErrAlreadySuspended when an environment is already suspended
 var ErrAlreadySuspended = errors.New("Environment already suspended")
 
+// ErrAlreadyStarted when an environment had already been started
+var ErrAlreadyStarted = errors.New("Environment already started")
+
 // Environment is a anko environment managed by Ankiddie
 type Environment struct {
 	ssys      *Ankiddie
 	eid       uint
 	vm        *vm.Env
+	ctx       context.Context
+	cancel    context.CancelFunc
 	started   bool
 	suspended bool
 	src       string
@@ -59,7 +65,7 @@ func (ssys *Ankiddie) newEnv(eid uint, code string, out func(env *Environment, m
 		return len(msg), out(env, msg)
 	})
 
-	env.vm.Define("strengthen", ankoStrengthen)
+	env.vm.Define("strengthen", env.makeStrengthenFunction())
 	env.vm.Define("ptr", func(obj interface{}) interface{} {
 		val := reflect.ValueOf(obj)
 		vp := reflect.New(val.Type())
@@ -78,13 +84,27 @@ func (ssys *Ankiddie) newEnv(eid uint, code string, out func(env *Environment, m
 	return env
 }
 
+func (env *Environment) makeStrengthenFunction() func(fn interface{}, argsForTypes ...interface{}) interface{} {
+	return func(fn interface{}, argsForTypes ...interface{}) interface{} {
+		env.ssys.m.Lock()
+		r := ankoStrengthen(env.ctx, fn, argsForTypes)
+		env.ssys.m.Unlock()
+		return r
+	}
+}
+
 // Start parses and runs the source associated with the environment
 func (env *Environment) Start() (interface{}, error) {
 	env.ssys.m.Lock()
+	if env.started {
+		env.ssys.m.Unlock()
+		return nil, ErrAlreadyStarted
+	}
 	env.started = true
 	env.suspended = false
+	env.ctx, env.cancel = context.WithCancel(context.Background())
 	env.ssys.m.Unlock()
-	return env.vm.Execute(env.src)
+	return env.vm.ExecuteContext(env.ctx, env.src)
 }
 
 // Suspend stops the execution on the environment without destroying its state
@@ -96,7 +116,7 @@ func (env *Environment) Suspend() error {
 		return ErrAlreadySuspended
 	}
 
-	vm.Interrupt(env.vm)
+	env.cancel()
 	env.suspended = true
 	return nil
 }
@@ -104,12 +124,12 @@ func (env *Environment) Suspend() error {
 // Restart restarts the execution on the environment
 func (env *Environment) Restart() (interface{}, error) {
 	env.ssys.m.Lock()
-	vm.Interrupt(env.vm)
+	env.cancel()
 	env.suspended = false
 	env.started = true
-	vm.ClearInterrupt(env.vm)
+	env.ctx, env.cancel = context.WithCancel(context.Background())
 	env.ssys.m.Unlock()
-	return env.vm.Execute(env.src)
+	return env.vm.ExecuteContext(env.ctx, env.src)
 }
 
 // Execute parses and runs source in current scope
@@ -119,11 +139,13 @@ func (env *Environment) Execute(source string, appendToSrc bool) (interface{}, e
 		env.src = fmt.Sprintf("%s\n// Added on %s:\n%s", env.src, time.Now().Format(time.RFC3339), source)
 		env.srcDirty = true
 	}
+	if env.suspended || !env.started {
+		env.ctx, env.cancel = context.WithCancel(context.Background())
+	}
 	env.started = true
 	env.suspended = false
-	vm.ClearInterrupt(env.vm)
 	env.ssys.m.Unlock()
-	return env.vm.Execute(source)
+	return env.vm.ExecuteContext(env.ctx, source)
 }
 
 // Forget stops execution of the given environment as far as possible and unregisters it

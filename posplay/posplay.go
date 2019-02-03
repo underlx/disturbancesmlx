@@ -219,6 +219,14 @@ func RegisterDiscussionParticipationCallback(userID string, XPreward int) bool {
 	return true
 }
 
+// RegisterXPTransaction is exclusively meant for use when bootstrapping the achievements system on a database with previous XP transactions
+func RegisterXPTransaction(tx *dataobjects.PPXPTransaction) {
+	xpTxChan <- lightXPTXinfo{
+		id:         tx.ID,
+		actualDiff: tx.Value,
+	}
+}
+
 // DoXPTransaction adds a XP transaction to a user, performing the necessary checks and
 // calling the necessary handlers
 func DoXPTransaction(node sqalx.Node, player *dataobjects.PPPlayer, when time.Time, value int, txType string, extra map[string]interface{}, attemptMerge bool) error {
