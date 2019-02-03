@@ -43,7 +43,7 @@ func achieveAchievement(tx sqalx.Node, player *dataobjects.PPPlayer, achievement
 		Achieved:     true,
 		AchievedTime: achievedTime,
 	}
-	err = achievement.Update(tx)
+	err = pach.Update(tx)
 	if err != nil {
 		return err
 	}

@@ -72,19 +72,14 @@ func (s *ReachLevelAchievementStrategy) HandleXPTransaction(context *dataobjects
 		return tx.Commit()
 	}
 
-	curXP, present := context.StrategyOwnCache.Load(context.Player.DiscordID)
-	if !present {
-		curXP, err = context.Player.XPBalance(tx)
-		if err != nil {
-			return err
-		}
-
-		context.StrategyOwnCache.Store(context.Player.DiscordID, curXP.(int))
+	curXP, err := context.Player.XPBalanceBetween(tx, context.Player.Joined, transaction.Time)
+	if err != nil {
+		return err
 	}
 
-	prevXP := curXP.(int) - actualValueDiff
+	prevXP := curXP - actualValueDiff
 
-	curLevel, _ := dataobjects.PosPlayPlayerLevel(curXP.(int))
+	curLevel, _ := dataobjects.PosPlayPlayerLevel(curXP)
 	prevLevel, _ := dataobjects.PosPlayPlayerLevel(prevXP)
 
 	var config map[string]interface{}
