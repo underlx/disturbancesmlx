@@ -495,8 +495,8 @@ func achievementsPage(w http.ResponseWriter, r *http.Request) {
 		if p.Achieving[achievement.ID] != nil && p.Achieving[achievement.ID].Achieved {
 			p.Achieved = append(p.Achieved, achievement)
 		} else {
-			if p.ProgressTotal[achievement.ID] < 0 {
-				// this achievement is still locked
+			if p.ProgressTotal[achievement.ID] < -1 {
+				// this achievement is still locked and shoud not be shown at all
 				continue
 			}
 			p.NonAchieved = append(p.NonAchieved, achievement)
@@ -508,13 +508,20 @@ func achievementsPage(w http.ResponseWriter, r *http.Request) {
 		return p.Achieving[p.Achieved[i].ID].AchievedTime.Before(p.Achieving[p.Achieved[j].ID].AchievedTime)
 	})
 	sort.Slice(p.NonAchieved, func(i, j int) bool {
-		strategyCmp := strings.Compare(p.NonAchieved[i].Strategy.ID(), p.NonAchieved[j].Strategy.ID())
-		if strategyCmp == 0 {
-			iName := p.NonAchieved[i].Names[p.NonAchieved[i].MainLocale]
-			jName := p.NonAchieved[j].Names[p.NonAchieved[j].MainLocale]
-			return strings.Compare(iName, jName) < 0
+		// sort by locked status, unlocked first
+		if p.ProgressTotal[p.NonAchieved[i].ID] >= 0 && p.ProgressTotal[p.NonAchieved[j].ID] >= 0 {
+			// sort by completion, more complete first
+			iPct := p.ProgressPct[p.NonAchieved[i].ID]
+			jPct := p.ProgressPct[p.NonAchieved[j].ID]
+			if iPct == jPct {
+				// sort alphabetically
+				iName := p.NonAchieved[i].Names[p.NonAchieved[i].MainLocale]
+				jName := p.NonAchieved[j].Names[p.NonAchieved[j].MainLocale]
+				return strings.Compare(iName, jName) < 0
+			}
+			return iPct >= jPct
 		}
-		return strategyCmp < 0
+		return p.ProgressTotal[p.NonAchieved[i].ID] >= p.ProgressTotal[p.NonAchieved[j].ID]
 	})
 
 	err = webtemplate.ExecuteTemplate(w, "achievements.html", p)

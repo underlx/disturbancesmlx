@@ -43,9 +43,10 @@ func (s *StubAchievementStrategy) HandleXPTransaction(context *dataobjects.PPAch
 
 // Progress implements dataobjects.PPAchievementStrategy
 // If total == 0: this achievement has no progress, it's "all or nothing"
-// If total < 0: this achievement is still locked for the user
+// If total == -1: this achievement is still locked for the user, show a censured version
+// If total < -1: this achievement is still locked for the user, do not show it at all
 func (s *StubAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
-	return 0, -1, nil
+	return 0, -2, nil
 }
 
 // ReachLevelAchievementStrategy is an achievement strategy that rewards users when they reach a specified level
@@ -121,6 +122,9 @@ func (s *ReachLevelAchievementStrategy) Progress(context *dataobjects.PPAchievem
 
 	if curLevel > achievementLevel {
 		curLevel = achievementLevel
+	} else if curLevel < achievementLevel-10 {
+		// lock achievement
+		achievementLevel = -2
 	}
 	return curLevel, achievementLevel, nil
 }
@@ -233,10 +237,15 @@ func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchie
 	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
 	if err != nil {
 		// no existing data, player still has everything left to do
-		return 0, len(config.Stations), nil
+		return 0, -1, nil
 	}
 	var extra visitStationsExtra
 	existingData.UnmarshalExtra(&extra)
+
+	if float64(len(extra.VisitedStations))/float64(len(config.Stations)) < 0.3 {
+		// lock achievement
+		return len(extra.VisitedStations), -1, nil
+	}
 
 	return len(extra.VisitedStations), len(config.Stations), nil
 }

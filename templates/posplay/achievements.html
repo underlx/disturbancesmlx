@@ -26,12 +26,21 @@
         {{ range $ach := .NonAchieved }}
           <div class="pure-g" style="border: 1px #ccc solid; margin-top: 1em; padding: 10px">
             <div class="pure-u-3-4">
-              <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
+              <h3 style="margin-top: 0; margin-bottom: 0.5em">
+                {{ if lt (index $.ProgressTotal $ach.ID) 0 }}
+                  <span style="background-color: #ccc; font-style: italic; color: #888; padding-left: 20px; padding-right: 20px;">Proeza bloqueada</span>
+                {{ else }}{{ index $ach.Names $ach.MainLocale }}{{end}}
+              </h3>
             </div>
             <div class="pure-u-1-4" style="text-align: right">
-              {{ if gt $ach.XPReward 0 }}{{ $ach.XPReward }} XP{{end}}
+              {{ if lt (index $.ProgressTotal $ach.ID) 0 }}
+                <span style="color: #ccc">█████</span>
+              {{ else }}{{ if gt $ach.XPReward 0 }}{{ $ach.XPReward }} XP{{end}}{{end}}
             </div>
-            <div class="pure-u-1">{{ index $ach.Descriptions $ach.MainLocale }}</div>
+            <div class="pure-u-1">
+                {{ if lt (index $.ProgressTotal $ach.ID) 0 }}
+                  <span style="color: #ccc">████████████████████████████████████████</span>
+                {{else}}{{ index $ach.Descriptions $ach.MainLocale }}{{end}}</div>
             {{ if gt (index $.ProgressTotal $ach.ID) 0 }}
             <div class="pure-u-1 progress-bar" style="margin-top: 10px">
               <div class="bar positive" style="width: {{ (index $.ProgressPct $ach.ID) }}%;"></div>
