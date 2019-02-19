@@ -1,6 +1,7 @@
 package website
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -404,6 +405,14 @@ func ReloadTemplates() {
 		"formatDisturbanceTime": func(t time.Time) string {
 			loc, _ := time.LoadLocation("Europe/Lisbon")
 			return t.In(loc).Format("02 Jan 2006 15:04")
+		},
+		"formatTrainFrequency": func(dd dataobjects.Duration) string {
+			d := time.Duration(dd)
+			d = d.Round(time.Second)
+			m := d / time.Minute
+			d -= m * time.Minute
+			s := d / time.Second
+			return fmt.Sprintf("%02d:%02d", m, s)
 		},
 		"formatPortugueseMonth": utils.FormatPortugueseMonth,
 	}

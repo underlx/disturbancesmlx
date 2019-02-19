@@ -10,20 +10,25 @@
       {{ if (or (eq (len .Message) 0) .MessageIsError ) }}
       <p>Se está a presenciar problemas no serviço do Metro, tais como tempos de espera demasiado elevados para a hora actual, sobrelotação das carruagens ou dos cais, ou incidentes com passageiros, seleccione as linhas afectadas:</p>
       <form class="pure-form pure-form-stacked" method="POST">
-          {{ .CSRFfield }}
-          <fieldset>
-              {{ range $index, $line := .ReportableLines }}
-              <label for="line-{{ $line.ID }}" class="pure-checkbox" style="margin-top: 10px; font-size: 130%; font-weight: bold;">
-                  <input id="line-{{ $line.ID }}" name="lines" value="{{ $line.ID }}" type="checkbox"> Linha <a class="line" style="color: #{{ $line.Color }};">{{ $line.Name | html }}</a>
-              </label>
-              {{end}}
-              {{ if .DebugBuild }}
-              <div class="g-recaptcha" data-sitekey="6LcQZV0UAAAAAKH7Q5GdUOvST3eDtCdgVBhb0jUq"></div>
-              {{ else }}
-              <div class="g-recaptcha" data-sitekey="6LfdaV0UAAAAAPEmdyWlIPGGYyU6G6AsrjYlcHZJ"></div>
-              {{end}}
-              <button type="submit" class="button-warning pure-button" style="margin-top: 10px; font-size: 110%;">Comunicar problemas</button>
-          </fieldset>
+        {{ .CSRFfield }}
+        <fieldset>
+          {{ range $index, $line := .ReportableLines }}
+          <label for="line-{{ $line.ID }}" class="pure-checkbox" style="margin-top: 10px; font-size: 130%; display: flex; align-items: center">
+              <input id="line-{{ $line.ID }}" name="lines" value="{{ $line.ID }}" type="checkbox" style="margin-right: 10px;">
+              <div style="display: inline-block">
+                <span style="font-weight: bold;">Linha <a class="line" style="color: #{{ $line.Color }};">{{ $line.Name | html }}</a></span>
+                <br>
+                <small style="color: #888">Intervalo entre comboios estabelecido pelo Metro para a hora actual: {{ formatTrainFrequency (index $.LineConditions $line.ID).TrainFrequency }}</small>
+              </div>
+          </label>
+          {{end}}
+          {{ if .DebugBuild }}
+          <div class="g-recaptcha" data-sitekey="6LcQZV0UAAAAAKH7Q5GdUOvST3eDtCdgVBhb0jUq"></div>
+          {{ else }}
+          <div class="g-recaptcha" data-sitekey="6LfdaV0UAAAAAPEmdyWlIPGGYyU6G6AsrjYlcHZJ"></div>
+          {{end}}
+          <button type="submit" class="button-warning pure-button" style="margin-top: 10px; font-size: 110%;">Comunicar problemas</button>
+        </fieldset>
       </form>
       {{end}}
       {{else}}

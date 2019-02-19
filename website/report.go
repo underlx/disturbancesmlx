@@ -22,7 +22,10 @@ func ReportPage(w http.ResponseWriter, r *http.Request) {
 		Message         string
 		MessageIsError  bool
 		ReportableLines []*dataobjects.Line
-	}{}
+		LineConditions  map[string]*dataobjects.LineCondition
+	}{
+		LineConditions: make(map[string]*dataobjects.LineCondition),
+	}
 
 	p.PageCommons, err = InitPageCommons(tx, w, r, "Comunicar problemas na circulação")
 	if err != nil {
@@ -35,6 +38,7 @@ func ReportPage(w http.ResponseWriter, r *http.Request) {
 		if closed, err := line.CurrentlyClosed(tx); err == nil && !closed {
 			p.ReportableLines = append(p.ReportableLines, line.Line)
 		}
+		p.LineConditions[line.ID], _ = line.LastCondition(tx)
 	}
 
 	if r.Method == http.MethodPost {
