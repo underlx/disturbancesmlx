@@ -161,6 +161,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
+	p.Dependencies.Charts = true
 	err = webtemplate.ExecuteTemplate(w, "internal.html", p)
 	if err != nil {
 		webLog.Println(err)
