@@ -193,10 +193,9 @@ func CountTripsByDay(node sqalx.Node, start time.Time, end time.Time) ([]time.Ti
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := tx.Query("SELECT curd, SUM(CASE WHEN user_confirmed = false THEN 1 ELSE 0 END), SUM(CASE WHEN user_confirmed = true THEN 1 ELSE 0 END) "+
+	rows, err := tx.Query("SELECT curd, COUNT(id) FILTER (WHERE user_confirmed = false), COUNT(id) FILTER (WHERE user_confirmed = true) "+
 		"FROM generate_series(($2 at time zone $1)::date, ($3 at time zone $1)::date, '1 day') AS curd "+
-		"LEFT OUTER JOIN trip ON "+
-		"(curd BETWEEN (start_time at time zone $1)::date AND (end_time at time zone $1)::date) "+
+		"LEFT OUTER JOIN trip ON curd = (start_time at time zone $1)::date "+
 		"GROUP BY curd ORDER BY curd;",
 		start.Location().String(), start, end)
 	if err != nil {
