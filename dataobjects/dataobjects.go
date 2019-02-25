@@ -25,7 +25,7 @@ type Point [2]float64
 
 // Value implements the driver.Value interface
 func (p Point) Value() (driver.Value, error) {
-	return fmt.Sprintf("'(%f, %f)'", p[0], p[1]), nil
+	return fmt.Sprintf("(%f,%f)", p[0], p[1]), nil
 }
 
 // Scan implements the sql.Scanner interface
@@ -34,11 +34,8 @@ func (p *Point) Scan(val interface{}) error {
 	if !ok {
 		return errors.New("Scan: Invalid val type for scanning")
 	}
-	s := strings.Trim(string(b), "()")
-	ss := strings.Split(s, ",")
-	fmt.Sscanf(ss[0], "%f", &p[0])
-	fmt.Sscanf(ss[1], "%f", &p[1])
-	return nil
+	_, err := fmt.Sscanf(string(b), "(%f,%f)", &p[0], &p[1])
+	return err
 }
 
 // Time wraps a time.Time with custom methods for serialization

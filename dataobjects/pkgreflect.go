@@ -56,6 +56,8 @@ var Types = map[string]reflect.Type{
 
 var Functions = map[string]reflect.Value{
 	"ComputeAPISecretHash":               reflect.ValueOf(ComputeAPISecretHash),
+	"CountPairActivationsByDay":          reflect.ValueOf(CountPairActivationsByDay),
+	"CountTripsByDay":                    reflect.ValueOf(CountTripsByDay),
 	"GenerateAPIKey":                     reflect.ValueOf(GenerateAPIKey),
 	"GenerateAPISecret":                  reflect.ValueOf(GenerateAPISecret),
 	"GetAutorunScriptsWithType":          reflect.ValueOf(GetAutorunScriptsWithType),

@@ -153,6 +153,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p.Dependencies.Charts = true
 	err = webtemplate.ExecuteTemplate(w, "disturbancelist.html", p)
 	if err != nil {
 		webLog.Println(err)

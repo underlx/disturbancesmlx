@@ -83,6 +83,7 @@ func ReportPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	p.Dependencies.Recaptcha = true
 	err = webtemplate.ExecuteTemplate(w, "report.html", p)
 	if err != nil {
 		webLog.Println(err)

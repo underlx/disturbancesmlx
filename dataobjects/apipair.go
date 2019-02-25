@@ -104,6 +104,42 @@ func (pair *APIPair) CheckSecret(givenSecret string, hashKey []byte) (err error)
 	return nil
 }
 
+// CountPairActivationsByDay counts APIPair activations by day between the specified dates
+func CountPairActivationsByDay(node sqalx.Node, start time.Time, end time.Time) ([]time.Time, []int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return []time.Time{}, []int{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	rows, err := tx.Query("SELECT curd, count(key) "+
+		"FROM generate_series(($2 at time zone $1)::date, ($3 at time zone $1)::date, '1 day') AS curd "+
+		"LEFT OUTER JOIN api_pair ON curd = (activation at time zone $1)::date "+
+		"GROUP BY curd ORDER BY curd;",
+		start.Location().String(), start, end)
+	if err != nil {
+		return []time.Time{}, []int{}, fmt.Errorf("CountPairActivationsByDay: %s", err)
+	}
+	defer rows.Close()
+
+	var dates []time.Time
+	var counts []int
+	for rows.Next() {
+		var date time.Time
+		var count int
+		err := rows.Scan(&date, &count)
+		if err != nil {
+			return dates, counts, fmt.Errorf("CountPairActivationsByDay: %s", err)
+		}
+		dates = append(dates, date)
+		counts = append(counts, count)
+	}
+	if err := rows.Err(); err != nil {
+		return dates, counts, fmt.Errorf("CountPairActivationsByDay: %s", err)
+	}
+	return dates, counts, nil
+}
+
 // Activated returns whether this pair is activated
 func (pair *APIPair) Activated() bool {
 	return time.Now().UTC().After(pair.Activation)

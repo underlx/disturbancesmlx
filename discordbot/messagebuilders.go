@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/hako/durafmt"
 	"go.tianon.xyz/progress"
 
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -574,14 +573,7 @@ func buildPOIMessage(id string) (*Embed, error) {
 
 func buildBotStatsMessage(m *discordgo.MessageCreate) (*Embed, error) {
 	uptime := time.Since(botstats.StartTime)
-	uptimenice := durafmt.Parse(uptime.Truncate(time.Second))
-	uptimestr := uptimenice.String()
-	uptimestr = strings.Replace(uptimestr, "year", "ano", 1)
-	uptimestr = strings.Replace(uptimestr, "week", "semana", 1)
-	uptimestr = strings.Replace(uptimestr, "day", "dia", 1)
-	uptimestr = strings.Replace(uptimestr, "hour", "hora", 1)
-	uptimestr = strings.Replace(uptimestr, "minute", "minuto", 1)
-	uptimestr = strings.Replace(uptimestr, "second", "segundo", 1)
+	uptimestr := utils.FormatPortugueseDurationLong(uptime)
 
 	embed := NewEmbed().
 		SetTitle("Estatísticas do bot").

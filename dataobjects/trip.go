@@ -185,6 +185,45 @@ func GetTripIDsBetween(node sqalx.Node, start time.Time, end time.Time) ([]strin
 	return getTripIDsWithSelect(node, s)
 }
 
+// CountTripsByDay counts trips by day between the specified dates
+func CountTripsByDay(node sqalx.Node, start time.Time, end time.Time) ([]time.Time, []int, []int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return []time.Time{}, []int{}, []int{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	rows, err := tx.Query("SELECT curd, SUM(CASE WHEN user_confirmed = false THEN 1 ELSE 0 END), SUM(CASE WHEN user_confirmed = true THEN 1 ELSE 0 END) "+
+		"FROM generate_series(($2 at time zone $1)::date, ($3 at time zone $1)::date, '1 day') AS curd "+
+		"LEFT OUTER JOIN trip ON "+
+		"(curd BETWEEN (start_time at time zone $1)::date AND (end_time at time zone $1)::date) "+
+		"GROUP BY curd ORDER BY curd;",
+		start.Location().String(), start, end)
+	if err != nil {
+		return []time.Time{}, []int{}, []int{}, fmt.Errorf("CountTripsByDay: %s", err)
+	}
+	defer rows.Close()
+
+	var dates []time.Time
+	var unconfirmedCounts []int
+	var confirmedCounts []int
+	for rows.Next() {
+		var date time.Time
+		var count, confirmedCount int
+		err := rows.Scan(&date, &count, &confirmedCount)
+		if err != nil {
+			return dates, unconfirmedCounts, confirmedCounts, fmt.Errorf("CountTripsByDay: %s", err)
+		}
+		dates = append(dates, date)
+		unconfirmedCounts = append(unconfirmedCounts, count)
+		confirmedCounts = append(confirmedCounts, confirmedCount)
+	}
+	if err := rows.Err(); err != nil {
+		return dates, unconfirmedCounts, confirmedCounts, fmt.Errorf("CountTripsByDay: %s", err)
+	}
+	return dates, unconfirmedCounts, confirmedCounts, nil
+}
+
 // AverageSpeed computes the average speed (km/h), total distance (m) and total duration of this trip
 func (trip *Trip) AverageSpeed(node sqalx.Node) (speed float64, totalDistance int64, totalDuration time.Duration, err error) {
 	tx, err := node.Beginx()

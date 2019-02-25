@@ -1,0 +1,127 @@
+{{template "header.html" . }}
+  <div class="content">
+    <div class="pure-g">
+      <div class="pure-u-1">
+        <h1>Estatísticas do serviço UnderLX</h1>
+        {{ if gt .OITusers 0 }}
+        <p>Cerca de {{ .OITusers }} utilizadores online em viagem</p>
+        {{ else }}
+        <p>Muito poucos utilizadores online em viagem</p>
+        {{end}}
+        <h2>Registos de viagem submetidos</h2>
+        <p><div id="tripsChart"></div></p>
+        <p style="color: #777;">
+          <small>As viagens são contabilizadas no dia em que foram realizadas, não no dia em que foram submetidas. Cada viagem pode ser submetida com vários dias de atraso, pelo que os totais dos dias mais recentes devem ser considerados preliminares.</small>
+        </p>
+        <h2>Activações da aplicação</h2>
+        <p>Cada activação corresponde aproximadamente a uma instalação da aplicação (criação automática das credenciais de acesso ao serviço aquando da primeira execução).</p>
+        <p><div id="activationsChart"></div></p>
+        <h2>Ankiddie</h2>
+        <p>Parte da funcionalidade dos serviços online do UnderLX é definida dinamicamente pelo sistema Ankiddie, desenvolvido propositadamente para este projecto, que gere uma <a href="https://github.com/gbl08ma/anko" target="_blank" rel="noopener">versão modificada</a> do sistema de <em>scripting</em> <a href="https://github.com/mattn/anko" target="_blank" rel="noopener">Anko</a>.</p>
+        <p><em>Scripts</em> persistidos: {{ .AnkiddieInstalled }}<br>Ambientes carregados: {{ .AnkiddieEnvs }}<br>Ambientes em execução: {{ .AnkiddieRunning }}</p>
+        <h2><em>Bot</em> do Discord</h2>
+        <p>Estatísticas do <em>bot</em> presente exclusivamente no <a href="/discord" target="_blank" rel="noopener">servidor de Discord do projecto</a>:</p>
+        <ul>
+          <li>A funcionar há {{ formatPortugueseDurationLong .BotUptime }}</li>
+          <li>Entidades do Discord
+            <ul>
+              <li>{{ .BotStats.UserCount }} utilizadores no servidor, dos quais {{ .BotStats.BotCount }} são <em>bots</em></li>
+              <li>{{ .BotStats.TextChannelCount }} canais de texto</li>
+              <li>{{ .BotStats.VoiceChannelCount }} canais de voz</li>
+              <li>{{ len .BotStats.DMChannels }} mensagens directas recebidas</li>
+            </ul>
+          </li>
+          {{ range $handler := .BotMessageHandlers }}
+          <li>Processador de mensagens {{ $handler.Name }}: {{ $handler.MessagesHandled }} processadas, {{ $handler.MessagesActedUpon }} atendidas</li>
+          {{end}}
+          {{ range $handler := .BotReactionHandlers }}
+          <li>Processador de reacções {{ $handler.Name }}: {{ $handler.ReactionsHandled }} processadas, {{ $handler.ReactionsActedUpon }} atendidas</li>
+          {{end}}
+        </ul>
+      </div>
+    </div>
+  </div>
+  <script type="text/javascript">
+    var days = new Array('Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado');
+    var months = new Array('Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro');
+    var dateFormatFunc = function (d) { return days[d.getDay()] + ", " + d.getDate() + " de " + months[d.getMonth()]; };
+    var tripsChart = c3.generate({
+      data: {
+          x : 'x',
+          columns: [
+              ['x', {{ range $date := .TripCountDates}}'{{ $date.Format "2006-01-02" }}',{{end}}],
+              ['confirmed', {{ range $count := .TripConfirmedCounts }}{{ $count }},{{end}}],
+              ['unconfirmed', {{ range $count := .TripUnconfirmedCounts }}{{ $count }},{{end}}]
+          ],
+          groups: [
+              ['confirmed', 'unconfirmed']
+          ],
+          type: 'bar',
+          colors: {
+            confirmed: '#142382',
+            unconfirmed: '#0078E7',
+          },
+          names: {
+            confirmed: 'Viagens confirmadas pelos utilizadores',
+            unconfirmed: 'Viagens não confirmadas'
+          }
+      },
+      axis: {
+        x: {
+          type: 'timeseries',
+          tick: {
+            format: '%m-%d',
+            culling: false,
+            rotate: 90,
+          }
+        }
+      },
+      tooltip: {
+        format: {
+          title: dateFormatFunc,
+        }
+      },
+      bindto: '#tripsChart'
+    });
+
+    var activationsChart = c3.generate({
+      data: {
+          x : 'x',
+          columns: [
+              ['x', {{ range $date := .ActivationCountDates}}'{{ $date.Format "2006-01-02" }}',{{end}}],
+              ['activations', {{ range $count := .ActivationCounts }}{{ $count }},{{end}}]
+          ],
+          groups: [
+              ['activations']
+          ],
+          type: 'line',
+          colors: {
+            activations: '#E75B4D'
+          },
+          names: {
+            activations: 'Activações da aplicação'
+          }
+      },
+      axis: {
+        x: {
+          type: 'timeseries',
+          tick: {
+            format: '%m-%d',
+            culling: false,
+            rotate: 90,
+          }
+        },
+        y: {
+          min: 0,
+          padding: 0,
+        }
+      },
+      tooltip: {
+        format: {
+          title: dateFormatFunc,
+        }
+      },
+      bindto: '#activationsChart'
+    });
+  </script>
+{{template "footer.html" . }}

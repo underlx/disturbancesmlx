@@ -7,15 +7,17 @@ import "reflect"
 var Types = map[string]reflect.Type{}
 
 var Functions = map[string]reflect.Value{
-	"ComputeStationTriviaURLs":   reflect.ValueOf(ComputeStationTriviaURLs),
-	"DurationAbs":                reflect.ValueOf(DurationAbs),
-	"FormatPortugueseMonth":      reflect.ValueOf(FormatPortugueseMonth),
-	"FormatPortugueseMonthShort": reflect.ValueOf(FormatPortugueseMonthShort),
-	"GetClientIP":                reflect.ValueOf(GetClientIP),
-	"Int64Abs":                   reflect.ValueOf(Int64Abs),
-	"RequestIsTLS":               reflect.ValueOf(RequestIsTLS),
-	"SchedulesToLines":           reflect.ValueOf(SchedulesToLines),
-	"StationConnectionURLs":      reflect.ValueOf(StationConnectionURLs),
+	"ComputeStationTriviaURLs":     reflect.ValueOf(ComputeStationTriviaURLs),
+	"DurationAbs":                  reflect.ValueOf(DurationAbs),
+	"FormatPortugueseDurationLong": reflect.ValueOf(FormatPortugueseDurationLong),
+	"FormatPortugueseMonth":        reflect.ValueOf(FormatPortugueseMonth),
+	"FormatPortugueseMonthShort":   reflect.ValueOf(FormatPortugueseMonthShort),
+	"Fudge":                        reflect.ValueOf(Fudge),
+	"GetClientIP":                  reflect.ValueOf(GetClientIP),
+	"Int64Abs":                     reflect.ValueOf(Int64Abs),
+	"RequestIsTLS":                 reflect.ValueOf(RequestIsTLS),
+	"SchedulesToLines":             reflect.ValueOf(SchedulesToLines),
+	"StationConnectionURLs":        reflect.ValueOf(StationConnectionURLs),
 }
 
 var Variables = map[string]reflect.Value{

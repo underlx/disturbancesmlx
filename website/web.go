@@ -9,6 +9,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/underlx/disturbancesmlx/ankiddie"
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/utils"
 
@@ -36,6 +37,7 @@ var rootSqalxNode sqalx.Node
 var vehicleHandler *compute.VehicleHandler
 var reportHandler *compute.ReportHandler
 var statsHandler *compute.StatsHandler
+var parentAnkiddie *ankiddie.Ankiddie
 var csrfMiddleware mux.MiddlewareFunc
 
 // PageCommons contains information that is required by most page templates
@@ -50,6 +52,15 @@ type PageCommons struct {
 	}
 	OfficialOnly bool
 	DebugBuild   bool
+	Dependencies PageDependencies
+}
+
+// PageDependencies is used by the header template to include certain dependencies
+type PageDependencies struct {
+	Leaflet     bool
+	Recaptcha   bool
+	Charts      bool
+	Flipcounter bool
 }
 
 // ConnectionData contains the HTML with the connection information for the station with ID ID
@@ -75,6 +86,7 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/stations/{id:[-0-9A-Za-z]{1,36}}", StationPage)
 	router.HandleFunc("/l/{id:[-0-9A-Za-z]{1,36}}", LinePage)
 	router.HandleFunc("/lines/{id:[-0-9A-Za-z]{1,36}}", LinePage)
+	router.HandleFunc("/meta/stats", MetaStatsPage)
 	router.HandleFunc("/map", MapPage)
 	router.HandleFunc("/about", AboutPage)
 	router.HandleFunc("/donate", DonatePage)
@@ -99,12 +111,14 @@ func ConfigureRouter(router *mux.Router) {
 
 // Initialize initializes the package
 func Initialize(snode sqalx.Node, webKeybox *keybox.Keybox, log *log.Logger,
-	rh *compute.ReportHandler, vh *compute.VehicleHandler, sh *compute.StatsHandler) {
+	rh *compute.ReportHandler, vh *compute.VehicleHandler, sh *compute.StatsHandler,
+	a *ankiddie.Ankiddie) {
 	webLog = log
 	rootSqalxNode = snode
 	reportHandler = rh
 	vehicleHandler = vh
 	statsHandler = sh
+	parentAnkiddie = a
 
 	authKey, present := webKeybox.Get("cookieAuthKey")
 	cipherKey, present2 := webKeybox.Get("cookieCipherKey")
@@ -244,6 +258,7 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p.Dependencies.Charts = true
 	err = webtemplate.ExecuteTemplate(w, "lg.html", p)
 	if err != nil {
 		webLog.Println(err)
@@ -414,7 +429,8 @@ func ReloadTemplates() {
 			s := d / time.Second
 			return fmt.Sprintf("%02d:%02d", m, s)
 		},
-		"formatPortugueseMonth": utils.FormatPortugueseMonth,
+		"formatPortugueseMonth":        utils.FormatPortugueseMonth,
+		"formatPortugueseDurationLong": utils.FormatPortugueseDurationLong,
 	}
 
 	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("templates/*.html"))

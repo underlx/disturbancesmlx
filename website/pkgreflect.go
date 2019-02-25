@@ -5,9 +5,10 @@ package website
 import "reflect"
 
 var Types = map[string]reflect.Type{
-	"ConnectionData": reflect.TypeOf((*ConnectionData)(nil)).Elem(),
-	"PageCommons":    reflect.TypeOf((*PageCommons)(nil)).Elem(),
-	"Session":        reflect.TypeOf((*Session)(nil)).Elem(),
+	"ConnectionData":   reflect.TypeOf((*ConnectionData)(nil)).Elem(),
+	"PageCommons":      reflect.TypeOf((*PageCommons)(nil)).Elem(),
+	"PageDependencies": reflect.TypeOf((*PageDependencies)(nil)).Elem(),
+	"Session":          reflect.TypeOf((*Session)(nil)).Elem(),
 }
 
 var Functions = map[string]reflect.Value{
@@ -28,6 +29,7 @@ var Functions = map[string]reflect.Value{
 	"LinePage":               reflect.ValueOf(LinePage),
 	"LookingGlass":           reflect.ValueOf(LookingGlass),
 	"MapPage":                reflect.ValueOf(MapPage),
+	"MetaStatsPage":          reflect.ValueOf(MetaStatsPage),
 	"PrivacyPolicyPage":      reflect.ValueOf(PrivacyPolicyPage),
 	"RSSFeed":                reflect.ValueOf(RSSFeed),
 	"ReadStationConnections": reflect.ValueOf(ReadStationConnections),

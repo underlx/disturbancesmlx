@@ -1,7 +1,6 @@
 package compute
 
 import (
-	"math/rand"
 	"sync"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/gbl08ma/sqalx"
 	cache "github.com/patrickmn/go-cache"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/utils"
 )
 
 // StatsHandler implements resource.StatsCalculator and resource.RealtimeStatsHandler
@@ -89,29 +89,13 @@ func (h *StatsHandler) UserInLine(line *dataobjects.Line, user *dataobjects.APIP
 	return present
 }
 
-func (h *StatsHandler) fudge(value, approximateTo int) int {
-	if approximateTo < 2 {
-		return value
-	}
-
-	value += -approximateTo/2 + rand.Intn(approximateTo)
-
-	if value < 0 {
-		value = 0
-	}
-
-	value = (value / approximateTo) * approximateTo
-
-	return value
-}
-
 // OITInNetwork returns the number of users online in transit in the specified network
 // fudged to the unit indicated by approximateTo (so if it equals 5, this function will return
 // 0, 5, 10...). Use approximateTo = 0 to return the exact value
 func (h *StatsHandler) OITInNetwork(network *dataobjects.Network, approximateTo int) int {
 	cache := h.getNetworkCache(network)
 	cache.DeleteExpired()
-	return h.fudge(cache.ItemCount(), approximateTo)
+	return utils.Fudge(cache.ItemCount(), approximateTo)
 }
 
 // OITInLine returns the number of users online in transit in the specified line
@@ -120,7 +104,7 @@ func (h *StatsHandler) OITInNetwork(network *dataobjects.Network, approximateTo 
 func (h *StatsHandler) OITInLine(line *dataobjects.Line, approximateTo int) int {
 	cache := h.getLineCache(line)
 	cache.DeleteExpired()
-	return h.fudge(cache.ItemCount(), approximateTo)
+	return utils.Fudge(cache.ItemCount(), approximateTo)
 }
 
 // RegisterActivity registers that a user is in transit in the given lines

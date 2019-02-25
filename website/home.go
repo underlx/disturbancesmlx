@@ -147,6 +147,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		p.LinesExtra[i].AvgDuration = fmt.Sprintf("%.01f", avgd.Minutes())
 	}
 
+	p.Dependencies.Flipcounter = true
 	err = webtemplate.ExecuteTemplate(w, "index.html", p)
 	if err != nil {
 		webLog.Println(err)

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hako/durafmt"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
@@ -127,6 +129,18 @@ func FormatPortugueseMonthShort(month time.Month) string {
 	default:
 		return ""
 	}
+}
+
+// FormatPortugueseDurationLong returns a long string representation of a duration in Portuguese
+func FormatPortugueseDurationLong(d time.Duration) string {
+	uptimenice := durafmt.Parse(d.Truncate(time.Second))
+	str := strings.Replace(uptimenice.String(), "year", "ano", 1)
+	str = strings.Replace(str, "week", "semana", 1)
+	str = strings.Replace(str, "day", "dia", 1)
+	str = strings.Replace(str, "hour", "hora", 1)
+	str = strings.Replace(str, "minute", "minuto", 1)
+	str = strings.Replace(str, "second", "segundo", 1)
+	return str
 }
 
 // ComputeStationTriviaURLs returns a mapping from locales to URLs of the HTML file containing the trivia for the given station
@@ -260,4 +274,21 @@ func Int64Abs(n int64) int64 {
 // DurationAbs is math.Abs for time.Duration
 func DurationAbs(n time.Duration) time.Duration {
 	return time.Duration(Int64Abs(int64(n)))
+}
+
+// Fudge introduces uncertainty in a value
+func Fudge(value, approximateTo int) int {
+	if approximateTo < 2 {
+		return value
+	}
+
+	value += -approximateTo/2 + rand.Intn(approximateTo)
+
+	if value < 0 {
+		value = 0
+	}
+
+	value = (value / approximateTo) * approximateTo
+
+	return value
 }

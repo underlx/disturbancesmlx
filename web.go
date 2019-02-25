@@ -20,7 +20,7 @@ func WebServer() {
 	}
 
 	// main perturbacoes.pt website
-	website.Initialize(rootSqalxNode, webKeybox, webLog, reportHandler, vehicleHandler, statsHandler)
+	website.Initialize(rootSqalxNode, webKeybox, webLog, reportHandler, vehicleHandler, statsHandler, kiddie)
 
 	posplayKeybox, present := secrets.GetBox("posplay")
 	if !present {

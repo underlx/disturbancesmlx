@@ -295,9 +295,6 @@ func (line *Line) CountDisturbancesByDay(node sqalx.Node, start time.Time, end t
 		if err != nil {
 			return counts, fmt.Errorf("CountDisturbancesByDay: %s", err)
 		}
-		if err != nil {
-			return counts, fmt.Errorf("CountDisturbancesByDay: %s", err)
-		}
 		counts = append(counts, count)
 	}
 	if err := rows.Err(); err != nil {

@@ -138,6 +138,7 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p.Dependencies.Leaflet = true
 	err = webtemplate.ExecuteTemplate(w, "station.html", p)
 	if err != nil {
 		webLog.Println(err)
