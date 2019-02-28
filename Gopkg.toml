@@ -137,3 +137,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/gbl08ma/anko"
+  
+[[constraint]]
+  branch = "master"
+  name = "github.com/gbl08ma/monkey"
