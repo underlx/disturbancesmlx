@@ -20,7 +20,12 @@
         <p>Disponibilidade do <em>website</em> nos últimos 30 dias, conforme medida pelo Uptime Robot: <img src="https://img.shields.io/uptimerobot/ratio/m779635036-975bd6ca035a03f4082b0740.svg" style="width: auto;"></p>
         <h2>Ankiddie</h2>
         <p>Parte da funcionalidade dos serviços online do UnderLX é definida dinamicamente pelo sistema Ankiddie, desenvolvido propositadamente para este projecto, que gere uma <a href="https://github.com/gbl08ma/anko" target="_blank" rel="noopener">versão modificada</a> do sistema de <em>scripting</em> <a href="https://github.com/mattn/anko" target="_blank" rel="noopener">Anko</a>.</p>
-        <p><em>Scripts</em> persistidos: {{ .AnkiddieInstalled }}<br>Ambientes carregados: {{ .AnkiddieEnvs }}<br>Ambientes em execução: {{ .AnkiddieRunning }}</p>
+        <p>
+          <em>Scripts</em> persistidos: {{ .AnkiddieInstalled }}<br>
+          Ambientes carregados: {{ .AnkiddieEnvs }}<br>
+          Ambientes em execução: {{ .AnkiddieRunning }}<br>
+          Métodos substituídos: {{ .MonkeyPatched }}
+        </p>
         <h2><em>Bot</em> do Discord</h2>
         <p>Estatísticas do <em>bot</em> presente exclusivamente no <a href="/discord" target="_blank" rel="noopener">servidor de Discord do projecto</a>:</p>
         <ul>

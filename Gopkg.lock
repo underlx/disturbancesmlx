@@ -73,6 +73,14 @@
   revision = "285a9d753c877e10619a4f4acecbc8325a72326d"
 
 [[projects]]
+  digest = "1:d8abdc866ebbe05fa3bce50863e23afd4c73c804b90c908caa864e86df1db8a1"
+  name = "github.com/gbl08ma/monkey"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "5df1f207ff77e025801505ae4d903133a0b4353f"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:4db0b79a86a88d98e03630cf7577f049966ada5731a41a77ae72f09e9151bc2b"
   name = "github.com/gbl08ma/sqalx"
@@ -487,6 +495,7 @@
     "github.com/gbl08ma/anko/packages",
     "github.com/gbl08ma/anko/vm",
     "github.com/gbl08ma/keybox",
+    "github.com/gbl08ma/monkey",
     "github.com/gbl08ma/sqalx",
     "github.com/gbl08ma/squirrel",
     "github.com/gbl08ma/ssoclient",

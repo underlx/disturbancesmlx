@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/gbl08ma/monkey"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 
@@ -72,6 +74,7 @@ func (ssys *Ankiddie) newEnv(eid uint, code string, out func(env *Environment, m
 		vp.Elem().Set(val)
 		return vp.Interface()
 	})
+	env.vm.Define("error", reflect.Zero(reflect.TypeOf((*error)(nil)).Elem()).Interface())
 	// TODO inspect might not be really needed, as core.Import already defines typeOf
 	env.vm.Define("inspect", func(obj interface{}) string {
 		t := reflect.TypeOf(obj)
@@ -80,6 +83,50 @@ func (ssys *Ankiddie) newEnv(eid uint, code string, out func(env *Environment, m
 		}
 		return "nil"
 	})
+
+	// monkey patching support
+	env.vm.Define("monkeyPatch", func(target interface{}, replacement interface{}) *monkey.PatchGuard {
+		tt := reflect.TypeOf(target)
+		if tt.Kind() == reflect.Func {
+			args := []reflect.Type{}
+			for i := 0; i < tt.NumIn(); i++ {
+				args = append(args, tt.In(i))
+			}
+			if tt.NumOut() > 0 {
+				args = append(args, nil)
+			}
+			for i := 0; i < tt.NumOut(); i++ {
+				args = append(args, tt.Out(i))
+			}
+			replacement = ankoStrengthenWithTypes(env.ctx, replacement, args)
+		}
+		return monkey.Patch(target, replacement)
+	})
+	env.vm.Define("monkeyPatchTypeMethod", func(target interface{}, methodName string, replacement interface{}) *monkey.PatchGuard {
+		tt := reflect.TypeOf(target)
+		m, ok := tt.MethodByName(methodName)
+		if !ok {
+			panic(fmt.Sprintf("unknown method %s", methodName))
+		}
+		args := []reflect.Type{}
+		for i := 0; i < m.Func.Type().NumIn(); i++ {
+			args = append(args, m.Func.Type().In(i))
+		}
+		if m.Func.Type().NumOut() > 0 {
+			args = append(args, nil)
+		}
+		for i := 0; i < m.Func.Type().NumOut(); i++ {
+			args = append(args, m.Func.Type().Out(i))
+		}
+		replacement = ankoStrengthenWithTypes(env.ctx, replacement, args)
+
+		return monkey.PatchInstanceMethod(tt, methodName, replacement)
+	})
+	env.vm.Define("monkeyUnpatch", monkey.Unpatch)
+	env.vm.Define("monkeyUnpatchTypeMethod", func(target interface{}, methodName string) bool {
+		return monkey.UnpatchInstanceMethod(reflect.TypeOf(target), methodName)
+	})
+	env.vm.Define("monkeyUnpatchAll", monkey.UnpatchAll)
 
 	return env
 }

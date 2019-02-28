@@ -242,7 +242,7 @@ func DoXPTransaction(node sqalx.Node, player *dataobjects.PPPlayer, when time.Ti
 	}
 	var newtx *dataobjects.PPXPTransaction
 	if attemptMerge && len(lasttx) > 0 && lasttx[0].Type == txType &&
-		lasttx[0].Time.After(getWeekStart()) {
+		lasttx[0].Time.After(WeekStart()) {
 		// to avoid creating many micro-transactions, update the latest transaction, adding the new reward
 		// the lasttx[0].Time.After(getWeekStart()) check prevents tx merging with old rewards, "bringing old XP into the current week"
 		newtx = lasttx[0]
@@ -322,7 +322,8 @@ func uidConvI(uid uint64) string {
 	return strconv.FormatUint(uid, 10)
 }
 
-func getWeekStart() time.Time {
+// WeekStart returns when the current competition week started
+func WeekStart() time.Time {
 	loc, _ := time.LoadLocation(GameTimezone)
 	now := time.Now().In(loc)
 	daysSinceMonday := now.Weekday() - time.Monday
@@ -338,7 +339,8 @@ func getWeekStart() time.Time {
 	return endTime
 }
 
-func descriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
+// DescriptionForXPTransaction returns a human-friendly description of a XP transaction
+func DescriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
 	extra := tx.UnmarshalExtra()
 	switch tx.Type {
 	case "SIGNUP_BONUS":
@@ -434,7 +436,7 @@ func playerXPinfoWithTx(tx sqalx.Node, userID string) (discordbot.PosPlayXPInfo,
 		return discordbot.PosPlayXPInfo{}, err
 	}
 
-	xpWeek, err := player.XPBalanceBetween(tx, getWeekStart(), time.Now())
+	xpWeek, err := player.XPBalanceBetween(tx, WeekStart(), time.Now())
 	if err != nil {
 		xpWeek = 0
 	}
@@ -442,7 +444,7 @@ func playerXPinfoWithTx(tx sqalx.Node, userID string) (discordbot.PosPlayXPInfo,
 	if err != nil {
 		rank = 0
 	}
-	rankWeek, err := player.RankBetween(tx, getWeekStart(), time.Now())
+	rankWeek, err := player.RankBetween(tx, WeekStart(), time.Now())
 	if err != nil {
 		rankWeek = 0
 	}

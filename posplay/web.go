@@ -89,7 +89,7 @@ func ReloadTemplates() {
 			}
 			return ""
 		},
-		"xpTxDescription":            descriptionForXPTransaction,
+		"xpTxDescription":            DescriptionForXPTransaction,
 		"formatPortugueseMonth":      utils.FormatPortugueseMonth,
 		"getDisplayNameFromNameType": getDisplayNameFromNameType,
 		"formatLeaderboardWeek": func(start time.Time) string {
@@ -136,12 +136,12 @@ func initPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 			return commons, err
 		}
 
-		commons.XPthisWeek, err = player.XPBalanceBetween(tx, getWeekStart(), time.Now())
+		commons.XPthisWeek, err = player.XPBalanceBetween(tx, WeekStart(), time.Now())
 		if err != nil {
 			return commons, err
 		}
 
-		commons.RankThisWeek, err = player.RankBetween(tx, getWeekStart(), time.Now())
+		commons.RankThisWeek, err = player.RankBetween(tx, WeekStart(), time.Now())
 		if err != nil {
 			return commons, err
 		}
@@ -574,7 +574,7 @@ func leaderboardsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.SidebarSelected = "leaderboards"
 
-	start := getWeekStart()
+	start := WeekStart()
 	end := time.Now()
 	for i := 0; i < 5; i++ {
 		entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 15, player)

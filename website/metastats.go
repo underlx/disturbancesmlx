@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gbl08ma/monkey"
 	"github.com/underlx/disturbancesmlx/discordbot"
 
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -37,6 +38,7 @@ func MetaStatsPage(w http.ResponseWriter, r *http.Request) {
 		AnkiddieInstalled     int
 		AnkiddieEnvs          int
 		AnkiddieRunning       int
+		MonkeyPatched         int
 		BotStats              *discordbot.Stats
 		BotUptime             time.Duration
 		BotMessageHandlers    []discordbot.MessageHandler
@@ -46,6 +48,7 @@ func MetaStatsPage(w http.ResponseWriter, r *http.Request) {
 		BotStats:            discordbot.BotStats(),
 		BotMessageHandlers:  discordbot.GetMessageHandlers(),
 		BotReactionHandlers: discordbot.GetReactionHandlers(),
+		MonkeyPatched:       monkey.PatchCount(),
 	}
 	p.BotUptime = time.Since(p.BotStats.StartTime)
 

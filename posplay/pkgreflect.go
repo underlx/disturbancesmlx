@@ -18,11 +18,12 @@ var Types = map[string]reflect.Type{
 }
 
 var Functions = map[string]reflect.Value{
-	"ConfigureRouter": reflect.ValueOf(ConfigureRouter),
-	"DoXPTransaction": reflect.ValueOf(DoXPTransaction),
-	"GetSession":      reflect.ValueOf(GetSession),
-	"Initialize":      reflect.ValueOf(Initialize),
-	"NewSession":      reflect.ValueOf(NewSession),
+	"ConfigureRouter":             reflect.ValueOf(ConfigureRouter),
+	"DescriptionForXPTransaction": reflect.ValueOf(DescriptionForXPTransaction),
+	"DoXPTransaction":             reflect.ValueOf(DoXPTransaction),
+	"GetSession":                  reflect.ValueOf(GetSession),
+	"Initialize":                  reflect.ValueOf(Initialize),
+	"NewSession":                  reflect.ValueOf(NewSession),
 	"RegisterDiscussionParticipationCallback": reflect.ValueOf(RegisterDiscussionParticipationCallback),
 	"RegisterEventWinCallback":                reflect.ValueOf(RegisterEventWinCallback),
 	"RegisterReport":                          reflect.ValueOf(RegisterReport),
@@ -31,6 +32,7 @@ var Functions = map[string]reflect.Value{
 	"RegisterXPTransaction":                   reflect.ValueOf(RegisterXPTransaction),
 	"ReloadAchievements":                      reflect.ValueOf(ReloadAchievements),
 	"ReloadTemplates":                         reflect.ValueOf(ReloadTemplates),
+	"WeekStart":                               reflect.ValueOf(WeekStart),
 }
 
 var Variables = map[string]reflect.Value{

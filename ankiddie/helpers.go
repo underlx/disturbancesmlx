@@ -2,10 +2,28 @@ package ankiddie
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+
+	"github.com/gbl08ma/anko/vm"
 )
 
+var reflectValueType = reflect.TypeOf(reflect.Value{})
+var errorType = reflect.ValueOf([]error{nil}).Index(0).Type()
+var vmErrorType = reflect.TypeOf(&vm.Error{})
+
 func ankoStrengthen(ctx context.Context, fn interface{}, argsForTypes []interface{}) interface{} {
+	types := make([]reflect.Type, len(argsForTypes))
+	for i, arg := range argsForTypes {
+		types[i] = reflect.TypeOf(arg)
+		if s, ok := argsForTypes[i].(string); ok && s == "error" {
+			types[i] = errorType
+		}
+	}
+	return ankoStrengthenWithTypes(ctx, fn, types)
+}
+
+func ankoStrengthenWithTypes(ctx context.Context, fn interface{}, argTypes []reflect.Type) interface{} {
 	// fn is the original anko function
 	fType := reflect.TypeOf(fn)
 	if fType == nil || fType.Kind() != reflect.Func {
@@ -16,24 +34,29 @@ func ankoStrengthen(ctx context.Context, fn interface{}, argsForTypes []interfac
 	outs := make([]reflect.Type, 0)
 
 	i := 0
-	transformReturn := false
+
 	// anko functions now take a context as the first argument, hence fType.NumIn()-1
-	for ; i < fType.NumIn()-1 && i < len(argsForTypes); i++ {
-		if argsForTypes[i] == nil {
+	for ; i < fType.NumIn()-1 && i < len(argTypes); i++ {
+		if argTypes[i] == nil {
 			break
 		}
-		ins = append(ins, reflect.TypeOf(argsForTypes[i]))
+		t := argTypes[i]
+		if t.Implements(errorType) {
+			t = errorType
+		}
+		ins = append(ins, t)
 	}
 
-	if i < len(argsForTypes) && argsForTypes[i] == nil {
-		transformReturn = true
+	if i < len(argTypes) && argTypes[i] == nil {
 		i++
 	}
 
-	if transformReturn {
-		for ; i < len(argsForTypes); i++ {
-			outs = append(outs, reflect.TypeOf(argsForTypes[i]))
+	for ; i < len(argTypes); i++ {
+		t := argTypes[i]
+		if t.Implements(errorType) {
+			t = errorType
 		}
+		outs = append(outs, t)
 	}
 
 	outsCount := len(outs)
@@ -48,25 +71,63 @@ func ankoStrengthen(ctx context.Context, fn interface{}, argsForTypes []interfac
 			// "panic: reflect: Call using *discordgo.Session as type reflect.Value"
 			args[i+1] = reflect.ValueOf(arg)
 		}
-		result := reflect.ValueOf(fn).Call(args)
-		// we must also convert the result, because all anko functions always return (reflect.Value, error)
-		retVal := result[0].Interface().(reflect.Value)
-		k := retVal.Kind()
-		switch k {
-		case reflect.Chan, reflect.Func, reflect.Map, reflect.Ptr:
-			if retVal.IsNil() {
-				return []reflect.Value{}
-			}
+		rvs := reflect.ValueOf(fn).Call(args)
+		if len(rvs) != 2 {
+			panic(fmt.Sprintf("strengthen: function did not return 2 values but returned %v values", len(rvs)))
 		}
-		converted := make([]reflect.Value, outsCount)
-		retIfaces, ok := retVal.Interface().([]interface{})
-		if !ok {
+		if rvs[0].Type() != reflectValueType {
+			panic(fmt.Sprintf("strengthen: function value 1 did not return reflect value type but returned %v type", rvs[0].Type().String()))
+		}
+		if rvs[1].Type() != reflectValueType {
+			panic(fmt.Sprintf("strengthen: function value 2 did not return reflect value type but returned %v type", rvs[1].Type().String()))
+		}
+		// we must also convert the result, because all anko functions always return (reflect.Value, error)
+		conv := func(value reflect.Value, t reflect.Type) reflect.Value {
+			if (value.Kind() == reflect.Chan ||
+				value.Kind() == reflect.Func ||
+				value.Kind() == reflect.Map ||
+				value.Kind() == reflect.Ptr ||
+				value.Kind() == reflect.Interface ||
+				value.Kind() == reflect.Slice) &&
+				value.IsNil() {
+				return reflect.Zero(t)
+			}
+			return value.Convert(t)
+		}
+		convFromSliceItem := func(value reflect.Value, t reflect.Type) reflect.Value {
+			if err, isError := value.Interface().(error); isError {
+				return reflect.ValueOf(&err).Elem()
+			}
+			if (value.Kind() == reflect.Chan ||
+				value.Kind() == reflect.Func ||
+				value.Kind() == reflect.Map ||
+				value.Kind() == reflect.Ptr ||
+				value.Kind() == reflect.Interface ||
+				value.Kind() == reflect.Slice) &&
+				value.IsNil() {
+				return reflect.Zero(t)
+			}
+			if rv, isReflect := value.Interface().(reflect.Value); isReflect {
+				return rv
+			}
+			return reflect.ValueOf(value.Interface())
+		}
+		rv := rvs[0].Interface().(reflect.Value)
+		rvError := rvs[1].Interface().(reflect.Value)
+		if rv.Kind() == reflect.Slice {
+			converted := make([]reflect.Value, outsCount)
+			for i := 0; i < outsCount && i < rv.Len(); i++ {
+				converted[i] = convFromSliceItem(rv.Index(i), outs[i])
+			}
 			return converted
 		}
-		for i := 0; i < outsCount && i < len(retIfaces); i++ {
-			converted[i] = reflect.ValueOf(retIfaces[i])
+		if outsCount == 2 {
+			return []reflect.Value{conv(rv, outs[0]), conv(rvError, outs[1])}
 		}
-		return converted
+		if outsCount > 0 {
+			return []reflect.Value{conv(rv, outs[0])}
+		}
+		return []reflect.Value{}
 	})
 	return transformedFunc.Interface()
 }
