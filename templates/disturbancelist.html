@@ -39,10 +39,22 @@
       <div class="pure-u-1">
         <h1>Perturbações do Metro de Lisboa</h1>
         {{template "PageTimeSelector" . }}
-        <p><div id="chart"></div></p>
+        {{ if len .Disturbances }}
+        <p>
+          <a class="pure-button" href="#" onclick="switchToAvailability()" id="availabilityButton" style="font-size: 80%; float: right;">Mostrar indisponibilidade como percentagem</a>
+          <a class="pure-button"href="#" onclick="switchToDowntime()" id="downtimeButton" style="font-size: 80%; display: none; float: right;">Mostrar horas com perturbações</a>
+        </p>
+        <h2 id="firstChartTitle">Horas com perturbações</h2>
+        <p id="firstChartDesc">Tempo total com perturbações, por linha.</p>
+        <p><div id="chart" style="max-height: 320px;"></div></p>
+        <h2 id="secondChartTitle">Horas com perturbações, por dia</h2>
+        <p><small>Clique numa barra para ver apenas essa linha. Pode escolher as linhas a comparar na legenda por baixo do gráfico.</small></p>
+        <p><div id="dayChart" style="max-height: 320px;"></div></p>
+        {{end}}
         {{ if .AverageSpeed }}
         <p>Velocidade média: {{ printf "%.02f" .AverageSpeed }} km/h</p>
         {{end}}
+        <h2>Perturbações neste mês</h2>
         {{ range $disturbance := .Disturbances }}
           {{ if (or (not $.OfficialOnly) $disturbance.Official) }}
             {{template "component-disturbance.html" $disturbance }}
@@ -61,16 +73,35 @@
         '#{{ $line.Color }}',
       {{end}}
     ];
-    var chart = c3.generate({
+    var days = new Array('Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado');
+    var months = new Array('Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro');
+    var dateFormatFunc = function (d) { return days[d.getDay()] + ", " + d.getDate() + " de " + months[d.getMonth()]; };
+    var availabilityFormat = function(d) { return +d.toFixed(3) + "%"; }
+    var hourFormat = function(d) {
+      h = Math.floor(d);
+      r = h + "h";
+      m = Math.round((d - h)*60);
+      if (m > 0) {
+        r += m + "m"
+      }
+      return r;
+    }
+    var yFormat = hourFormat;
+    var perLineChart = c3.generate({
+      bindto: '#chart',
       data: {
           x : 'x',
           columns: [
-              ['x', {{ range $line := .Lines}}'{{ $line.Name }}',{{end}}],
-              ['Horas com perturbações', {{ range $line := .Lines}}{{ index $.DowntimePerLine $line.ID }},{{end}}],
+            ['x', {{ range $pl := .PerLine }}'{{ $pl.Line.Name }}',{{end}}],
+            ['hours', {{ range $pl := .PerLine }}{{ $pl.TotalHoursDown }},{{end}}],
           ],
           groups: [
-              ['Horas com perturbações']
+            ['hours']
           ],
+          names: {
+            hours: 'Horas com perturbações',
+            unavailability: 'Indisponibilidade'
+          },
           type: 'bar',
           color: function (color, d) {
               return colors[d.index];
@@ -79,9 +110,143 @@
       axis: {
           x: {
               type: 'category' // this needed to load string x value
+          },
+          y: {
+            tick: {
+              format: function(d) { return yFormat(d); },
+              fit: true
+            }
           }
       },
+      legend: {
+        hide: true,
+      }
     });
+
+    var columns = [{{ range $line := .Lines }}
+        'availability-{{ $line.ID }}', 'downtime-{{ $line.ID }}',
+    {{end}}];
+
+    var perDayChart = c3.generate({
+      data: {
+          x : 'x',
+          columns: [
+              ['x', {{ range $date := $.Dates}}'{{ $date.Format "2006-01-02" }}',{{end}}],
+              {{ range $pl := .PerLine }}
+              ['downtime-{{ $pl.Line.ID }}', {{ range $downtime := $pl.HoursDown }}{{ $downtime }},{{end}}],
+              {{end}}
+          ],
+          type: 'bar',
+          colors: {
+            {{ range $line := .Lines }}
+              'availability-{{ $line.ID }}': '#{{ $line.Color }}',
+              'downtime-{{ $line.ID }}': '#{{ $line.Color }}',
+            {{end}}
+          },
+          names: {
+            {{ range $line := .Lines }}
+              'availability-{{ $line.ID }}': '{{ $line.Name }}',
+              'downtime-{{ $line.ID }}': '{{ $line.Name }}',
+            {{end}}
+          },
+          onclick: function(d, element) {
+            for (c of columns) {
+              if (c === d.id) {
+                perDayChart.show(d.id);
+              } else {
+                perDayChart.hide(c);
+              }
+            }
+          },
+      },
+      axis: {
+        x: {
+          type: 'timeseries',
+          tick: {
+            format: '%m-%d',
+            culling: false,
+            rotate: 90,
+          }
+        },
+        y: {
+          tick: {
+            format: function(d) { return yFormat(d); }
+          },
+          min: 0,
+          padding: {bottom:0}
+        }
+      },
+      tooltip: {
+        format: {
+          title: dateFormatFunc,
+        }
+      },
+      bindto: '#dayChart'
+    });
+    function switchToDowntime() {
+      document.getElementById("firstChartTitle").innerText = "Horas com perturbações";
+      document.getElementById("firstChartDesc").innerText = "Tempo total com perturbações, por linha.";
+      document.getElementById("secondChartTitle").innerText = "Horas com perturbações, por dia";
+      document.getElementById("availabilityButton").style.display = "inline";
+      document.getElementById("downtimeButton").style.display = "none";
+      yFormat = hourFormat;
+      perLineChart.load({
+        columns: [
+          ['hours', {{ range $pl := .PerLine }}{{ $pl.TotalHoursDown }},{{end}}],
+        ],
+        unload: ['unavailability'],
+        done: function() {
+          // show all otherwise there are bugs
+          perLineChart.show();
+          perLineChart.legend.hide();
+        }
+      });
+      perDayChart.load({
+        columns: [
+          {{ range $pl := .PerLine }}
+            ['downtime-{{ $pl.Line.ID }}', {{ range $downtime := $pl.HoursDown }}{{ $downtime }},{{end}}],
+          {{end}}
+        ],
+        unload: [{{ range $pl := .PerLine }}'availability-{{ $pl.Line.ID }}',{{end}}],
+        done: function() {
+          // show all otherwise there are bugs
+          perDayChart.show();
+        }
+      });
+      event.preventDefault();
+    }
+    function switchToAvailability() {
+      document.getElementById("firstChartTitle").innerText = "Indisponibilidade";
+      document.getElementById("firstChartDesc").innerHTML = "A <strong>indisponibilidade</strong> corresponde ao tempo em que uma linha funciona <strong>com</strong> perturbações, como percentagem do tempo de exploração (horas a que o Metro está aberto ao público).";
+      document.getElementById("secondChartTitle").innerText = "Indisponibilidade por dia";
+      document.getElementById("availabilityButton").style.display = "none";
+      document.getElementById("downtimeButton").style.display = "inline";
+      yFormat = availabilityFormat;
+      perLineChart.load({
+        columns: [
+          ['unavailability', {{ range $pl := .PerLine }}100-{{ $pl.TotalAvailability }},{{end}}],
+        ],
+        unload: ['hours'],
+        done: function() {
+          // show all otherwise there are bugs
+          perLineChart.show();
+          perLineChart.legend.hide();
+        }
+      });
+      perDayChart.load({
+        columns: [
+          {{ range $pl := .PerLine }}
+          ['availability-{{ $pl.Line.ID }}', {{ range $availability := $pl.Availability }}100-{{ $availability }},{{end}}],
+          {{end}}
+        ],
+        unload: [{{ range $pl := .PerLine }}'downtime-{{ $pl.Line.ID }}',{{end}}],
+        done: function() {
+          // show all otherwise there are bugs
+          perDayChart.show();
+        }
+      });
+      event.preventDefault();
+    }
   </script>
   {{end}}
 {{template "footer.html" . }}

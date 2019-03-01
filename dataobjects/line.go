@@ -520,7 +520,7 @@ func (line *Line) getScheduleForDay(day time.Time, schedules []*LineSchedule) *L
 }
 
 // DisturbanceDuration returns the total duration of the disturbances in this line between the specified times
-func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endTime time.Time, officialOnly bool) (avgDuration time.Duration, count int, err error) {
+func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endTime time.Time, officialOnly bool) (totalDuration time.Duration, count int, err error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return 0, 0, err

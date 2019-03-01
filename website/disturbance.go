@@ -78,16 +78,25 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
+	type perLine struct {
+		Line              *dataobjects.Line
+		TotalHoursDown    float32
+		HoursDown         []float32
+		TotalAvailability float32
+		Availability      []float32
+	}
+
 	p := struct {
 		PageCommons
-		Disturbances    []*dataobjects.Disturbance
-		DowntimePerLine map[string]float32
-		AverageSpeed    float64
-		CurPageTime     time.Time
-		HasPrevPage     bool
-		PrevPageTime    time.Time
-		HasNextPage     bool
-		NextPageTime    time.Time
+		Disturbances []*dataobjects.Disturbance
+		PerLine      []perLine
+		Dates        []time.Time
+		AverageSpeed float64
+		CurPageTime  time.Time
+		HasPrevPage  bool
+		PrevPageTime time.Time
+		HasNextPage  bool
+		NextPageTime time.Time
 	}{}
 
 	p.PageCommons, err = InitPageCommons(tx, w, r, "Perturbações do Metro de Lisboa")
@@ -133,15 +142,40 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.DowntimePerLine = make(map[string]float32)
+	for d := startDate; d.Before(endDate); d = d.AddDate(0, 0, 1) {
+		p.Dates = append(p.Dates, d)
+	}
+
 	for _, line := range p.Lines {
+		lineInfo := perLine{
+			Line: line.Line,
+		}
+
 		totalDuration, _, err := line.DisturbanceDuration(tx, startDate, endDate, p.OfficialOnly)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		p.DowntimePerLine[line.ID] += float32(totalDuration.Hours())
+		lineInfo.TotalHoursDown = float32(totalDuration.Hours())
+
+		totalAvailability, _, err := line.Availability(tx, startDate, endDate, p.OfficialOnly)
+		lineInfo.TotalAvailability = float32(totalAvailability * 100)
+
+		for d := startDate; d.Before(endDate); d = d.AddDate(0, 0, 1) {
+			nd := d.AddDate(0, 0, 1)
+			availability, _, err := line.Availability(tx, d, nd, p.OfficialOnly)
+			if err != nil {
+				webLog.Println(err)
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			duration, _, err := line.DisturbanceDuration(tx, d, nd, p.OfficialOnly)
+			lineInfo.Availability = append(lineInfo.Availability, float32(availability*100))
+			lineInfo.HoursDown = append(lineInfo.HoursDown, float32(duration.Hours()))
+		}
+
+		p.PerLine = append(p.PerLine, lineInfo)
 	}
 
 	p.AverageSpeed, err = compute.AverageSpeedCached(tx, startDate, endDate.Truncate(24*time.Hour))
