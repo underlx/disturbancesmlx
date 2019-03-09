@@ -318,6 +318,8 @@ CREATE TABLE IF NOT EXISTS "pp_xp_tx" (
     type VARCHAR(36) NOT NULL,
     extra TEXT NOT NULL
 );
+-- Important for e.g. leaderboards (~5x speedup)
+CREATE INDEX ON pp_xp_tx (timestamp);
 
 CREATE TABLE IF NOT EXISTS "pp_achievement" (
     id VARCHAR(36) PRIMARY KEY,
