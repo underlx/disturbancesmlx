@@ -51,7 +51,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:93978a98b900de1bab6ea9fbb94aff73c816c245484d9af7b56aa4305fb80180"
+  digest = "1:3333d15af0d43384b5281aeb7791fcf067a761b5534d5e89cb7988236de668d8"
   name = "github.com/gbl08ma/anko"
   packages = [
     "ast",
@@ -62,7 +62,7 @@
     "vm",
   ]
   pruneopts = "UT"
-  revision = "eae21db1e8cba07bf3ec75806add765720796721"
+  revision = "029647b78f65248c4c824aaf06952308ab698d83"
 
 [[projects]]
   branch = "master"
