@@ -230,32 +230,16 @@ func (line *Line) DisturbancesBetween(node sqalx.Node, startTime time.Time, endT
 	s := sdb.Select().
 		Where(sq.Eq{"mline": line.ID})
 
-	forceIncludeOngoing := time.Now().Add(-1 * time.Second).Before(endTime)
-
 	if officialOnly {
-		cond := sq.Or{
-			sq.Expr("otime_start BETWEEN ? AND ?", startTime, endTime),
-			sq.And{
-				sq.Expr("otime_end IS NOT NULL"),
-				sq.Expr("otime_end BETWEEN ? AND ?", startTime, endTime),
-			},
-		}
-		if forceIncludeOngoing {
-			cond = append(cond, sq.And{sq.Expr("otime_end IS NULL"), sq.Expr("time_end IS NULL")})
-		}
-		s = s.Where(cond).OrderBy("otime_start ASC")
+		s = s.Where(sq.And{
+			sq.Expr("otime_start <= ?", endTime),
+			sq.Expr("COALESCE(otime_end, now()) >= ?", startTime),
+		}).OrderBy("otime_start ASC")
 	} else {
-		cond := sq.Or{
-			sq.Expr("time_start BETWEEN ? AND ?", startTime, endTime),
-			sq.And{
-				sq.Expr("time_end IS NOT NULL"),
-				sq.Expr("time_end BETWEEN ? AND ?", startTime, endTime),
-			},
-		}
-		if forceIncludeOngoing {
-			cond = append(cond, sq.Expr("time_end IS NULL"))
-		}
-		s = s.Where(cond).OrderBy("time_start ASC")
+		s = s.Where(sq.And{
+			sq.Expr("time_start <= ?", endTime),
+			sq.Expr("COALESCE(time_end, now()) >= ?", startTime),
+		}).OrderBy("time_start ASC")
 	}
 	return getDisturbancesWithSelect(node, s)
 }

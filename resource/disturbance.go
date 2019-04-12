@@ -119,7 +119,7 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 					return err2
 				}
 			}
-			disturbances, err = dataobjects.GetDisturbancesBetween(tx, startTime, endTime)
+			disturbances, err = dataobjects.GetDisturbancesBetween(tx, startTime, endTime, false)
 		}
 
 		if err != nil {

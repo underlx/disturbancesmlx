@@ -519,7 +519,6 @@ func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjec
 
 	hadDisturbances := false
 	if line != nil {
-		// TODO DisturbancesBetween doesn't work correctly if trip.StartTime to trip.EndTime are entirely contained within a disturbance
 		disturbances, err := line.DisturbancesBetween(tx, trip.StartTime, trip.EndTime, config.OfficialOnly)
 		if err != nil {
 			return err
@@ -531,7 +530,6 @@ func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjec
 			return err
 		}
 		for _, line := range lines {
-			// TODO DisturbancesBetween doesn't work correctly if trip.StartTime to trip.EndTime are entirely contained within a disturbance
 			disturbances, err := line.DisturbancesBetween(tx, trip.StartTime, trip.EndTime, config.OfficialOnly)
 			if err != nil {
 				return err
@@ -543,21 +541,11 @@ func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjec
 		}
 	} else {
 		// all lines of any network
-		lines, err := dataobjects.GetLines(tx)
+		disturbances, err := dataobjects.GetDisturbancesBetween(tx, trip.StartTime, trip.EndTime, config.OfficialOnly)
 		if err != nil {
 			return err
 		}
-		for _, line := range lines {
-			// TODO DisturbancesBetween doesn't work correctly if trip.StartTime to trip.EndTime are entirely contained within a disturbance
-			disturbances, err := line.DisturbancesBetween(tx, trip.StartTime, trip.EndTime, config.OfficialOnly)
-			if err != nil {
-				return err
-			}
-			hadDisturbances = len(disturbances) > 0
-			if hadDisturbances {
-				break
-			}
-		}
+		hadDisturbances = len(disturbances) > 0
 	}
 
 	if !hadDisturbances {

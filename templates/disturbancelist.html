@@ -56,9 +56,7 @@
         {{end}}
         <h2>Perturbações neste mês</h2>
         {{ range $disturbance := .Disturbances }}
-          {{ if (or (not $.OfficialOnly) $disturbance.Official) }}
-            {{template "component-disturbance.html" $disturbance }}
-          {{end}}
+          {{template "component-disturbance.html" $disturbance }}
         {{else}}
           <p style="text-align: center; margin-top: 70px; margin-bottom: 70px;">Não foram registadas perturbações neste mês.</p>
         {{end}}

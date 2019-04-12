@@ -73,15 +73,19 @@ func GetOngoingDisturbances(node sqalx.Node) ([]*Disturbance, error) {
 }
 
 // GetDisturbancesBetween returns a slice with disturbances affecting the specified interval
-func GetDisturbancesBetween(node sqalx.Node, start time.Time, end time.Time) ([]*Disturbance, error) {
-	s := sdb.Select().
-		Where(sq.Or{
-			sq.Expr("time_start BETWEEN ? AND ?",
-				start, end),
-			sq.Expr("time_end BETWEEN ? AND ?",
-				start, end),
-		}).
-		OrderBy("time_start ASC")
+func GetDisturbancesBetween(node sqalx.Node, start time.Time, end time.Time, officialOnly bool) ([]*Disturbance, error) {
+	s := sdb.Select()
+	if officialOnly {
+		s = s.Where(sq.And{
+			sq.Expr("otime_start <= ?", end),
+			sq.Expr("COALESCE(otime_end, now()) >= ?", start),
+		}).OrderBy("otime_start ASC")
+	} else {
+		s = s.Where(sq.And{
+			sq.Expr("time_start <= ?", end),
+			sq.Expr("COALESCE(time_end, now()) >= ?", start),
+		}).OrderBy("time_start ASC")
+	}
 	return getDisturbancesWithSelect(node, s)
 }
 

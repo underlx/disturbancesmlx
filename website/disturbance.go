@@ -135,7 +135,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 	p.HasPrevPage = p.PrevPageTime.After(time.Date(2017, 3, 1, 0, 0, 0, 0, loc))
 	p.HasNextPage = p.NextPageTime.Before(now)
 
-	p.Disturbances, err = dataobjects.GetDisturbancesBetween(tx, startDate, endDate)
+	p.Disturbances, err = dataobjects.GetDisturbancesBetween(tx, startDate, endDate, p.OfficialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusNotFound)
