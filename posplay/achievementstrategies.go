@@ -485,6 +485,11 @@ func (s *TripDuringDisturbanceAchievementStrategy) ID() string {
 	return "trip_during_disturbance"
 }
 
+// Progress implements dataobjects.PPAchievementStrategy
+func (s *TripDuringDisturbanceAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
+	return 0, 0, nil
+}
+
 // HandleTrip implements dataobjects.PPAchievementStrategy
 func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
 	if len(trip.StationUses) < 2 {
