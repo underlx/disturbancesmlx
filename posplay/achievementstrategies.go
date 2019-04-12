@@ -14,6 +14,7 @@ func init() {
 	dataobjects.RegisterPPAchievementStrategy(new(VisitStationsAchievementStrategy))
 	dataobjects.RegisterPPAchievementStrategy(new(VisitThroughoutLineAchievementStrategy))
 	dataobjects.RegisterPPAchievementStrategy(new(SubmitAchievementStrategy))
+	dataobjects.RegisterPPAchievementStrategy(new(TripDuringDisturbanceAchievementStrategy))
 }
 
 // StubAchievementStrategy partially implements dataobjects.PPAchievementStrategy
@@ -461,6 +462,152 @@ func (s *SubmitAchievementStrategy) HandleDisturbanceReport(context *dataobjects
 	}
 
 	err = achieveAchievement(tx, context.Player, context.Achievement, report.Time())
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// TripDuringDisturbanceAchievementStrategy is an achievement strategy that rewards users when they submit a trip performed during a disturbance
+type TripDuringDisturbanceAchievementStrategy struct {
+	StubAchievementStrategy
+}
+
+type tripDuringDisturbanceConfig struct {
+	Line         string `json:"line"`         // line ID or "*", in the latter case Network must be specified
+	Network      string `json:"network"`      // network ID or "*"
+	OfficialOnly bool   `json:"officialOnly"` // whether only official disturbances count
+}
+
+// ID returns the ID for this PPAchievementStrategy
+func (s *TripDuringDisturbanceAchievementStrategy) ID() string {
+	return "trip_during_disturbance"
+}
+
+// HandleTrip implements dataobjects.PPAchievementStrategy
+func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+	if len(trip.StationUses) < 2 {
+		return nil
+	}
+
+	var config tripDuringDisturbanceConfig
+	context.Achievement.UnmarshalConfig(&config)
+
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
+	if err == nil && existingData.Achieved {
+		// the player already has this achievement
+		return tx.Commit()
+	}
+
+	var line *dataobjects.Line
+	var network *dataobjects.Network
+	if (config.Line == "*" || config.Line == "") && (config.Network != "*" && config.Network != "") {
+		network, err = dataobjects.GetNetwork(tx, config.Network)
+	} else if config.Line != "*" && config.Line != "" {
+		line, err = dataobjects.GetLine(tx, config.Line)
+	}
+	if err != nil {
+		return err
+	}
+
+	hadDisturbances := false
+	if line != nil {
+		// TODO DisturbancesBetween doesn't work correctly if trip.StartTime to trip.EndTime are entirely contained within a disturbance
+		disturbances, err := line.DisturbancesBetween(tx, trip.StartTime, trip.EndTime, config.OfficialOnly)
+		if err != nil {
+			return err
+		}
+		hadDisturbances = len(disturbances) > 0
+	} else if network != nil {
+		lines, err := network.Lines(tx)
+		if err != nil {
+			return err
+		}
+		for _, line := range lines {
+			// TODO DisturbancesBetween doesn't work correctly if trip.StartTime to trip.EndTime are entirely contained within a disturbance
+			disturbances, err := line.DisturbancesBetween(tx, trip.StartTime, trip.EndTime, config.OfficialOnly)
+			if err != nil {
+				return err
+			}
+			hadDisturbances = len(disturbances) > 0
+			if hadDisturbances {
+				break
+			}
+		}
+	} else {
+		// all lines of any network
+		lines, err := dataobjects.GetLines(tx)
+		if err != nil {
+			return err
+		}
+		for _, line := range lines {
+			// TODO DisturbancesBetween doesn't work correctly if trip.StartTime to trip.EndTime are entirely contained within a disturbance
+			disturbances, err := line.DisturbancesBetween(tx, trip.StartTime, trip.EndTime, config.OfficialOnly)
+			if err != nil {
+				return err
+			}
+			hadDisturbances = len(disturbances) > 0
+			if hadDisturbances {
+				break
+			}
+		}
+	}
+
+	if !hadDisturbances {
+		// not eligible
+		return tx.Commit()
+	}
+
+	visitedAffected := false
+
+	if line != nil {
+		for _, use := range trip.StationUses {
+			if use.Type == dataobjects.Interchange {
+				continue
+			}
+			lines, err := use.Station.Lines(tx)
+			if err != nil {
+				return err
+			}
+			for _, sline := range lines {
+				if line.ID == sline.ID {
+					visitedAffected = true
+					break
+				}
+			}
+			if visitedAffected {
+				break
+			}
+		}
+	} else if network != nil {
+		for _, use := range trip.StationUses {
+			if use.Type == dataobjects.Interchange {
+				continue
+			}
+			if use.Station.Network.ID == network.ID {
+				visitedAffected = true
+				break
+			}
+		}
+	} else {
+		// if it's any line, then it's immediately affected
+		visitedAffected = true
+	}
+
+	if !visitedAffected {
+		// not eligible
+		return tx.Commit()
+	}
+
+	// ensure the achievement reward tx always appears after the cause by adding 1 ms
+	err = achieveAchievement(tx, context.Player, context.Achievement, trip.SubmitTime.Add(1*time.Millisecond))
 	if err != nil {
 		return err
 	}

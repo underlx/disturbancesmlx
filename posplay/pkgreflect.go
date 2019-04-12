@@ -5,16 +5,17 @@ package posplay
 import "reflect"
 
 var Types = map[string]reflect.Type{
-	"Config":                                 reflect.TypeOf((*Config)(nil)).Elem(),
-	"ConnectionHandler":                      reflect.TypeOf((*ConnectionHandler)(nil)).Elem(),
-	"PairConnection":                         reflect.TypeOf((*PairConnection)(nil)).Elem(),
-	"PairConnectionExtra":                    reflect.TypeOf((*PairConnectionExtra)(nil)).Elem(),
-	"ReachLevelAchievementStrategy":          reflect.TypeOf((*ReachLevelAchievementStrategy)(nil)).Elem(),
-	"Session":                                reflect.TypeOf((*Session)(nil)).Elem(),
-	"StubAchievementStrategy":                reflect.TypeOf((*StubAchievementStrategy)(nil)).Elem(),
-	"SubmitAchievementStrategy":              reflect.TypeOf((*SubmitAchievementStrategy)(nil)).Elem(),
-	"VisitStationsAchievementStrategy":       reflect.TypeOf((*VisitStationsAchievementStrategy)(nil)).Elem(),
-	"VisitThroughoutLineAchievementStrategy": reflect.TypeOf((*VisitThroughoutLineAchievementStrategy)(nil)).Elem(),
+	"Config":                                   reflect.TypeOf((*Config)(nil)).Elem(),
+	"ConnectionHandler":                        reflect.TypeOf((*ConnectionHandler)(nil)).Elem(),
+	"PairConnection":                           reflect.TypeOf((*PairConnection)(nil)).Elem(),
+	"PairConnectionExtra":                      reflect.TypeOf((*PairConnectionExtra)(nil)).Elem(),
+	"ReachLevelAchievementStrategy":            reflect.TypeOf((*ReachLevelAchievementStrategy)(nil)).Elem(),
+	"Session":                                  reflect.TypeOf((*Session)(nil)).Elem(),
+	"StubAchievementStrategy":                  reflect.TypeOf((*StubAchievementStrategy)(nil)).Elem(),
+	"SubmitAchievementStrategy":                reflect.TypeOf((*SubmitAchievementStrategy)(nil)).Elem(),
+	"TripDuringDisturbanceAchievementStrategy": reflect.TypeOf((*TripDuringDisturbanceAchievementStrategy)(nil)).Elem(),
+	"VisitStationsAchievementStrategy":         reflect.TypeOf((*VisitStationsAchievementStrategy)(nil)).Elem(),
+	"VisitThroughoutLineAchievementStrategy":   reflect.TypeOf((*VisitThroughoutLineAchievementStrategy)(nil)).Elem(),
 }
 
 var Functions = map[string]reflect.Value{
