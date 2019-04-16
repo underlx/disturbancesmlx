@@ -36,7 +36,7 @@
   <script src="https://unpkg.com/c3@0.4.18/c3.min.js" charset="utf-8"></script>
   <link rel="stylesheet" type="text/css" href="https://unpkg.com/cal-heatmap@3.6.2/cal-heatmap.css"> 
 
-  <link rel="stylesheet" type="text/css" href="/static/css/custom.css?v=11"/>
+  <link rel="stylesheet" type="text/css" href="/static/css/custom.css?v=12"/>
 
   <style>
   html, body {
@@ -65,9 +65,24 @@
 <body>
   <div class="header">
     <div class="pure-g">
+      {{ if (and .Session .UserInfoInHeader) }}
+      <a href="/posplay" class="pure-u-14-24 pure-u-sm-1-1 pure-u-md-14-24 pure-u-lg-17-24 pure-u-xl-16-24 headerItem" style="color: inherit;">
+        <img src="/static/img/posplay-64.png" style="height: 44px; float: left; margin-left: 3px;"><span class="headerTitle">UnderLX PosPlay</span>
+      </a>
+      <a href="/posplay" class="pure-u-5-24 pure-u-sm-1-2 pure-u-md-6-24 pure-u-lg-4-24 pure-u-xl-4-24 headerItem">
+        <div>
+          <img src="{{ .AvatarURL }}" style="height: 32px; border-radius: 50%; vertical-align: middle;">
+          <span class="headerItemText" style="vertical-align: middle; text-align: left;">
+            <strong>{{ .Player.CachedName }}</strong><br>
+            <span style="font-size: 80%"><strong>{{ .XP }} XP</strong> - Nível <strong>{{ .Level }}</strong></span>
+          </span>
+        </div>
+      </a>
+      {{ else }}
       <a href="/posplay" class="pure-u-19-24 pure-u-sm-1-2 pure-u-md-20-24 pure-u-lg-21-24 pure-u-xl-20-24 headerItem" style="color: inherit;">
         <img src="/static/img/posplay-64.png" style="height: 44px; float: left; margin-left: 3px;"><span class="headerTitle">UnderLX PosPlay</span>
       </a>
+      {{end}}
       {{ if .Session }}
       <form method="POST" action="/posplay/logout" class="pure-u-5-24 pure-u-sm-1-2 pure-u-md-4-24 pure-u-lg-3-24 pure-u-xl-4-24">
         {{ .CSRFfield }}

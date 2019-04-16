@@ -394,6 +394,27 @@ func DescriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
 	}
 }
 
+// DescriptionForRarity returns a human-friendly description of a achievement rarity value (range 0 to 100)
+func DescriptionForRarity(rarity float64) string {
+	switch {
+	case rarity <= 1:
+		return "extremamente rara"
+	case rarity <= 8:
+		return "rara"
+	case rarity <= 25:
+		return "incomum"
+	case rarity <= 50:
+		return "comum"
+	case rarity <= 75:
+		return "muito comum"
+	case rarity < 100:
+		return "extremamente comum"
+	case rarity >= 100:
+		return "universal"
+	}
+	return ""
+}
+
 func getDisplayNameFromNameType(nameType string, user *discordgo.User, guildMember *discordgo.Member) string {
 	switch nameType {
 	case NicknameNameType:

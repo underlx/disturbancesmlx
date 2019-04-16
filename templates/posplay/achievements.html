@@ -6,8 +6,9 @@
       </div>
       <div class="pure-u-1 pure-u-md-2-3">
         <h1>Proezas</h1>
+        <p>Clique numa proeza para ver mais informações sobre a mesma.</p>
         {{ range $ach := .Achieved }}
-          <div class="pure-g" style="border: 1px #ccc solid; margin-top: 1em; padding: 10px">
+          <a class="pure-g achievement-box" href="/posplay/achievements/{{ $ach.ID }}">
             <div class="pure-u-3-4">
               <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
             </div>
@@ -18,13 +19,13 @@
             <div class="pure-u-1" style="margin-top: 10px; text-align: right; font-size: 0.8em;">
               Alcançada em {{ formatTime (index $.Achieving $ach.ID).AchievedTime }}
             </div>
-          </div>
+          </a>
         {{ else }}
         <p>Ainda não alcançou nenhuma proeza.</p>
         {{ end }}
         <div style="height: 2em"></div>
         {{ range $ach := .NonAchieved }}
-          <div class="pure-g" style="border: 1px #ccc solid; margin-top: 1em; padding: 10px">
+          <a class="pure-g achievement-box" {{ if ge (index $.ProgressTotal $ach.ID) 0 }}href="/posplay/achievements/{{ $ach.ID }}"{{end}}>
             <div class="pure-u-3-4">
               <h3 style="margin-top: 0; margin-bottom: 0.5em">
                 {{ if lt (index $.ProgressTotal $ach.ID) 0 }}
@@ -48,7 +49,7 @@
               <span>{{ (index $.ProgressCurrent $ach.ID) }} / {{ (index $.ProgressTotal $ach.ID) }}</span>
             </div>
             {{end}}
-          </div>
+          </a>
         {{ end }}
       </div>
     </div>

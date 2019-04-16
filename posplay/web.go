@@ -25,7 +25,8 @@ type pageCommons struct {
 	CSRFfield   template.HTML
 	VersionInfo string
 
-	// sidebar
+	// header / sidebar
+	UserInfoInHeader bool
 	SidebarSelected  string
 	AvatarURL        string
 	XP               int
@@ -43,6 +44,7 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/settings", settingsPage)
 	router.HandleFunc("/xptx", xpTransactionHistoryPage)
 	router.HandleFunc("/achievements", achievementsPage)
+	router.HandleFunc("/achievements/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", achievementPage)
 	router.HandleFunc("/leaderboards", leaderboardsPage)
 	router.HandleFunc("/leaderboards/weekly", leaderboardsPage)
 	router.HandleFunc("/leaderboards/alltime", leaderboardsAllTimePage)
@@ -76,7 +78,24 @@ func ReloadTemplates() {
 		},
 		"formatTime": func(t time.Time) string {
 			loc, _ := time.LoadLocation(GameTimezone)
-			return t.In(loc).Format("02 Jan 2006 15:04")
+			r := t.In(loc).Format("02 Jan 2006 15:04")
+			switch r[3:6] {
+			case "Feb":
+				r = r[:3] + "Fev" + r[6:]
+			case "Apr":
+				r = r[:3] + "Abr" + r[6:]
+			case "May":
+				r = r[:3] + "Mai" + r[6:]
+			case "Aug":
+				r = r[:3] + "Ago" + r[6:]
+			case "Sep":
+				r = r[:3] + "Set" + r[6:]
+			case "Oct":
+				r = r[:3] + "Out" + r[6:]
+			case "Dec":
+				r = r[:3] + "Dez" + r[6:]
+			}
+			return r
 		},
 		"uuid": func() string {
 			id, err := uuid.NewV4()

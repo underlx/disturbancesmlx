@@ -85,6 +85,22 @@ func GetPPPlayer(node sqalx.Node, discordID uint64) (*PPPlayer, error) {
 	return players[0], nil
 }
 
+// CountPPPlayers returns the total number of players
+func CountPPPlayers(node sqalx.Node) (int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	var count int
+	err = sdb.Select("COUNT(*)").
+		From("pp_player").
+		RunWith(tx).
+		Scan(&count)
+	return count, err
+}
+
 // XPTransactions returns a slice with all registered transactions for this player
 func (player *PPPlayer) XPTransactions(node sqalx.Node) ([]*PPXPTransaction, error) {
 	s := sdb.Select().
@@ -189,6 +205,11 @@ func PosPlayPlayerLevel(totalXP int) (int, float64) {
 	progression := math.Pow(float64(totalXP)/22.8376671827315, 0.6162744956869)
 	level, part := math.Modf(progression)
 	return int(level), part * 100
+}
+
+// PosPlayLevelToXP computes the PosPlay XP necessary to reach the given level
+func PosPlayLevelToXP(level int) int {
+	return int(22.8376671827315 * math.Pow(float64(level), 1.62265355291952))
 }
 
 // RankBetween returns the global XP rank for this player within the specified time interval

@@ -195,7 +195,7 @@ table.tinycells > tbody > tr > td {
 
 @media screen and (min-width: 35.5em) {
   .headerItemText {
-    display: inline;
+    display: inline-block;
   }
   .headerItem .fa {
     font-size: 100%;
@@ -623,4 +623,16 @@ ul.exit-list > li.stairs::before {
 }
 .progress-bar span {
   color: black;
+}
+
+.achievement-box {
+  border: 1px #ccc solid;
+  margin-top: 1em;
+  padding: 10px;
+  color:inherit;
+  text-decoration: inherit;
+}
+
+.achievement-box:hover {
+  background-color: #ccc;
 }

@@ -1,0 +1,65 @@
+{{template "header.html" . }}
+  <div class="widecontent">
+    <div class="pure-g">
+      <div class="pure-u-1">
+        <h1>{{ index .Achievement.Names .Achievement.MainLocale }} <small style="padding-left: 15px;">Proeza do PosPlay</small></h1>
+        <p style="font-size: 120%;">{{ index .Achievement.Descriptions .Achievement.MainLocale }}</p>
+      </div>
+      <div class="pure-u-1 pure-u-md-1-2" style="box-sizing: border-box; padding-right: 10px;">
+        <h2>Recompensa</h2>
+        <p>
+          {{ if gt .Achievement.XPReward 0 }}
+          Crédito de <strong>{{ .Achievement.XPReward }} XP</strong>.
+          {{else}}
+          Um sentimento de orgulho e conquista.
+          {{end}}
+        </p>
+        <h2>Progresso</h2>
+        {{ if .Player }}
+          {{ if .PlayerAchievement }}
+            {{ if .PlayerAchievement.Achieved }}
+              Alcançou esta proeza em {{ formatTime .PlayerAchievement.AchievedTime }}.
+            {{else if (lt .ProgressTotal 0) }}
+              Ainda não desbloqueou esta proeza.
+            {{else}}
+              Ainda não alcançou esta proeza.
+            {{end}}
+          {{else if (lt .ProgressTotal 0) }}
+            Ainda não desbloqueou esta proeza.
+          {{else}}
+            Ainda não alcançou esta proeza.
+          {{end}}
+          {{ if (gt .ProgressTotal 0) }}
+          <div class="pure-u-1 progress-bar" style="margin-top: 10px">
+            <div class="bar positive" style="width: {{ .ProgressPct }}%;"></div>
+            <div class="bar negative" style="width: {{ minus 100 .ProgressPct }}%"></div>
+            <span>{{ .ProgressCurrent }} / {{ .ProgressTotal }}</span>
+          </div>
+          {{end}}
+          <p>{{ .ProgressHTML }}</p>
+        {{else}}
+        <p><a href="/posplay/login">Inicie sessão</a> para ver o seu progresso nesta proeza.</p>
+        {{end}}
+        <h2>Raridade</h2>
+        <p>Esta é uma proeza {{ .RarityDescription }},
+          {{ if gt .AchievedBy 3 }}
+          tendo sido alcançada por {{ printf "%.00f%%" .Rarity }} dos jogadores.
+          {{ else if gt .AchievedBy 0 }}
+          tendo sido alcançada por {{ .AchievedBy }} jogador{{ if gt .AchievedBy 1 }}es{{end}}.
+          {{else}}
+          não tendo sido alcançada por nenhum jogador.
+          {{end}}
+        </p>
+        {{ if eq .AchievedBy 1 }}
+          <p>Esta proeza foi alcançada pela primeira e única vez em {{ formatTime .LastAchieved }}.</p>
+        {{ else if gt .AchievedBy 1 }}
+          <p>Esta proeza foi alcançada pela primeira vez em {{ formatTime .FirstAchieved }}, e foi mais recentemente alcançada em {{ formatTime .LastAchieved }}.</p>
+        {{end}}
+      </div>
+      <div class="pure-u-1 pure-u-md-1-2">
+        <h2>Critérios</h2>
+        {{ .Criteria }}
+      </div>
+    </div>
+  </div>
+{{template "footer.html" . }}

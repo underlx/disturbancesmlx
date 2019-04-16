@@ -1,11 +1,16 @@
 package posplay
 
 import (
+	"fmt"
+	"html/template"
 	"math"
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
@@ -125,6 +130,129 @@ func achievementsPage(w http.ResponseWriter, r *http.Request) {
 	})
 
 	err = webtemplate.ExecuteTemplate(w, "achievements.html", p)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func achievementPage(w http.ResponseWriter, r *http.Request) {
+	session, redirected, err := GetSession(r, w, false)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if redirected {
+		return
+	}
+
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer tx.Commit() // read-only tx
+
+	achievement, err := dataobjects.GetPPAchievement(tx, mux.Vars(r)["id"])
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	var player *dataobjects.PPPlayer
+	if session != nil {
+		player, err = dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+		if err != nil {
+			config.Log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	p := struct {
+		pageCommons
+
+		Achievement       *dataobjects.PPAchievement
+		PlayerAchievement *dataobjects.PPPlayerAchievement
+		ProgressCurrent   int
+		ProgressTotal     int
+		ProgressPct       int
+		ProgressHTML      template.HTML
+		Criteria          template.HTML
+		AchievedBy        int
+		Rarity            float64
+		RarityDescription string
+		FirstAchieved     time.Time
+		LastAchieved      time.Time
+	}{
+		Achievement: achievement,
+	}
+
+	p.pageCommons, err = initPageCommons(tx, w, r, fmt.Sprintf("Proeza \"%s\"", achievement.Names[achievement.MainLocale]), session, player)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	p.UserInfoInHeader = true
+
+	context := &dataobjects.PPAchievementContext{
+		Node:             tx,
+		Achievement:      achievement,
+		Player:           player,
+		StrategyOwnCache: new(sync.Map),
+	}
+
+	if player != nil {
+		p.PlayerAchievement, _ = player.Achievement(tx, achievement.ID)
+		// if an error is returned the player still has everything left to do, not a problem
+
+		current, total, err := achievement.Strategy.Progress(context)
+		if err != nil {
+			config.Log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		p.ProgressCurrent = current
+		p.ProgressTotal = total
+		if total > 0 {
+			p.ProgressPct = int(math.Round((float64(current) / float64(total)) * 100))
+		}
+		p.ProgressHTML = template.HTML(achievement.Strategy.ProgressHTML(context))
+	}
+
+	p.Criteria = template.HTML(achievement.Strategy.CriteriaHTML(context))
+
+	totalUsers, err := dataobjects.CountPPPlayers(tx)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	p.AchievedBy, err = achievement.CountAchieved(tx)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	if p.AchievedBy > 0 {
+		p.FirstAchieved, err = achievement.FirstAchieved(tx)
+		if err != nil {
+			config.Log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		p.LastAchieved, err = achievement.LastAchieved(tx)
+		if err != nil {
+			config.Log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}
+
+	p.Rarity = (float64(p.AchievedBy) / float64(totalUsers)) * 100
+	p.RarityDescription = DescriptionForRarity(p.Rarity)
+
+	err = webtemplate.ExecuteTemplate(w, "achievement.html", p)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

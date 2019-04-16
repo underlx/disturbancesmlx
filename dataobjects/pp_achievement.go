@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gbl08ma/sqalx"
 	sq "github.com/gbl08ma/squirrel"
+	"github.com/lib/pq"
 )
 
 // PPAchievementContext contains the context necessary to process an achievement-producing event
@@ -26,6 +28,8 @@ type PPAchievementStrategy interface {
 	HandleDisturbanceReport(context *PPAchievementContext, report *LineDisturbanceReport) error
 	HandleXPTransaction(context *PPAchievementContext, transaction *PPXPTransaction, actualValueDiff int) error
 	Progress(context *PPAchievementContext) (current, total int, err error)
+	ProgressHTML(context *PPAchievementContext) string
+	CriteriaHTML(context *PPAchievementContext) string
 }
 
 var achievementStrategies sync.Map
@@ -169,6 +173,60 @@ func GetPPAchievement(node sqalx.Node, id string) (*PPAchievement, error) {
 		return nil, errors.New("PPAchievement not found")
 	}
 	return achievements[0], nil
+}
+
+// CountAchieved returns the number of players who have achieved this achievement
+func (achievement *PPAchievement) CountAchieved(node sqalx.Node) (int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	var count int
+	err = sdb.Select("COUNT(*)").
+		From("pp_player_has_achievement").
+		Where(sq.Eq{"achievement_id": achievement.ID}).
+		Where("achieved IS NOT NULL").
+		RunWith(tx).
+		Scan(&count)
+	return count, err
+}
+
+// FirstAchieved returns the first time anyone achieved this achievement
+func (achievement *PPAchievement) FirstAchieved(node sqalx.Node) (time.Time, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return time.Time{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	var achieved pq.NullTime
+	err = sdb.Select("MIN(achieved)").
+		From("pp_player_has_achievement").
+		Where(sq.Eq{"achievement_id": achievement.ID}).
+		Where("achieved IS NOT NULL").
+		RunWith(tx).
+		Scan(&achieved)
+	return achieved.Time, err
+}
+
+// LastAchieved returns the last time anyone achieved this achievement
+func (achievement *PPAchievement) LastAchieved(node sqalx.Node) (time.Time, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return time.Time{}, err
+	}
+	defer tx.Commit() // read-only tx
+
+	var achieved pq.NullTime
+	err = sdb.Select("MAX(achieved)").
+		From("pp_player_has_achievement").
+		Where(sq.Eq{"achievement_id": achievement.ID}).
+		Where("achieved IS NOT NULL").
+		RunWith(tx).
+		Scan(&achieved)
+	return achieved.Time, err
 }
 
 // UnmarshalConfig decodes the Config field for this transaction as JSON

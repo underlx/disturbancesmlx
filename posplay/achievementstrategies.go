@@ -1,6 +1,8 @@
 package posplay
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -48,6 +50,17 @@ func (s *StubAchievementStrategy) HandleXPTransaction(context *dataobjects.PPAch
 // If total < -1: this achievement is still locked for the user, do not show it at all
 func (s *StubAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
 	return 0, -2, nil
+}
+
+// ProgressHTML implements dataobjects.PPAchievementStrategy
+func (s *StubAchievementStrategy) ProgressHTML(context *dataobjects.PPAchievementContext) string {
+	return ""
+}
+
+// CriteriaHTML implements dataobjects.PPAchievementStrategy
+// context.Player may be nil when calling this function
+func (s *StubAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+	return ""
 }
 
 // ReachLevelAchievementStrategy is an achievement strategy that rewards users when they reach a specified level
@@ -130,6 +143,54 @@ func (s *ReachLevelAchievementStrategy) Progress(context *dataobjects.PPAchievem
 	return curLevel, achievementLevel, nil
 }
 
+// ProgressHTML implements dataobjects.PPAchievementStrategy
+func (s *ReachLevelAchievementStrategy) ProgressHTML(context *dataobjects.PPAchievementContext) string {
+	var config map[string]interface{}
+	context.Achievement.UnmarshalConfig(&config)
+	achievementLevel := int(config["level"].(float64))
+
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return ""
+	}
+	defer tx.Commit() // read-only tx
+
+	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
+	if err == nil && existingData.Achieved {
+		return ""
+	}
+
+	curXP, present := context.StrategyOwnCache.Load(context.Player.DiscordID)
+	if !present {
+		curXP, err = context.Player.XPBalance(tx)
+		if err != nil {
+			return ""
+		}
+
+		context.StrategyOwnCache.Store(context.Player.DiscordID, curXP.(int))
+	}
+
+	remaining := dataobjects.PosPlayLevelToXP(achievementLevel) - curXP.(int)
+
+	return fmt.Sprintf("Falta-lhe ganhar %d XP para alcançar esta proeza.", remaining)
+}
+
+// CriteriaHTML implements dataobjects.PPAchievementStrategy
+func (s *ReachLevelAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+	var config map[string]interface{}
+	context.Achievement.UnmarshalConfig(&config)
+	achievementLevel := int(config["level"].(float64))
+
+	return fmt.Sprintf(`
+	<ul>
+		<li>Ter um nível no PosPlay igual ou superior a %d
+			<ul>
+				<li>Equivalente a ter um total de XP igual ou superior a %d</li>
+			</ul>
+		</li>
+	</ul>`, achievementLevel, dataobjects.PosPlayLevelToXP(achievementLevel))
+}
+
 // VisitStationsAchievementStrategy is an achievement strategy that rewards users when they visit certain stations
 type VisitStationsAchievementStrategy struct {
 	StubAchievementStrategy
@@ -172,7 +233,15 @@ func (s *VisitStationsAchievementStrategy) HandleTrip(context *dataobjects.PPAch
 		existingData.UnmarshalExtra(&extra)
 
 		stationsLeftToVisit = funk.FilterString(stationsLeftToVisit, func(x string) bool {
-			return !funk.ContainsString(extra.VisitedStations, x)
+			station, err := dataobjects.GetStation(tx, x)
+			if err != nil {
+				return false
+			}
+			closed, err := station.Closed(context.Node)
+			if err != nil {
+				return false
+			}
+			return !funk.ContainsString(extra.VisitedStations, x) && !closed
 		})
 	}
 
@@ -235,6 +304,18 @@ func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchie
 		return 0, 0, nil
 	}
 
+	config.Stations = funk.FilterString(config.Stations, func(x string) bool {
+		station, err := dataobjects.GetStation(tx, x)
+		if err != nil {
+			return false
+		}
+		closed, err := station.Closed(context.Node)
+		if err != nil {
+			return false
+		}
+		return !closed
+	})
+
 	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
 	if err != nil {
 		// no existing data, player still has everything left to do
@@ -249,6 +330,102 @@ func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchie
 	}
 
 	return len(extra.VisitedStations), len(config.Stations), nil
+}
+
+// ProgressHTML implements dataobjects.PPAchievementStrategy
+func (s *VisitStationsAchievementStrategy) ProgressHTML(context *dataobjects.PPAchievementContext) string {
+	var config visitStationsConfig
+	context.Achievement.UnmarshalConfig(&config)
+	if config.SingleTrip {
+		return ""
+	}
+
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return ""
+	}
+	defer tx.Commit() // read-only tx
+
+	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
+	if err != nil {
+		// no existing data, player still has everything left to do
+		return ""
+	}
+	var extra visitStationsExtra
+	existingData.UnmarshalExtra(&extra)
+
+	if len(extra.VisitedStations) == 0 || len(extra.VisitedStations) == len(config.Stations) {
+		return ""
+	}
+
+	result := "Falta-lhe visitar as seguintes estações: <ul>"
+	stationsLeftToVisit := funk.FilterString(config.Stations, func(x string) bool {
+		return !funk.ContainsString(extra.VisitedStations, x)
+	})
+	stations := []*dataobjects.Station{}
+	for _, s := range stationsLeftToVisit {
+		station, err := dataobjects.GetStation(context.Node, s)
+		if err != nil {
+			continue
+		}
+		if closed, err := station.Closed(context.Node); err == nil && closed {
+			continue
+		}
+		stations = append(stations, station)
+	}
+	sort.Slice(stations, func(i, j int) bool {
+		return stations[i].Name < stations[j].Name
+	})
+
+	for _, station := range stations {
+		result += "<li><a href=\"/s/" + station.ID + "\">" + station.Name + "</a></li>"
+	}
+
+	result += "</ul>"
+	return result
+}
+
+// CriteriaHTML implements dataobjects.PPAchievementStrategy
+func (s *VisitStationsAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+	var config visitStationsConfig
+	context.Achievement.UnmarshalConfig(&config)
+
+	var result string
+	if config.SingleTrip {
+		result = "<ul><li>Visitar as seguintes estações numa só viagem:<ul>"
+	} else {
+		result = "<ul><li>Visitar as seguintes estações:<ul>"
+	}
+
+	stations := []*dataobjects.Station{}
+	for _, s := range config.Stations {
+		station, err := dataobjects.GetStation(context.Node, s)
+		if err != nil {
+			continue
+		}
+		if closed, err := station.Closed(context.Node); err == nil && closed {
+			continue
+		}
+		stations = append(stations, station)
+	}
+	sort.Slice(stations, func(i, j int) bool {
+		return stations[i].Name < stations[j].Name
+	})
+
+	for _, station := range stations {
+		result += "<li><a href=\"/s/" + station.ID + "\">" + station.Name + "</a></li>"
+	}
+
+	result += "</ul></li>"
+	if config.SingleTrip {
+		result += "<li>A viagem terá que ser registada e submetida pela aplicação UnderLX associada à sua conta do PosPlay;</li>"
+	} else {
+		result += "<li>As estações podem ser visitadas ao longo de várias viagens separadas;</li>"
+		result += "<li>A viagem ou viagens terão que ser registadas e submetidas pela aplicação UnderLX associada à sua conta do PosPlay;</li>"
+	}
+	result += "<li>Estações incluídas em correções manuais das viagens não irão contar para o progresso desta proeza.</li></ul>"
+
+	return result
 }
 
 // VisitThroughoutLineAchievementStrategy is an achievement strategy that rewards users when they visit one line from one end to another in a single trip
@@ -337,8 +514,10 @@ func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *dataobjects
 	}
 
 	haystack := ""
-	for _, uses := range trip.StationUses {
-		haystack += uses.Station.ID + "|"
+	for _, use := range trip.StationUses {
+		if !use.Manual {
+			haystack += use.Station.ID + "|"
+		}
 	}
 
 	found := false
@@ -363,6 +542,45 @@ func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *dataobjects
 // Progress implements dataobjects.PPAchievementStrategy
 func (s *VisitThroughoutLineAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
 	return 0, 0, nil
+}
+
+// CriteriaHTML implements dataobjects.PPAchievementStrategy
+func (s *VisitThroughoutLineAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+	var config visitThroughoutLineConfig
+	context.Achievement.UnmarshalConfig(&config)
+
+	var result string
+	var line *dataobjects.Line
+	if config.Line == "*" {
+		result = "<ul><li>Percorrer qualquer linha"
+	} else {
+		line, _ = dataobjects.GetLine(context.Node, config.Line)
+		result = "<ul><li>Percorrer a linha <a href=\"/l/" + line.ID + "\">" + line.Name + "</a>"
+	}
+	switch config.Direction {
+	case "*":
+		result += " em qualquer sentido"
+	case "up", "ascending":
+		if line != nil {
+			stations, _ := line.Stations(context.Node)
+			result += fmt.Sprintf(" no sentido %s → %s", stations[0].Name, stations[len(stations)-1].Name)
+		} else {
+			result += " no sentido ascendente"
+		}
+	case "down", "descending":
+		if line != nil {
+			stations, _ := line.Stations(context.Node)
+			result += fmt.Sprintf(" no sentido %s → %s", stations[len(stations)-1].Name, stations[0].Name)
+		} else {
+			result += " no sentido descendente"
+		}
+	}
+	result += " de uma ponta à outra;</li>"
+	result += "<li>O percurso terá que ser realizado numa só viagem;</li>"
+	result += "<li>A viagem terá que ser registada e submetida pela aplicação UnderLX associada à sua conta do PosPlay;</li>"
+	result += "<li>Estações encerradas por tempo indeterminado não são tidas em conta;</li>"
+	result += "<li>Estações incluídas numa correção manual da viagem não irão contar para o progresso desta proeza.</li></ul>"
+	return result
 }
 
 // SubmitAchievementStrategy is an achievement strategy that rewards users when they submit a trip, trip edit, or disturbance report
@@ -467,6 +685,24 @@ func (s *SubmitAchievementStrategy) HandleDisturbanceReport(context *dataobjects
 	}
 
 	return tx.Commit()
+}
+
+// CriteriaHTML implements dataobjects.PPAchievementStrategy
+func (s *SubmitAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+	var config submitConfig
+	context.Achievement.UnmarshalConfig(&config)
+
+	result := "<ul>"
+	switch config.Type {
+	case "trip":
+		result += "<li>Submeter um registo de viagem com duas ou mais estações;</li>"
+	case "trip_edit":
+		result += "<li>Submeter uma correção ou confirmação de registo de viagem;</li>"
+	case "disturbance_report":
+		result += "<li>Submeter uma comunicação de problemas na circulação;</li>"
+	}
+	result += "<li>A submissão terá que ser feita usando a aplicação UnderLX associada à sua conta do PosPlay.</li></ul>"
+	return result
 }
 
 // TripDuringDisturbanceAchievementStrategy is an achievement strategy that rewards users when they submit a trip performed during a disturbance
@@ -606,4 +842,38 @@ func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjec
 	}
 
 	return tx.Commit()
+}
+
+// CriteriaHTML implements dataobjects.PPAchievementStrategy
+func (s *TripDuringDisturbanceAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+	var config tripDuringDisturbanceConfig
+	context.Achievement.UnmarshalConfig(&config)
+
+	result := "<ul>"
+	var line *dataobjects.Line
+	var network *dataobjects.Network
+	var err error
+	if (config.Line == "*" || config.Line == "") && (config.Network != "*" && config.Network != "") {
+		network, err = dataobjects.GetNetwork(context.Node, config.Network)
+	} else if config.Line != "*" && config.Line != "" {
+		line, err = dataobjects.GetLine(context.Node, config.Line)
+	}
+	if err != nil {
+		return ""
+	}
+
+	if line != nil {
+		result += "<li>Viajar na linha <a href=\"/l/" + line.ID + "\">" + line.Name + "</a> enquanto decorre uma perturbação que a afecte;</li>"
+	} else if network != nil {
+		result += "<li>Viajar na rede " + network.Name + " enquanto decorre uma perturbação nesta rede;</li>"
+	} else {
+		result += "<li>Viajar em qualquer linha de qualquer rede enquanto decorre uma perturbação;</li>"
+	}
+
+	if config.OfficialOnly {
+		result += "<li>Perturbações comunicadas pela comunidade de utilizadores não serão contabilizadas para esta proeza;</li>"
+	}
+
+	result += "<li>A viagem terá que ser registada e submetida pela aplicação UnderLX associada à sua conta do PosPlay.</li></ul>"
+	return result
 }

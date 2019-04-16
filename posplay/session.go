@@ -107,7 +107,7 @@ func GetSession(r *http.Request, w http.ResponseWriter, doLogin bool) (ppsession
 
 		err := oauthLogin(r, w)
 		if err != nil {
-			return nil, false, nil
+			return nil, false, err
 		}
 		return nil, true, nil
 	}
