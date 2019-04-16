@@ -41,6 +41,7 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/pair", pairPage)
 	router.HandleFunc("/pair/status", pairStatus)
 	router.HandleFunc("/settings", settingsPage)
+	router.HandleFunc("/xptx", xpTransactionHistoryPage)
 	router.HandleFunc("/achievements", achievementsPage)
 	router.HandleFunc("/leaderboards", leaderboardsPage)
 	router.HandleFunc("/leaderboards/weekly", leaderboardsPage)

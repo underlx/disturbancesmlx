@@ -236,3 +236,55 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
+
+func xpTransactionHistoryPage(w http.ResponseWriter, r *http.Request) {
+	session, redirected, err := GetSession(r, w, true)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if redirected {
+		return
+	}
+
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer tx.Commit() // read-only tx
+
+	player, err := dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p := struct {
+		pageCommons
+
+		XPTransactions []*dataobjects.PPXPTransaction
+	}{}
+	p.pageCommons, err = initPageCommons(tx, w, r, "Histórico de recompensas", session, player)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.XPTransactions, err = player.XPTransactions(tx)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err = webtemplate.ExecuteTemplate(w, "xptransactions.html", p)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
