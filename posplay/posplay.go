@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	cache "github.com/patrickmn/go-cache"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/discordbot"
@@ -460,10 +461,18 @@ func playerXPinfoWithTx(tx sqalx.Node, userID string) (discordbot.PosPlayXPInfo,
 	}, nil
 }
 
+var avatarURLcache = cache.New(1*time.Hour, 10*time.Minute)
+
 func userAvatarURL(userID uint64, size string) string {
+	url, found := avatarURLcache.Get(uidConvI(userID) + "-" + size)
+	if found {
+		return url.(string)
+	}
+	url = ""
 	user, err := discordbot.User(uidConvI(userID))
 	if err == nil {
-		return user.AvatarURL(size)
+		url = user.AvatarURL(size)
 	}
-	return ""
+	avatarURLcache.SetDefault(uidConvI(userID)+"-"+size, url)
+	return url.(string)
 }
