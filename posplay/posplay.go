@@ -43,6 +43,13 @@ const (
 	PrivateLBPrivacy string = "PRIVATE"
 	// PublicLBPrivacy is used when users want to appear in leaderboards
 	PublicLBPrivacy string = "PUBLIC"
+
+	// PrivateProfilePrivacy is used when users don't want to show their profile to anyone
+	PrivateProfilePrivacy string = "PRIVATE"
+	// PlayersOnlyProfilePrivacy is used when users only want to show their profile to other PosPlay players
+	PlayersOnlyProfilePrivacy string = "PLAYERS_ONLY"
+	// PublicProfilePrivacy is used when users want to show their profile to everyone
+	PublicProfilePrivacy string = "PUBLIC"
 )
 
 const (

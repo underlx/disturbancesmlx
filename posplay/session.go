@@ -123,12 +123,13 @@ func addNewPlayer(node sqalx.Node, discordUser *discordgo.User, inGuild bool) (*
 	defer tx.Rollback()
 
 	player := &dataobjects.PPPlayer{
-		DiscordID:  uidConvS(discordUser.ID),
-		Joined:     time.Now(),
-		LBPrivacy:  PrivateLBPrivacy,
-		NameType:   UsernameDiscriminatorNameType,
-		InGuild:    inGuild,
-		CachedName: getDisplayNameFromNameType(UsernameDiscriminatorNameType, discordUser, nil),
+		DiscordID:      uidConvS(discordUser.ID),
+		Joined:         time.Now(),
+		LBPrivacy:      PrivateLBPrivacy,
+		ProfilePrivacy: PrivateProfilePrivacy,
+		NameType:       UsernameDiscriminatorNameType,
+		InGuild:        inGuild,
+		CachedName:     getDisplayNameFromNameType(UsernameDiscriminatorNameType, discordUser, nil),
 	}
 
 	err = player.Update(tx)

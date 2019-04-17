@@ -36,6 +36,19 @@
             <p>Pode usar um outro nome à sua escolha, juntando-se <a href="/discord">ao nosso servidor no Discord</a> e definindo um nickname específico do servidor. Depois, actualize esta página, e o nickname irá surgir como opção.</p>
           {{end}}
           <h2>Privacidade</h2>
+          <h3>Perfil</h3>
+          <label for="profileprivacy-public" class="pure-radio">
+              <input id="profileprivacy-public" type="radio" name="profileprivacy-preference" value="public" {{ if eq .Player.ProfilePrivacy "PUBLIC" }}checked{{end}}>
+              Mostrar o meu perfil a qualquer visitante
+          </label>
+          <label for="profileprivacy-players-only" class="pure-radio">
+              <input id="profileprivacy-players-only" type="radio" name="profileprivacy-preference" value="players-only" {{ if eq .Player.ProfilePrivacy "PLAYERS_ONLY" }}checked{{end}}>
+              Mostrar o meu perfil apenas a outros jogadores do PosPlay
+          </label>
+          <label for="profileprivacy-private" class="pure-radio">
+              <input id="profileprivacy-private" type="radio" name="profileprivacy-preference" value="private" {{ if eq .Player.ProfilePrivacy "PRIVATE" }}checked{{end}}>
+              Ocultar o meu perfil
+          </label>
           <h3>Tabelas de classificação</h3>
           <label for="lbprivacy-public" class="pure-radio">
               <input id="lbprivacy-public" type="radio" name="lbprivacy-preference" value="public" {{ if eq .Player.LBPrivacy "PUBLIC" }}checked{{end}}>

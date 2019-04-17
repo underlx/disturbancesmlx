@@ -1,6 +1,7 @@
 package posplay
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -48,6 +49,8 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/leaderboards", leaderboardsPage)
 	router.HandleFunc("/leaderboards/weekly", leaderboardsPage)
 	router.HandleFunc("/leaderboards/alltime", leaderboardsAllTimePage)
+	router.HandleFunc("/users/{id:[0-9]{7,20}}", profilePage) // in theory, discord/twitter snowflakes can be between 7 and 20 digits in length
+	router.HandleFunc("/users/{id:[0-9]{7,20}}/achievements", profileAchievementsPage)
 	router.HandleFunc("/login", forceLogin)
 	router.HandleFunc("/logout", forceLogout)
 	router.HandleFunc("/oauth/callback", callbackHandler)
@@ -97,6 +100,27 @@ func ReloadTemplates() {
 			}
 			return r
 		},
+		"formatDate": func(t time.Time) string {
+			loc, _ := time.LoadLocation(GameTimezone)
+			r := t.In(loc).Format("02 Jan 2006")
+			switch r[3:6] {
+			case "Feb":
+				r = r[:3] + "Fev" + r[6:]
+			case "Apr":
+				r = r[:3] + "Abr" + r[6:]
+			case "May":
+				r = r[:3] + "Mai" + r[6:]
+			case "Aug":
+				r = r[:3] + "Ago" + r[6:]
+			case "Sep":
+				r = r[:3] + "Set" + r[6:]
+			case "Oct":
+				r = r[:3] + "Out" + r[6:]
+			case "Dec":
+				r = r[:3] + "Dez" + r[6:]
+			}
+			return r
+		},
 		"uuid": func() string {
 			id, err := uuid.NewV4()
 			if err == nil {
@@ -116,6 +140,20 @@ func ReloadTemplates() {
 				end.Day(), utils.FormatPortugueseMonthShort(end.Month()))
 		},
 		"userAvatarURL": userAvatarURL,
+		"dict": func(values ...interface{}) (map[string]interface{}, error) {
+			if len(values)%2 != 0 {
+				return nil, errors.New("invalid dict call")
+			}
+			dict := make(map[string]interface{}, len(values)/2)
+			for i := 0; i < len(values); i += 2 {
+				key, ok := values[i].(string)
+				if !ok {
+					return nil, errors.New("dict keys must be strings")
+				}
+				dict[key] = values[i+1]
+			}
+			return dict, nil
+		},
 	}
 
 	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("templates/posplay/*.html"))

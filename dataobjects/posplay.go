@@ -1,9 +1,13 @@
 package dataobjects
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gbl08ma/sqalx"
+	"github.com/thoas/go-funk"
 )
 
 // PPLeaderboardEntry represents a PosPlay leaderboard entry
@@ -14,20 +18,42 @@ type PPLeaderboardEntry struct {
 }
 
 // PPLeaderboardBetween returns the PosPlay leaderboard for the specified period
-func PPLeaderboardBetween(node sqalx.Node, start, end time.Time, size int, mustInclude *PPPlayer) ([]PPLeaderboardEntry, error) {
+func PPLeaderboardBetween(node sqalx.Node, start, end time.Time, size int, showNeighbors int, mustIncludes ...*PPPlayer) ([]PPLeaderboardEntry, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return []PPLeaderboardEntry{}, err
 	}
 	defer tx.Commit() // read-only tx
 
-	includedRequiredPlayer := false
+	query := `WITH lb AS (
+		SELECT
+			discord_id,
+			SUM(value) AS s,
+			rank() OVER (ORDER BY sum(value) DESC) AS position,
+			row_number() OVER (ORDER BY sum(value) DESC) AS rownum
+		FROM pp_xp_tx
+		WHERE timestamp BETWEEN $1 AND $2
+		GROUP BY discord_id
+	)`
 
-	rows, err := tx.Query("SELECT discord_id, SUM(value) AS s, rank() OVER (ORDER BY sum(value) DESC) AS position "+
-		"FROM pp_xp_tx "+
-		"WHERE timestamp BETWEEN $1 AND $2 "+
-		"GROUP BY discord_id LIMIT $3;",
-		start, end, size)
+	if len(mustIncludes) > 0 {
+		mustIDs := funk.Map(mustIncludes, func(p *PPPlayer) string {
+			return strconv.FormatUint(p.DiscordID, 10)
+		}).([]string)
+
+		query += fmt.Sprintf(", mi AS (SELECT DISTINCT rownum AS mirn FROM lb WHERE discord_id IN (%s))",
+			strings.Join(mustIDs, ", "))
+	}
+
+	query += `SELECT discord_id, s, position
+	FROM lb
+	WHERE rownum <= $3`
+
+	if len(mustIncludes) > 0 {
+		query += fmt.Sprintf(" OR EXISTS (SELECT 1 FROM mi WHERE ABS(rownum - mirn) <= %d)", showNeighbors)
+	}
+
+	rows, err := tx.Query(query, start, end, size)
 	if err != nil {
 		return []PPLeaderboardEntry{}, err
 	}
@@ -44,33 +70,12 @@ func PPLeaderboardBetween(node sqalx.Node, start, end time.Time, size int, mustI
 		}
 		discordIDs = append(discordIDs, discordID)
 		entries = append(entries, entry)
-		if mustInclude != nil && discordID == mustInclude.DiscordID {
-			includedRequiredPlayer = true
-		}
 	}
 	for i := range discordIDs {
 		entries[i].Player, err = GetPPPlayer(tx, discordIDs[i])
 		if err != nil {
 			return nil, err
 		}
-	}
-
-	if !includedRequiredPlayer && mustInclude != nil {
-		rank, err := mustInclude.RankBetween(tx, start, end)
-		if err != nil {
-			return nil, err
-		}
-
-		score, err := mustInclude.XPBalanceBetween(tx, start, end)
-		if err != nil {
-			return nil, err
-		}
-
-		entries = append(entries, PPLeaderboardEntry{
-			Position: rank,
-			Player:   mustInclude,
-			Score:    score,
-		})
 	}
 	return entries, rows.Err()
 }

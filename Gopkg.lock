@@ -90,11 +90,11 @@
 
 [[projects]]
   branch = "v1"
-  digest = "1:a32ccba6e51b844a51190d784c8d4f6d026f64b22fd51aa315969c47560c298f"
+  digest = "1:b1b6e0dc9460eba8860bc2e6c01154c985e086d7d50b211d6ef81140d9f85497"
   name = "github.com/gbl08ma/squirrel"
   packages = ["."]
   pruneopts = "UT"
-  revision = "c8af402acfb8dae2a5d039cb03a556d3497f8c68"
+  revision = "848bdbd838585e538bcd66c0d9b1860ffd2f8d37"
 
 [[projects]]
   branch = "master"
@@ -221,14 +221,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:d8715388cdd077d4b5e477e92e93e8c2c16c5f8cdc1f79b0ef2616ef8ea09f9f"
+  digest = "1:b19a8bf93379e5c6c9a2b532cd52b35c7ffa79559ba929df44df2a31d7e2c13e"
   name = "github.com/jmoiron/sqlx"
   packages = [
     ".",
     "reflectx",
   ]
   pruneopts = "UT"
-  revision = "82935fac6c1a317907c8f43ed3f7f85ea844a78b"
+  revision = "1d3423c595d749e4613fce663591b44ae539d377"
 
 [[projects]]
   branch = "master"

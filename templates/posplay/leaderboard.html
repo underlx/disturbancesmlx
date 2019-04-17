@@ -1,0 +1,78 @@
+{{ if (eq (len .Entries) 0) }}
+<p>Ninguém participou neste período.</p>
+{{else}}
+<table class="pure-table pure-table-horizontal" style="width: 100%">
+  <thead>
+    <tr>
+      {{ if .NarrowTable }}
+      <th></th>
+      <th>Jogador</th>
+      <th>XP</th>
+      {{else}}
+      <th>Posição</th>
+      <th>Jogador</th>
+      <th>XP ganhos</th>
+      {{end}}
+    </tr>
+  </thead>
+
+  <tbody>
+    {{ $includedSelf := not .Self }}
+    {{ $includedHighlight := not .Highlight }}
+    {{ range $entry := .Entries }}
+      {{ $isHighlight := false}}
+      {{ if $.Highlight }}
+      {{ $isHighlight = (eq $entry.Player.DiscordID $.Highlight.DiscordID ) }}
+      {{end}}
+      {{ $isSelf := false}}
+      {{ if $.Self }}
+        {{ $isSelf = (eq $entry.Player.DiscordID $.Self.DiscordID ) }}
+      {{end}}
+      {{ if $isSelf }}
+        {{ $includedSelf = true }}
+      {{end}}
+      {{ if $isHighlight }}
+        {{ $includedHighlight = true }}
+      {{end}}
+      {{ if (gt $entry.Position 0 )}}
+      <tr {{if $isHighlight }}style="background-color: #d3eda3;"{{ else if $isSelf }}style="background-color: rgb(255, 234, 133);"{{end}}>
+        <td style="white-space: nowrap;">{{ $entry.Position }}º</td>
+        <td>
+          <div style="display:flex; align-items: center;">
+            {{ if (or (eq $entry.Player.LBPrivacy "PUBLIC") $isHighlight $isSelf) }}
+              <a href="/posplay/users/{{ $entry.Player.DiscordID }}" style="color:inherit; text-decoration: inherit; display:flex; align-items: center;">
+                <img src="{{ userAvatarURL $entry.Player.DiscordID "64" }}"
+                  style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px;">
+                <span>
+                  {{ $entry.Player.CachedName }}
+                  {{if (and (eq $entry.Player.LBPrivacy "PRIVATE") $isSelf ) }}<br><em style="font-size: 75%">os outros
+                    jogadores não vêem este nome - <a href="/posplay/settings">definições</a></em>{{end}}
+                </span>
+              </a>
+            {{else}}
+              <img src="https://api.adorable.io/avatars/64/{{ $entry.Player.Seed }}.png"
+                style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px;">
+              <span>
+                <em>{{ $entry.Player.AnonymousName }}</em>
+              </span>
+            {{end}}
+          </div>
+        </td>
+        <td style="white-space: nowrap;">{{ $entry.Score }} XP</td>
+      </tr>
+      {{end}}
+    {{ end }}
+    {{ if not $includedSelf }}
+      <tr>
+        <td colspan="3"><em>Não participou neste período</em>></td>
+      </tr>
+    {{ end }}
+    {{ if not $includedHighlight }}
+      <tr>
+        <td></td>
+        <td colspan="2"><em>{{ .Highlight.CachedName }} não participou neste período.</em></td>
+      </tr>
+    {{ end }}
+  </tbody>
+</table>
+{{end}}

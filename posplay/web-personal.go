@@ -205,6 +205,15 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 			player.LBPrivacy = PrivateLBPrivacy
 		}
 
+		switch r.Form.Get("profileprivacy-preference") {
+		case "public":
+			player.ProfilePrivacy = PublicProfilePrivacy
+		case "players-only":
+			player.ProfilePrivacy = PlayersOnlyProfilePrivacy
+		case "private":
+			player.ProfilePrivacy = PrivateProfilePrivacy
+		}
+
 		player.CachedName = getDisplayNameFromNameType(player.NameType, session.DiscordInfo, p.GuildMember)
 
 		err = refreshSession(r, w, session, p.GuildMember, player)

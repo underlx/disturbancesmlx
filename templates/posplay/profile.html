@@ -1,0 +1,75 @@
+{{template "header.html" . }}
+  <div class="widecontent">
+    <div class="pure-g">
+      <div class="pure-u-1 pure-u-md-3-4">
+        <div style="width: 128px; float: left; margin-right: 20px;">
+          <img style="border-radius: 50%;" src="{{ userAvatarURL .ProfilePlayer.DiscordID "128" }}">
+        </div>
+        <div>
+          <h1>{{ .ProfilePlayer.CachedName }}</h1>
+          {{ if not .ShowAsPrivate }}
+          <p style="font-size: 120%;"><strong>{{ .ProfileXP }} XP</strong> - Nível <strong>{{ .ProfileLevel }}</strong></p>
+          {{ end }}
+        </div>
+      </div>
+      <div class="pure-u-1 pure-u-md-1-4" style="display: flex; justify-content: center; flex-direction: column;">
+        {{ if not .ShowAsPrivate }}
+        <p>Membro desde {{ formatDate .ProfilePlayer.Joined }}</p>
+        {{end}}
+      </div>
+{{ if .ShowAsPrivate }}
+      <div class="pure-u-1">
+        <h2>Este perfil é privado</h2>
+        {{ if not .Player }}
+        <p>Poderá passar a ter acesso a ele se <a href="/posplay/login">iniciar sessão</a>.</p>
+        {{end}}
+      </div>
+{{else}}
+      <div class="pure-u-1">
+        {{ if eq .ProfilePlayer.ProfilePrivacy "PRIVATE" }}
+        <p><em>Os outros jogadores não vêem estas informações - <a href="/posplay/settings">definições</a>.</em></p>
+        {{end}}
+        <h2 style="margin-bottom: 0;">Classificações</h2>
+        <div class="pure-g">
+          <div class="pure-u-1 pure-u-md-1-2">
+            <div style="padding-left: 1em; padding-right: 1em;">
+              <h3>Esta semana</h3>
+              {{ template "leaderboard.html" dict "Entries" .WeekLeaderboard "Highlight" .ProfilePlayer "Self" .Player "NarrowTable" true }}
+            </div>
+          </div>
+          <div class="pure-u-1 pure-u-md-1-2">
+            <div style="padding-left: 1em; padding-right: 1em;">
+              <h3>Desde sempre</h3>
+              {{ template "leaderboard.html" dict "Entries" .AllTimeLeaderboard "Highlight" .ProfilePlayer "Self" .Player "NarrowTable" true }}
+            </div>
+          </div>
+        </div>
+        <h2 style="margin-bottom: 0;">Proezas</h2>
+        {{ if gt (len .Achieved) 0 }}
+        <div class="pure-g">
+          {{ range $ach := .Achieved }}
+          <div class="pure-u-1 pure-u-md-1-2"><div style="padding-left: 1em; padding-right: 1em;">
+            <a class="pure-g achievement-box" href="/posplay/achievements/{{ $ach.ID }}">
+              <div class="pure-u-3-4">
+                <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
+              </div>
+              <div class="pure-u-1-4" style="text-align: right">
+                {{ if gt $ach.XPReward 0 }}{{ $ach.XPReward }} XP{{end}}
+              </div>
+              <div class="pure-u-1">{{ index $ach.Descriptions $ach.MainLocale }}</div>
+              <div class="pure-u-1" style="margin-top: 10px; text-align: right; font-size: 0.8em;">
+                Alcançada em {{ formatTime (index $.AchievedPlayer $ach.ID).AchievedTime }}
+              </div>
+            </a>
+          </div></div>
+          {{ end }}
+        </div>
+        <p style="text-align: center;"><a class="pure-button" href="/posplay/users/{{ .ProfilePlayer.DiscordID }}/achievements">Ver todas as proezas alcançadas por {{ .ProfilePlayer.CachedName }}</a></p>
+        {{else}}
+        <p>Nenhuma proeza alcançada.</p>
+        {{end}}
+      </div>
+{{end}}
+    </div>
+  </div>
+{{template "footer.html" . }}

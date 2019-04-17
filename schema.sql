@@ -298,6 +298,7 @@ CREATE TABLE IF NOT EXISTS "pp_player" (
     discord_id BIGINT PRIMARY KEY,
     joined TIMESTAMP WITH TIME ZONE NOT NULL,
     lb_privacy VARCHAR(20) NOT NULL,
+    profile_privacy VARCHAR(20) NOT NULL,
     name_type VARCHAR(20) NOT NULL,
     in_guild BOOLEAN NOT NULL,
     cached_name TEXT NOT NULL

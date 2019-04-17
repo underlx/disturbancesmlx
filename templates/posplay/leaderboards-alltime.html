@@ -13,43 +13,7 @@
           </ul>
         </div>
         <h2>Classificações globais - 50 melhores</h2>
-        <table class="pure-table pure-table-horizontal" style="width: 100%">
-          <thead>
-            <tr>
-              <th>Posição</th>
-              <th>Jogador</th>
-              <th>XP ganhos</th>
-            </tr>
-          </thead>
-      
-          <tbody>
-            {{ range $entry := .Leaderboard.Entries }}
-            {{ $isself := (eq $entry.Player.DiscordID $.Player.DiscordID ) }}
-            {{ if (gt $entry.Position 0 )}}
-            <tr {{if $isself }}style="background-color: rgb(255, 234, 133);"{{end}}>
-              <td style="white-space: nowrap;">{{ $entry.Position }}º</td>
-              <td>
-                <div style="display:flex; align-items: center;">
-                  {{ if (or (eq $entry.Player.LBPrivacy "PUBLIC") $isself) }}
-                    <img src="{{ userAvatarURL $entry.Player.DiscordID "64" }}" style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px;">
-                    <span>
-                      {{ $entry.Player.CachedName }}
-                      {{if (and (eq $entry.Player.LBPrivacy "PRIVATE") $isself) }}<br><em style="font-size: 75%">os outros utilizadores não vêem este nome - <a href="/posplay/settings">definições</a></em>{{end}}
-                    </span>
-                  {{else}}
-                    <img src="https://api.adorable.io/avatars/64/{{ $entry.Player.Seed }}.png" style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px;">
-                    <span>
-                      <em>{{ $entry.Player.AnonymousName }}</em>
-                    </span>
-                  {{end}}
-                </div>
-              </td>
-              <td style="white-space: nowrap;">{{ $entry.Score }} XP</td>
-            </tr>
-            {{end}}
-            {{ end }}
-          </tbody>
-        </table>
+        {{ template "leaderboard.html" dict "Entries" .Leaderboard.Entries "Self" .Player }}
       </div>
     </div>
   </div>

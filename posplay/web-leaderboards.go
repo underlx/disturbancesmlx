@@ -53,7 +53,7 @@ func leaderboardsPage(w http.ResponseWriter, r *http.Request) {
 	start := WeekStart()
 	end := time.Now()
 	for i := 0; i < 5; i++ {
-		entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 15, player)
+		entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 15, 2, player)
 		if err != nil {
 			config.Log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -126,7 +126,7 @@ func leaderboardsAllTimePage(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Time{}
 	end := time.Now()
-	entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 50, player)
+	entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 50, 2, player)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
