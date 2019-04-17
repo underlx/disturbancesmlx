@@ -238,7 +238,7 @@ func RegisterXPTransaction(tx *dataobjects.PPXPTransaction) {
 // DoXPTransaction adds a XP transaction to a user, performing the necessary checks and
 // calling the necessary handlers
 func DoXPTransaction(node sqalx.Node, player *dataobjects.PPPlayer, when time.Time, value int, txType string, extra map[string]interface{}, attemptMerge bool) error {
-	tx, err := config.Node.Beginx()
+	tx, err := node.Beginx()
 	if err != nil {
 		return err
 	}
