@@ -1,0 +1,62 @@
+{{template "header.html" . }}
+  <div class="widecontent">
+    <div class="pure-g">
+      <div class="pure-u-1">
+        <h1>Bem-vindo(a) ao PosPlay</h1>
+        <p>Antes de continuarmos, é boa ideia ajustarmos algumas definições:</p>
+        <form class="pure-form" method="POST">
+          {{ .CSRFfield }}
+          <h2>Nome</h2>
+          <p>Escolha o nome com que pretende aparecer no PosPlay:</p>
+          <label for="name-username-discriminator" class="pure-radio">
+              <input id="name-username-discriminator" type="radio" name="name-preference" value="username-discriminator" {{ if eq .Player.NameType "USERNAME_DISCRIM" }}checked{{end}}>
+              Nome de utilizador e tag: {{ getDisplayNameFromNameType "USERNAME_DISCRIM" .Session.DiscordInfo .GuildMember }}
+          </label>
+
+          <label for="name-username" class="pure-radio">
+              <input id="name-username" type="radio" name="name-preference" value="username" {{ if eq .Player.NameType "USERNAME" }}checked{{end}}>
+              Nome de utilizador: {{ getDisplayNameFromNameType "USERNAME" .Session.DiscordInfo .GuildMember }}
+          </label>
+
+          <label for="name-nickname" class="pure-radio">
+              <input id="name-nickname" type="radio" name="name-preference" value="nickname" {{ if not .JoinedServer }}disabled{{end}} {{ if eq .Player.NameType "NICKNAME" }}checked{{end}}>
+              {{ if .JoinedServer }}
+              Nickname no servidor do UnderLX: {{ getDisplayNameFromNameType "NICKNAME" .Session.DiscordInfo .GuildMember }}
+              {{ else }}
+              Nickname no servidor do UnderLX
+              {{end}}
+          </label>
+  
+          {{ if not .JoinedServer }}
+            <p>Pode usar um outro nome à sua escolha, juntando-se <a href="/discord">ao nosso servidor no Discord</a> e definindo um nickname específico do servidor. Depois, actualize esta página, e o nickname irá surgir como opção.</p>
+          {{end}}
+          <h2>Privacidade</h2>
+          <h3>Perfil</h3>
+          <label for="profileprivacy-public" class="pure-radio">
+              <input id="profileprivacy-public" type="radio" name="profileprivacy-preference" value="public" {{ if eq .Player.ProfilePrivacy "PUBLIC" }}checked{{end}}>
+              Mostrar o meu perfil a qualquer visitante
+          </label>
+          <label for="profileprivacy-players-only" class="pure-radio">
+              <input id="profileprivacy-players-only" type="radio" name="profileprivacy-preference" value="players-only" {{ if eq .Player.ProfilePrivacy "PLAYERS_ONLY" }}checked{{end}}>
+              Mostrar o meu perfil apenas a outros jogadores do PosPlay
+          </label>
+          <label for="profileprivacy-private" class="pure-radio">
+              <input id="profileprivacy-private" type="radio" name="profileprivacy-preference" value="private" {{ if eq .Player.ProfilePrivacy "PRIVATE" }}checked{{end}}>
+              Ocultar o meu perfil
+          </label>
+          <h3>Tabelas de classificação</h3>
+          <label for="lbprivacy-public" class="pure-radio">
+              <input id="lbprivacy-public" type="radio" name="lbprivacy-preference" value="public" {{ if eq .Player.LBPrivacy "PUBLIC" }}checked{{end}}>
+              Mostrar o meu nome em tabelas de classificação
+          </label>
+          <label for="lbprivacy-private" class="pure-radio">
+              <input id="lbprivacy-private" type="radio" name="lbprivacy-preference" value="private" {{ if eq .Player.LBPrivacy "PRIVATE" }}checked{{end}}>
+              Ocultar o meu nome em tabelas de classificação
+          </label>
+          <p>Antes de continuar, certifique-se que leu, compreende e concorda com os <a href="/terms" target="_blank">termos e condições</a>, com a <a href="/privacy" target="_blank">política de privacidade geral do UnderLX</a> e a <a href="/posplay/privacy">adenda específica do PosPlay</a>.</p>
+          <button type="submit" class="pure-button pure-input-1-2 pure-button-primary">Guardar e continuar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{{template "footer.html" . }}

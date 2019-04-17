@@ -54,6 +54,7 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/login", forceLogin)
 	router.HandleFunc("/logout", forceLogout)
 	router.HandleFunc("/oauth/callback", callbackHandler)
+	router.HandleFunc("/welcome", onboardingPage)
 	router.HandleFunc("/privacy", privacyPolicyPage)
 	if DEBUG {
 		router.Use(templateReloadingMiddleware)

@@ -14,9 +14,10 @@ import (
 
 // Session represents a user session in the PosPlay subsystem
 type Session struct {
-	DiscordToken *oauth2.Token
-	DiscordInfo  *discordgo.User
-	DisplayName  string
+	DiscordToken   *oauth2.Token
+	DiscordInfo    *discordgo.User
+	DisplayName    string
+	GoToOnboarding bool
 }
 
 // NewSession initializes a new PosPlay session from a Discord OAuth2 token
@@ -48,6 +49,7 @@ func NewSession(node sqalx.Node, r *http.Request, w http.ResponseWriter, discord
 		if err != nil {
 			return nil, err
 		}
+		ppsession.GoToOnboarding = true
 	} else {
 		player.InGuild = projectGuildErr == nil
 		player.CachedName = getDisplayNameFromNameType(player.NameType, ppsession.DiscordInfo, guildMember)
@@ -83,6 +85,7 @@ func refreshSession(r *http.Request, w http.ResponseWriter, ppsession *Session, 
 	}
 
 	ppsession.DisplayName = getDisplayNameFromNameType(player.NameType, ppsession.DiscordInfo, guildMember)
+	ppsession.GoToOnboarding = false // refreshSession is called when saving settings, if we're saving settings it's because we completed the onboarding
 
 	session, _ := config.Store.Get(r, SessionName)
 
@@ -125,8 +128,8 @@ func addNewPlayer(node sqalx.Node, discordUser *discordgo.User, inGuild bool) (*
 	player := &dataobjects.PPPlayer{
 		DiscordID:      uidConvS(discordUser.ID),
 		Joined:         time.Now(),
-		LBPrivacy:      PrivateLBPrivacy,
-		ProfilePrivacy: PrivateProfilePrivacy,
+		LBPrivacy:      PublicLBPrivacy,
+		ProfilePrivacy: PlayersOnlyProfilePrivacy,
 		NameType:       UsernameDiscriminatorNameType,
 		InGuild:        inGuild,
 		CachedName:     getDisplayNameFromNameType(UsernameDiscriminatorNameType, discordUser, nil),

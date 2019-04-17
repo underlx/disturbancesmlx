@@ -48,14 +48,18 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = NewSession(tx, r, w, token)
+	ppsession, err := NewSession(tx, r, w, token)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w, r, config.PathPrefix+"/", http.StatusTemporaryRedirect)
+	if ppsession.GoToOnboarding {
+		http.Redirect(w, r, config.PathPrefix+"/welcome", http.StatusTemporaryRedirect)
+	} else {
+		http.Redirect(w, r, config.PathPrefix+"/", http.StatusTemporaryRedirect)
+	}
 	tx.Commit()
 }
 

@@ -140,6 +140,24 @@ func pairStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func settingsPage(w http.ResponseWriter, r *http.Request) {
+	settingsLikePage(w, r, false)
+}
+
+func onboardingPage(w http.ResponseWriter, r *http.Request) {
+	session, _, err := GetSession(r, w, false)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if session == nil || !session.GoToOnboarding {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	settingsLikePage(w, r, true)
+}
+
+func settingsLikePage(w http.ResponseWriter, r *http.Request, isOnboarding bool) {
 	session, redirected, err := GetSession(r, w, true)
 	if err != nil {
 		config.Log.Println(err)
@@ -173,7 +191,12 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 	}{
 		JoinedServer: player.InGuild,
 	}
-	p.pageCommons, err = initPageCommons(tx, w, r, "Definições", session, player)
+	if isOnboarding {
+		p.pageCommons, err = initPageCommons(tx, w, r, "Boas vindas", session, player)
+	} else {
+		p.pageCommons, err = initPageCommons(tx, w, r, "Definições", session, player)
+	}
+
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -233,13 +256,20 @@ func settingsPage(w http.ResponseWriter, r *http.Request) {
 
 	p.SavedSettings = r.Method == http.MethodPost
 
-	err = webtemplate.ExecuteTemplate(w, "settings.html", p)
+	err = tx.Commit()
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 
-	err = tx.Commit()
+	if isOnboarding && p.SavedSettings {
+		http.Redirect(w, r, config.PathPrefix+"/", http.StatusTemporaryRedirect)
+		return
+	} else if isOnboarding {
+		err = webtemplate.ExecuteTemplate(w, "onboarding.html", p)
+	} else {
+		err = webtemplate.ExecuteTemplate(w, "settings.html", p)
+	}
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
