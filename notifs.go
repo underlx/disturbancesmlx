@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	fcm "github.com/NaySoftware/go-fcm"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
@@ -121,6 +123,24 @@ func SendMetaBroadcast(id, broadcastType, forVersions, forLocales string, args .
 		fcmcl.NewFcmMsgTo("/topics/broadcasts-debug", data)
 	} else {
 		fcmcl.NewFcmMsgTo("/topics/broadcasts", data)
+	}
+	fcmcl.SetPriority(fcm.Priority_HIGH)
+	_, err := fcmcl.Send()
+	if err != nil {
+		mainLog.Println(err)
+	}
+}
+
+// SendPersonalNotification sends a FCM message to a specific user
+func SendPersonalNotification(pair *dataobjects.APIPair, msgType string, data map[string]string) {
+	mainLog.Println("Sending personal notification to pair " + pair.Key)
+
+	data["type"] = msgType
+	topicName := fmt.Sprintf("/topics/pair-%s", pair.Key)
+	if DEBUG {
+		fcmcl.NewFcmMsgTo(topicName+"-debug", data)
+	} else {
+		fcmcl.NewFcmMsgTo(topicName, data)
 	}
 	fcmcl.SetPriority(fcm.Priority_HIGH)
 	_, err := fcmcl.Send()
