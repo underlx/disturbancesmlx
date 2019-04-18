@@ -56,6 +56,7 @@ var Types = map[string]reflect.Type{
 
 var Functions = map[string]reflect.Value{
 	"ComputeAPISecretHash":               reflect.ValueOf(ComputeAPISecretHash),
+	"CountPPPlayers":                     reflect.ValueOf(CountPPPlayers),
 	"CountPairActivationsByDay":          reflect.ValueOf(CountPairActivationsByDay),
 	"CountTripsByDay":                    reflect.ValueOf(CountTripsByDay),
 	"GenerateAPIKey":                     reflect.ValueOf(GenerateAPIKey),
@@ -130,6 +131,7 @@ var Functions = map[string]reflect.Value{
 	"NewLineDisturbanceReportThroughAPI": reflect.ValueOf(NewLineDisturbanceReportThroughAPI),
 	"NewPair":                            reflect.ValueOf(NewPair),
 	"PPLeaderboardBetween":               reflect.ValueOf(PPLeaderboardBetween),
+	"PosPlayLevelToXP":                   reflect.ValueOf(PosPlayLevelToXP),
 	"PosPlayPlayerLevel":                 reflect.ValueOf(PosPlayPlayerLevel),
 	"RegisterPPAchievementStrategy":      reflect.ValueOf(RegisterPPAchievementStrategy),
 	"UnregisterPPAchievementStrategy":    reflect.ValueOf(UnregisterPPAchievementStrategy),

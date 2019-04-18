@@ -19,6 +19,7 @@ var Types = map[string]reflect.Type{
 	"ReactionHandler": reflect.TypeOf((*ReactionHandler)(nil)).Elem(),
 	"SQLSystem":       reflect.TypeOf((*SQLSystem)(nil)).Elem(),
 	"ScriptSystem":    reflect.TypeOf((*ScriptSystem)(nil)).Elem(),
+	"Stats":           reflect.TypeOf((*Stats)(nil)).Elem(),
 }
 
 var Functions = map[string]reflect.Value{

@@ -20,6 +20,7 @@ var Types = map[string]reflect.Type{
 
 var Functions = map[string]reflect.Value{
 	"ConfigureRouter":             reflect.ValueOf(ConfigureRouter),
+	"DescriptionForRarity":        reflect.ValueOf(DescriptionForRarity),
 	"DescriptionForXPTransaction": reflect.ValueOf(DescriptionForXPTransaction),
 	"DoXPTransaction":             reflect.ValueOf(DoXPTransaction),
 	"GetSession":                  reflect.ValueOf(GetSession),
@@ -47,9 +48,12 @@ var Consts = map[string]reflect.Value{
 	"GameTimezone":                  reflect.ValueOf(GameTimezone),
 	"NicknameNameType":              reflect.ValueOf(NicknameNameType),
 	"PairProcessLongevity":          reflect.ValueOf(PairProcessLongevity),
+	"PlayersOnlyProfilePrivacy":     reflect.ValueOf(PlayersOnlyProfilePrivacy),
 	"PosPlayVersion":                reflect.ValueOf(PosPlayVersion),
 	"PrivateLBPrivacy":              reflect.ValueOf(PrivateLBPrivacy),
+	"PrivateProfilePrivacy":         reflect.ValueOf(PrivateProfilePrivacy),
 	"PublicLBPrivacy":               reflect.ValueOf(PublicLBPrivacy),
+	"PublicProfilePrivacy":          reflect.ValueOf(PublicProfilePrivacy),
 	"SessionName":                   reflect.ValueOf(SessionName),
 	"UsernameDiscriminatorNameType": reflect.ValueOf(UsernameDiscriminatorNameType),
 	"UsernameNameType":              reflect.ValueOf(UsernameNameType),
