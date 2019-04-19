@@ -8,6 +8,7 @@ import (
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/discordbot"
+	"github.com/underlx/disturbancesmlx/mqttgateway"
 	"github.com/underlx/disturbancesmlx/posplay"
 	"github.com/underlx/disturbancesmlx/resource"
 	"github.com/underlx/disturbancesmlx/utils"
@@ -74,6 +75,9 @@ func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 	}
 	packages["underlx"]["ReportHandler"] = func() *compute.ReportHandler {
 		return reportHandler
+	}
+	packages["underlx"]["MQTTGateway"] = func() *mqttgateway.MQTTGateway {
+		return mqttGateway
 	}
 
 	discordbot.AnkoPackageConfigurator(packages, packageTypes)

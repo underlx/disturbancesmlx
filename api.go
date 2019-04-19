@@ -50,6 +50,12 @@ func APIserver(trustedClientCertPath string) {
 
 	v1.Add("/meta/backers", new(resource.Backers))
 
+	gateway := new(resource.Gateway)
+	if mqttGateway != nil {
+		gateway = gateway.RegisterMQTTGateway(mqttGateway)
+	}
+	v1.Add("/gateways", gateway)
+
 	v1.Add("/networks", new(resource.Network).WithNode(rootSqalxNode))
 	v1.Add("/networks/:id", new(resource.Network).WithNode(rootSqalxNode))
 

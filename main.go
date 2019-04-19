@@ -5,6 +5,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/underlx/disturbancesmlx/mqttgateway"
+
 	"github.com/underlx/disturbancesmlx/ankiddie"
 
 	fcm "github.com/NaySoftware/go-fcm"
@@ -28,6 +30,7 @@ var (
 	discordLog       = log.New(os.Stdout, "discord", log.Ldate|log.Ltime)
 	posplayLog       = log.New(os.Stdout, "posplay", log.Ldate|log.Ltime)
 	webLog           = log.New(os.Stdout, "web", log.Ldate|log.Ltime)
+	mqttLog          = log.New(os.Stdout, "mqtt", log.Ldate|log.Ltime)
 	lastChange       time.Time
 	apiTotalRequests int
 
@@ -35,6 +38,7 @@ var (
 	vehicleHandler *compute.VehicleHandler
 	reportHandler  *compute.ReportHandler
 	statsHandler   *compute.StatsHandler
+	mqttGateway    *mqttgateway.MQTTGateway
 
 	// GitCommit is provided by govvv at compile-time
 	GitCommit = "???"
@@ -99,9 +103,31 @@ func main() {
 		mainLog.Fatalln(err)
 	}
 
+	mqttKeybox, present := secrets.GetBox("mqtt")
+	if !present {
+		mainLog.Println("MQTT keybox not present in keybox, MQTT gateway will not be available")
+	} else {
+		mqttGateway, err = mqttgateway.New(mqttgateway.Config{
+			Node:        rootSqalxNode,
+			Log:         mqttLog,
+			Keybox:      mqttKeybox,
+			AuthHashKey: getHashKey(),
+		})
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+	}
+
 	go StatsSender()
 	go WebServer()
 	go DiscordBot()
+
+	if mqttGateway != nil {
+		err = mqttGateway.Start()
+		if err != nil {
+			mainLog.Fatalln(err)
+		}
+	}
 
 	certPath := DefaultClientCertPath
 	if len(os.Args) > 1 {
