@@ -157,6 +157,10 @@ func (station *Station) Directions(node sqalx.Node) ([]*Station, error) {
 
 // Closed returns whether this station is closed
 func (station *Station) Closed(node sqalx.Node) (bool, error) {
+	if value, present := node.Load(getCacheKey("station-closed", station.ID)); present {
+		return value.(bool), nil
+	}
+
 	tx, err := node.Beginx()
 	if err != nil {
 		return false, err
@@ -173,9 +177,11 @@ func (station *Station) Closed(node sqalx.Node) (bool, error) {
 			return false, err
 		}
 		if !closed {
+			tx.Store(getCacheKey("station-closed", station.ID), false)
 			return false, nil
 		}
 	}
+	tx.Store(getCacheKey("station-closed", station.ID), true)
 	return true, nil
 }
 

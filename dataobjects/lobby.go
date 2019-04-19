@@ -146,6 +146,7 @@ func (lobby *Lobby) Update(node sqalx.Node) error {
 	if err != nil {
 		return errors.New("AddLobby: " + err.Error())
 	}
+	tx.Delete(getCacheKey("station-closed", lobby.Station.ID))
 	return tx.Commit()
 }
 
@@ -163,5 +164,6 @@ func (lobby *Lobby) Delete(node sqalx.Node) error {
 		return fmt.Errorf("RemoveLobby: %s", err)
 	}
 	tx.Delete(getCacheKey("lobby", lobby.ID))
+	tx.Delete(getCacheKey("station-closed", lobby.Station.ID))
 	return tx.Commit()
 }
