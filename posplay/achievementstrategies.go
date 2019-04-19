@@ -309,7 +309,7 @@ func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchie
 		if err != nil {
 			return false
 		}
-		closed, err := station.Closed(context.Node)
+		closed, err := station.Closed(tx)
 		if err != nil {
 			return false
 		}
@@ -323,6 +323,18 @@ func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchie
 	}
 	var extra visitStationsExtra
 	existingData.UnmarshalExtra(&extra)
+
+	extra.VisitedStations = funk.FilterString(extra.VisitedStations, func(x string) bool {
+		station, err := dataobjects.GetStation(tx, x)
+		if err != nil {
+			return false
+		}
+		closed, err := station.Closed(tx)
+		if err != nil {
+			return false
+		}
+		return !closed
+	})
 
 	if float64(len(extra.VisitedStations))/float64(len(config.Stations)) < 0.3 {
 		// lock achievement
