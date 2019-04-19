@@ -61,14 +61,43 @@ const (
 	NicknameNameType string = "NICKNAME"
 )
 
+const (
+	// NotificationMethodDiscordDM corresponds to sending notifications through Discord DMs
+	NotificationMethodDiscordDM string = "DISCORD_DM"
+
+	// NotificationMethodAppNotif corresponds to sending notifications to the paired app
+	NotificationMethodAppNotif string = "APP_NOTIF"
+)
+
+const (
+	// NotificationTypeAchievementAchieved is used when the user achieved an achievement
+	NotificationTypeAchievementAchieved string = "ACHIEVEMENT_ACHIEVED"
+
+	// NotificationTypeGuildEventWon is used when the user won a Discord guild event
+	NotificationTypeGuildEventWon string = "GUILD_EVENT_WON"
+)
+
+// NotificationDefaults contains defaults for notification settings
+var NotificationDefaults = map[string]map[string]bool{
+	NotificationTypeAchievementAchieved: map[string]bool{
+		NotificationMethodDiscordDM: false,
+		NotificationMethodAppNotif:  true,
+	},
+	NotificationTypeGuildEventWon: map[string]bool{
+		NotificationMethodDiscordDM: true,
+		NotificationMethodAppNotif:  false,
+	},
+}
+
 // Config contains runtime PosPlay subsystem configuration
 type Config struct {
-	Keybox     *keybox.Keybox
-	Log        *log.Logger
-	Store      *sessions.CookieStore
-	Node       sqalx.Node
-	PathPrefix string
-	GitCommit  string
+	Keybox              *keybox.Keybox
+	Log                 *log.Logger
+	Store               *sessions.CookieStore
+	Node                sqalx.Node
+	PathPrefix          string
+	GitCommit           string
+	SendAppNotification func(pair *dataobjects.APIPair, msgType string, data map[string]string)
 }
 
 var config Config
@@ -183,10 +212,42 @@ func RegisterEventWinCallback(userID, messageID string, XPreward int, eventType 
 		return false
 	}
 
+	sendDiscordNotif, err := dataobjects.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeGuildEventWon, NotificationMethodDiscordDM, NotificationDefaults)
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+
+	sendAppNotif, err := dataobjects.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeGuildEventWon, NotificationMethodAppNotif, NotificationDefaults)
+	if err != nil {
+		config.Log.Println(err)
+		return false
+	}
+	var appNotifPair *dataobjects.APIPair
+	if sendAppNotif {
+		pair, err := dataobjects.GetPPPair(tx, player.DiscordID)
+		if err != nil {
+			// app notification setting enabled, but the user doesn't have an associated app
+			sendAppNotif = false
+		} else {
+			appNotifPair = pair.Pair
+		}
+	}
+
 	tx.DeferToCommit(func() {
-		discordbot.SendDMtoUser(userID, &discordgo.MessageSend{
-			Content: fmt.Sprintf("Acabou de receber %d XP pela participação num evento no servidor de Discord do UnderLX 👍", XPreward),
-		})
+		if sendDiscordNotif {
+			discordbot.SendDMtoUser(userID, &discordgo.MessageSend{
+				Content: fmt.Sprintf("Acabou de receber %d XP pela participação num evento no servidor de Discord do UnderLX 👍", XPreward),
+			})
+		}
+		if sendAppNotif {
+			data := map[string]string{
+				"title": fmt.Sprintf("Recebeu %d XP", XPreward),
+				"body":  fmt.Sprintf("Recebeu %d XP pela participação num evento no servidor de Discord do UnderLX", XPreward),
+				"url":   config.PathPrefix + "/xptx",
+			}
+			config.SendAppNotification(appNotifPair, "posplay-notification", data)
+		}
 	})
 
 	err = tx.Commit()
@@ -345,81 +406,6 @@ func WeekStart() time.Time {
 		endTime = endTime.AddDate(0, 0, -7)
 	}
 	return endTime
-}
-
-// DescriptionForXPTransaction returns a human-friendly description of a XP transaction
-func DescriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
-	extra := tx.UnmarshalExtra()
-	switch tx.Type {
-	case "SIGNUP_BONUS":
-		return "Oferta de boas-vindas"
-	case "PAIR_BONUS":
-		return "Associação de dispositivo"
-	case "TRIP_SUBMIT_REWARD":
-		numstations, ok := extra["station_count"].(float64)
-		numexchanges, ok2 := extra["interchange_count"].(float64)
-		offpeak, ok3 := extra["offpeak"].(bool)
-		if ok && ok2 && ok3 {
-			excstr := ""
-			switch int(numexchanges) {
-			case 0:
-				excstr = ""
-			case 1:
-				excstr = ", com 1 troca de linha"
-			default:
-				excstr = fmt.Sprintf(", com %d trocas de linha", int(numexchanges))
-			}
-			ofpstr := ""
-			if offpeak {
-				ofpstr = ", fora das horas de ponta"
-			}
-			return fmt.Sprintf("Viagem por %d estações%s%s", int(numstations), excstr, ofpstr)
-		}
-		return "Viagem"
-	case "TRIP_CONFIRM_REWARD":
-		return "Verificação de registo de viagem"
-	case "DISCORD_REACTION_EVENT":
-		return "Participação em evento no Discord do UnderLX"
-	case "DISCORD_CHALLENGE_EVENT":
-		return "Participação em desafio no Discord do UnderLX"
-	case "DISCORD_PARTICIPATION":
-		return "Participação na discussão no Discord do UnderLX"
-	case "ACHIEVEMENT_REWARD":
-		id, ok := extra["achievement_id"].(string)
-		if ok {
-			allAchievementsMutex.RLock()
-			defer allAchievementsMutex.RUnlock()
-			a, ok2 := allAchievementsByID[id]
-			if ok2 {
-				return fmt.Sprintf("Proeza \"%s\" alcançada", a.Names[a.MainLocale])
-			}
-		}
-		return "Proeza alcançada"
-	default:
-		// ideally this should never show
-		return "Bónus genérico"
-	}
-}
-
-// DescriptionForRarity returns a human-friendly description of a achievement rarity value (range 0 to 100)
-func DescriptionForRarity(rarity float64) string {
-	switch {
-	case rarity <= 1:
-		return "extremamente rara"
-	case rarity <= 8:
-		return "rara"
-	case rarity <= 25:
-		return "incomum"
-	case rarity <= 50:
-		return "comum"
-	case rarity <= 75:
-		return "muito comum"
-	case rarity < 100:
-		return "extremamente comum"
-	case rarity >= 100:
-		return "universal"
-	}
-	return ""
 }
 
 func getDisplayNameFromNameType(nameType string, user *discordgo.User, guildMember *discordgo.Member) string {

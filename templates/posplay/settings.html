@@ -24,15 +24,15 @@
           </label>
 
           <label for="name-nickname" class="pure-radio">
-              <input id="name-nickname" type="radio" name="name-preference" value="nickname" {{ if not .JoinedServer }}disabled{{end}} {{ if eq .Player.NameType "NICKNAME" }}checked{{end}}>
-              {{ if .JoinedServer }}
+              <input id="name-nickname" type="radio" name="name-preference" value="nickname" {{ if not .Player.InGuild }}disabled{{end}} {{ if eq .Player.NameType "NICKNAME" }}checked{{end}}>
+              {{ if .Player.InGuild }}
               Nickname no servidor do UnderLX: {{ getDisplayNameFromNameType "NICKNAME" .Session.DiscordInfo .GuildMember }}
               {{ else }}
               Nickname no servidor do UnderLX
               {{end}}
           </label>
   
-          {{ if not .JoinedServer }}
+          {{ if not .Player.InGuild }}
             <p>Pode usar um outro nome à sua escolha, juntando-se <a href="/discord">ao nosso servidor no Discord</a> e definindo um nickname específico do servidor. Depois, actualize esta página, e o nickname irá surgir como opção.</p>
           {{end}}
           <h2>Privacidade</h2>
@@ -58,7 +58,35 @@
               <input id="lbprivacy-private" type="radio" name="lbprivacy-preference" value="private" {{ if eq .Player.LBPrivacy "PRIVATE" }}checked{{end}}>
               Ocultar o meu nome em tabelas de classificação
           </label>
-          <button type="submit" class="pure-button pure-input-1-2 pure-button-primary">Guardar</button>
+
+          <h2>Notificações</h2>
+          <p>Escolha como quer ser notificado dos seus progressos no jogo:</p>
+          {{ if not .HasPair }}
+          <p><strong>Atenção:</strong> as notificações na aplicação não irão funcionar enquanto não <a href="/posplay/pair">associar um dispositivo</a>.</p>
+          {{end}}
+          <table class="pure-table">
+              <thead>
+                  <tr>
+                      <th></th>
+                      {{ range $method := .NotifMethods }}
+                      <th>{{ nameForNotificationMethod $method }}</th>
+                      {{end}}
+                  </tr>
+              </thead>
+          
+              <tbody>
+                  {{ range $type := .NotifTypes }}
+                  <tr>
+                      <td>{{ nameForNotificationType $type }}</td>
+                      {{ range $method := $.NotifMethods }}
+                      <td><input id="notif-{{ $type }}-{{ $method }}" name="notif-{{ $type }}-{{ $method }}" type="checkbox"
+                        {{if index $.NotifSettings $type $method }}checked{{end}}></td>
+                      {{end}}
+                  </tr>
+                  {{end}}
+              </tbody>
+          </table>
+          <p><button type="submit" class="pure-button pure-input-1-2 pure-button-primary">Guardar</button></p>
         </form>
       </div>
     </div>

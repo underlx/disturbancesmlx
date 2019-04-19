@@ -1,11 +1,14 @@
 package posplay
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/discordbot"
 )
 
 var allAchievements []*dataobjects.PPAchievement
@@ -56,6 +59,49 @@ func achieveAchievement(tx sqalx.Node, player *dataobjects.PPPlayer, achievement
 			return err
 		}
 	}
+
+	// notification sending code
+	sendDiscordNotif, err := dataobjects.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeAchievementAchieved, NotificationMethodDiscordDM, NotificationDefaults)
+	if err != nil {
+		return err
+	}
+
+	sendAppNotif, err := dataobjects.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeAchievementAchieved, NotificationMethodAppNotif, NotificationDefaults)
+	if err != nil {
+		return err
+	}
+	var appNotifPair *dataobjects.APIPair
+	if sendAppNotif {
+		pair, err := dataobjects.GetPPPair(tx, player.DiscordID)
+		if err != nil {
+			// app notification setting enabled, but the user doesn't have an associated app
+			sendAppNotif = false
+		} else {
+			appNotifPair = pair.Pair
+		}
+	}
+
+	tx.DeferToCommit(func() {
+		rewardText := ""
+		if achievement.XPReward != 0 {
+			rewardText = fmt.Sprintf(" e recebeu %d XP como recompensa", achievement.XPReward)
+		}
+		if sendDiscordNotif {
+			discordbot.SendDMtoUser(uidConvI(player.DiscordID), &discordgo.MessageSend{
+				Content: fmt.Sprintf("Acabou de alcançar a proeza \"%s\"%s 👍\n%s",
+					achievement.Names[achievement.MainLocale], rewardText, config.PathPrefix+"/achievements/"+achievement.ID),
+			})
+		}
+		if sendAppNotif {
+			data := map[string]string{
+				"title": fmt.Sprintf("Alcançou a proeza \"%s\"", achievement.Names[achievement.MainLocale]),
+				"body":  fmt.Sprintf("Acabou de alcançar a proeza \"%s\"%s", achievement.Names[achievement.MainLocale], rewardText),
+				"url":   config.PathPrefix + "/achievements/" + achievement.ID,
+			}
+			config.SendAppNotification(appNotifPair, "posplay-notification", data)
+		}
+	})
+	// end of notification sending code
 
 	return tx.Commit()
 }

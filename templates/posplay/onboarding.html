@@ -19,15 +19,15 @@
           </label>
 
           <label for="name-nickname" class="pure-radio">
-              <input id="name-nickname" type="radio" name="name-preference" value="nickname" {{ if not .JoinedServer }}disabled{{end}} {{ if eq .Player.NameType "NICKNAME" }}checked{{end}}>
-              {{ if .JoinedServer }}
+              <input id="name-nickname" type="radio" name="name-preference" value="nickname" {{ if not .Player.InGuild }}disabled{{end}} {{ if eq .Player.NameType "NICKNAME" }}checked{{end}}>
+              {{ if .Player.InGuild }}
               Nickname no servidor do UnderLX: {{ getDisplayNameFromNameType "NICKNAME" .Session.DiscordInfo .GuildMember }}
               {{ else }}
               Nickname no servidor do UnderLX
               {{end}}
           </label>
   
-          {{ if not .JoinedServer }}
+          {{ if not .Player.InGuild }}
             <p>Pode usar um outro nome à sua escolha, juntando-se <a href="/discord">ao nosso servidor no Discord</a> e definindo um nickname específico do servidor. Depois, actualize esta página, e o nickname irá surgir como opção.</p>
           {{end}}
           <h2>Privacidade</h2>

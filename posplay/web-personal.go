@@ -2,6 +2,7 @@ package posplay
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/bwmarrin/discordgo"
@@ -29,11 +30,8 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 		pageCommons
 
 		XPTransactions []*dataobjects.PPXPTransaction
-		JoinedServer   bool
 		PairedDevice   bool
-	}{
-		JoinedServer: player.InGuild,
-	}
+	}{}
 	p.pageCommons, err = initPageCommons(tx, w, r, "Página principal", session, player)
 	if err != nil {
 		config.Log.Println(err)
@@ -185,11 +183,17 @@ func settingsLikePage(w http.ResponseWriter, r *http.Request, isOnboarding bool)
 
 	p := struct {
 		pageCommons
-		JoinedServer  bool
 		GuildMember   *discordgo.Member
 		SavedSettings bool
+
+		NotifSettings map[string]map[string]bool
+		NotifTypes    []string
+		NotifMethods  []string
+		HasPair       bool
 	}{
-		JoinedServer: player.InGuild,
+		NotifTypes:    []string{NotificationTypeGuildEventWon, NotificationTypeAchievementAchieved},
+		NotifMethods:  []string{NotificationMethodDiscordDM, NotificationMethodAppNotif},
+		NotifSettings: make(map[string]map[string]bool),
 	}
 	if isOnboarding {
 		p.pageCommons, err = initPageCommons(tx, w, r, "Boas vindas", session, player)
@@ -207,7 +211,23 @@ func settingsLikePage(w http.ResponseWriter, r *http.Request, isOnboarding bool)
 	if err != nil {
 		p.GuildMember = nil
 		player.InGuild = false
-		p.JoinedServer = false
+	}
+
+	if !isOnboarding {
+		_, err := dataobjects.GetPPPair(tx, player.DiscordID)
+		p.HasPair = err == nil
+
+		for _, notifType := range p.NotifTypes {
+			p.NotifSettings[notifType] = make(map[string]bool)
+			for _, notifMethod := range p.NotifMethods {
+				p.NotifSettings[notifType][notifMethod], err = dataobjects.GetPPNotificationSetting(tx, player.DiscordID, notifType, notifMethod, NotificationDefaults)
+				if err != nil {
+					config.Log.Println(err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+			}
+		}
 	}
 
 	if r.Method == http.MethodPost {
@@ -235,6 +255,21 @@ func settingsLikePage(w http.ResponseWriter, r *http.Request, isOnboarding bool)
 			player.ProfilePrivacy = PlayersOnlyProfilePrivacy
 		case "private":
 			player.ProfilePrivacy = PrivateProfilePrivacy
+		}
+
+		if !isOnboarding {
+			for _, notifType := range p.NotifTypes {
+				for _, notifMethod := range p.NotifMethods {
+					p.NotifSettings[notifType][notifMethod] = r.Form.Get(fmt.Sprintf("notif-%s-%s", notifType, notifMethod)) != ""
+					err = dataobjects.SetPPNotificationSetting(tx, player.DiscordID, notifType, notifMethod,
+						p.NotifSettings[notifType][notifMethod])
+					if err != nil {
+						config.Log.Println(err)
+						w.WriteHeader(http.StatusInternalServerError)
+						return
+					}
+				}
+			}
 		}
 
 		player.CachedName = getDisplayNameFromNameType(player.NameType, session.DiscordInfo, p.GuildMember)

@@ -1,4 +1,20 @@
-DROP TABLE android_pair_requests;
+DROP TABLE pp_notification_setting;
+DROP TABLE pp_player_has_achievement;
+DROP TABLE pp_achievement_name;
+DROP TABLE pp_achievement;
+DROP TABLE pp_xp_tx;
+DROP TABLE pp_pair;
+DROP TABLE pp_player;
+DROP TABLE script;
+DROP TABLE station_has_poi;
+DROP TABLE poi_name;
+DROP TABLE poi;
+DROP TABLE feedback;
+DROP TABLE feedback_type;
+DROP TABLE station_use;
+DROP TABLE station_use_type;
+DROP TABLE trip;
+DROP TABLE android_pair_request;
 DROP TABLE api_pair;
 DROP TABLE dataset_info;
 DROP TABLE station_lobby_schedule;
@@ -345,4 +361,12 @@ CREATE TABLE IF NOT EXISTS "pp_player_has_achievement" (
     achieved TIMESTAMP WITH TIME ZONE,
     extra TEXT NOT NULL,
     PRIMARY KEY (discord_id, achievement_id)
+);
+
+CREATE TABLE IF NOT EXISTS "pp_notification_setting" (
+    discord_id BIGINT REFERENCES pp_player (discord_id),
+    notification_type VARCHAR(36) NOT NULL,
+    method VARCHAR(36) NOT NULL,
+    enabled BOOLEAN NOT NULL,
+    PRIMARY KEY (discord_id, notification_type, method)
 );

@@ -140,7 +140,9 @@ func ReloadTemplates() {
 				start.Day(), utils.FormatPortugueseMonthShort(start.Month()),
 				end.Day(), utils.FormatPortugueseMonthShort(end.Month()))
 		},
-		"userAvatarURL": userAvatarURL,
+		"userAvatarURL":             userAvatarURL,
+		"nameForNotificationType":   NameForNotificationType,
+		"nameForNotificationMethod": NameForNotificationMethod,
 		"dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values)%2 != 0 {
 				return nil, errors.New("invalid dict call")

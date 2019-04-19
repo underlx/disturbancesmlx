@@ -52,10 +52,6 @@ func getPPPairsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*PPPair
 			rows.Close()
 			return pairs, fmt.Errorf("getPPPairsWithSelect: %s", err)
 		}
-		if err != nil {
-			rows.Close()
-			return pairs, fmt.Errorf("getPPPairsWithSelect: %s", err)
-		}
 		apiPairs = append(apiPairs, apiPair)
 		pairs = append(pairs, &pair)
 	}

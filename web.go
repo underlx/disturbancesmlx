@@ -29,12 +29,13 @@ func WebServer() {
 
 	// PosPlay sub-website
 	posplay.Initialize(posplay.Config{
-		Keybox:     posplayKeybox,
-		Log:        posplayLog,
-		Store:      website.SessionStore(),
-		Node:       rootSqalxNode,
-		PathPrefix: website.BaseURL() + "/posplay",
-		GitCommit:  GitCommit})
+		Keybox:              posplayKeybox,
+		Log:                 posplayLog,
+		Store:               website.SessionStore(),
+		Node:                rootSqalxNode,
+		PathPrefix:          website.BaseURL() + "/posplay",
+		GitCommit:           GitCommit,
+		SendAppNotification: SendPersonalNotification})
 
 	// this order is important. see https://github.com/gorilla/mux/issues/411 (still open at the time of writing)
 	posplay.ConfigureRouter(router.PathPrefix("/posplay").Subrouter())
