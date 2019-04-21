@@ -3,6 +3,18 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:587e7723f172095d2d62a93cbbcff2ea3ec1122a30b8f562b8b766f9f4702ad2"
+  name = "github.com/DrmagicE/gmqtt"
+  packages = [
+    ".",
+    "logger",
+    "pkg/packets",
+  ]
+  pruneopts = "UT"
+  revision = "a03d3db19b4662d0a4e9c52e45ca982a2e9d8a8c"
+
+[[projects]]
+  branch = "master"
   digest = "1:d60a6983f605420d17520ad3e206319a252989044f4ac580799575c850d4eb41"
   name = "github.com/NaySoftware/go-fcm"
   packages = ["."]
@@ -486,6 +498,8 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/DrmagicE/gmqtt",
+    "github.com/DrmagicE/gmqtt/pkg/packets",
     "github.com/NaySoftware/go-fcm",
     "github.com/PuerkitoBio/goquery",
     "github.com/SaidinWoT/timespan",
