@@ -27,7 +27,8 @@ type MQTTGateway struct {
 	tlsKeyPath  string
 	authHashKey []byte
 
-	server *gmqtt.Server
+	server   *gmqtt.Server
+	stopChan chan interface{}
 }
 
 // Config contains runtime gateway configuration
@@ -49,6 +50,7 @@ func New(c Config) (*MQTTGateway, error) {
 		Log:         c.Log,
 		Node:        c.Node,
 		authHashKey: c.AuthHashKey,
+		stopChan:    make(chan interface{}, 1),
 	}
 	var present, present2 bool
 	g.listenAddr, present = c.Keybox.Get("listenAddr")
@@ -109,10 +111,37 @@ func (g *MQTTGateway) Start() error {
 		if topic.Name == "test/nosubscribe" {
 			return packets.SUBSCRIBE_FAILURE
 		}
+		if client.UserData() != nil {
+			info := client.UserData().(userInfo)
+			g.Log.Println("Pair", info.Pair.Key, "subscribed to", topic.Name)
+			g.Log.Println("Current subscriptions:")
+			subs := g.server.Monitor.ClientSubscriptions(client.ClientOptions().ClientID)
+			for _, sub := range subs {
+				g.Log.Println("  " + sub.Name)
+			}
+		}
 		return topic.Qos
 	})
 
 	g.server.Run()
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				g.server.Publish(&packets.Publish{
+					Qos:       packets.QOS_0,
+					TopicName: []byte("msgpack/vehicleeta/pt-ml/pt-ml-av"),
+					Payload: buildVehicleETAPayload(
+						buildVehicleETAExactStruct("pt-ml-te", 30*time.Second, 4*time.Minute, false),
+						buildVehicleETAIntervalStruct("pt-ml-cs", 30*time.Second, 3*time.Minute, 10*time.Minute, false)),
+				})
+			case <-g.stopChan:
+				return
+			}
+		}
+	}()
 	g.Log.Println("MQTT broker started")
 	return nil
 }
@@ -139,6 +168,7 @@ func (g *MQTTGateway) MQTTVersion() string {
 
 // Stop stops the MQTT gateway
 func (g *MQTTGateway) Stop() error {
+	g.stopChan <- true
 	return g.server.Stop(context.Background())
 }
 
