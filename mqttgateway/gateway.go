@@ -192,6 +192,7 @@ func (g *MQTTGateway) handleOnConnect(client *gmqtt.Client) (code uint8) {
 func (g *MQTTGateway) handleOnClose(client *gmqtt.Client, err error) {
 	if client.UserData() == nil {
 		g.Log.Println("Unauthenticated client disconnected from the MQTT gateway")
+		return
 	}
 	info := client.UserData().(userInfo)
 	g.Log.Println("Pair", info.Pair.Key, "disconnected from the MQTT gateway after being connected for", time.Now().Sub(info.ConnectTime))
