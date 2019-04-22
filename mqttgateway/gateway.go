@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/underlx/disturbancesmlx/compute"
+
 	"github.com/DrmagicE/gmqtt"
 	"github.com/DrmagicE/gmqtt/pkg/packets"
 	"github.com/gbl08ma/keybox"
@@ -18,14 +20,15 @@ import (
 
 // MQTTGateway is a real-time gateway that uses the MQTT protocol
 type MQTTGateway struct {
-	Log         *log.Logger
-	Node        sqalx.Node
-	listenAddr  string
-	publicHost  string
-	publicPort  int
-	tlsCertPath string
-	tlsKeyPath  string
-	authHashKey []byte
+	Log            *log.Logger
+	Node           sqalx.Node
+	vehicleHandler *compute.VehicleHandler
+	listenAddr     string
+	publicHost     string
+	publicPort     int
+	tlsCertPath    string
+	tlsKeyPath     string
+	authHashKey    []byte
 
 	server   *gmqtt.Server
 	stopChan chan interface{}
@@ -33,10 +36,11 @@ type MQTTGateway struct {
 
 // Config contains runtime gateway configuration
 type Config struct {
-	Keybox      *keybox.Keybox
-	Log         *log.Logger
-	Node        sqalx.Node
-	AuthHashKey []byte
+	Keybox         *keybox.Keybox
+	Log            *log.Logger
+	Node           sqalx.Node
+	AuthHashKey    []byte
+	VehicleHandler *compute.VehicleHandler
 }
 
 type userInfo struct {
@@ -47,10 +51,11 @@ type userInfo struct {
 // New returns a new MQTTGateway with the specified settings
 func New(c Config) (*MQTTGateway, error) {
 	g := &MQTTGateway{
-		Log:         c.Log,
-		Node:        c.Node,
-		authHashKey: c.AuthHashKey,
-		stopChan:    make(chan interface{}, 1),
+		Log:            c.Log,
+		Node:           c.Node,
+		vehicleHandler: c.VehicleHandler,
+		authHashKey:    c.AuthHashKey,
+		stopChan:       make(chan interface{}, 1),
 	}
 	var present, present2 bool
 	g.listenAddr, present = c.Keybox.Get("listenAddr")
@@ -130,13 +135,10 @@ func (g *MQTTGateway) Start() error {
 		for {
 			select {
 			case <-ticker.C:
-				g.server.Publish(&packets.Publish{
-					Qos:       packets.QOS_0,
-					TopicName: []byte("msgpack/vehicleeta/pt-ml/pt-ml-av"),
-					Payload: buildVehicleETAPayload(
-						buildVehicleETAExactStruct("pt-ml-te", 30*time.Second, 4*time.Minute, false),
-						buildVehicleETAIntervalStruct("pt-ml-cs", 30*time.Second, 3*time.Minute, 10*time.Minute, false)),
-				})
+				err := g.SendVehicleETAs()
+				if err != nil {
+					g.Log.Println(err)
+				}
 			case <-g.stopChan:
 				return
 			}

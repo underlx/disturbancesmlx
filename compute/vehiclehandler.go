@@ -71,6 +71,7 @@ func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Stat
 		return 0, err
 	}
 	thisLineStations := []*dataobjects.Station{}
+	var thisLine *dataobjects.Line
 	// whether, in thisLineStations, the current direction is the last index (true) or zero (false)
 	// i.e., whether the caller is asking for the ETA in the direction that corresponds to moving "up" in the slice
 	var movingUp bool
@@ -80,9 +81,11 @@ func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Stat
 			return 0, err
 		}
 		if lineStations[0].ID == direction.ID {
+			thisLine = line
 			thisLineStations = lineStations
 			movingUp = false
 		} else if lineStations[len(lineStations)-1].ID == direction.ID {
+			thisLine = line
 			thisLineStations = lineStations
 			movingUp = true
 		}
@@ -262,6 +265,27 @@ func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Stat
 	}
 
 	totalSeconds -= trainAtSeconds
+
+	condition, err := thisLine.LastCondition(tx)
+	if err != nil {
+		return 0, err
+	}
+
+	trainWasHereOn, present := h.presenceByStationAndDirection[h.getMapKey(station, direction)]
+	if present {
+		durationSinceTrainWasHere := time.Since(trainWasHereOn)
+		supposedMaxRemainingTime := time.Duration(condition.TrainFrequency) - durationSinceTrainWasHere
+		if supposedMaxRemainingTime > 0 && float64(totalSeconds) > supposedMaxRemainingTime.Seconds()*1.2 {
+			// this essentially short-circuits the whole previously computed estimate,
+			// as it was too high for the train frequency that is supposedly being practiced
+			// (it was over 20% higher)
+			totalSeconds = int(supposedMaxRemainingTime.Seconds())
+		}
+	}
+
+	if condition.TrainFrequency > 0 && float64(totalSeconds) > time.Duration(condition.TrainFrequency).Seconds()*1.2 {
+		return 0, errors.New("Next known train is too far away")
+	}
 
 	return time.Duration(totalSeconds) * time.Second, nil
 }

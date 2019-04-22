@@ -108,10 +108,11 @@ func main() {
 		mainLog.Println("MQTT keybox not present in keybox, MQTT gateway will not be available")
 	} else {
 		mqttGateway, err = mqttgateway.New(mqttgateway.Config{
-			Node:        rootSqalxNode,
-			Log:         mqttLog,
-			Keybox:      mqttKeybox,
-			AuthHashKey: getHashKey(),
+			Node:           rootSqalxNode,
+			Log:            mqttLog,
+			Keybox:         mqttKeybox,
+			VehicleHandler: vehicleHandler,
+			AuthHashKey:    getHashKey(),
 		})
 		if err != nil {
 			mainLog.Fatalln(err)
