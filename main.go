@@ -112,6 +112,7 @@ func main() {
 			Log:            mqttLog,
 			Keybox:         mqttKeybox,
 			VehicleHandler: vehicleHandler,
+			StatsHandler:   statsHandler,
 			AuthHashKey:    getHashKey(),
 		})
 		if err != nil {

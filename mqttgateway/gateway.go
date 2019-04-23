@@ -7,9 +7,11 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/underlx/disturbancesmlx/compute"
+	"github.com/vmihailenco/msgpack"
 
 	"github.com/DrmagicE/gmqtt"
 	"github.com/DrmagicE/gmqtt/pkg/packets"
@@ -23,6 +25,7 @@ type MQTTGateway struct {
 	Log            *log.Logger
 	Node           sqalx.Node
 	vehicleHandler *compute.VehicleHandler
+	statsHandler   *compute.StatsHandler
 	listenAddr     string
 	publicHost     string
 	publicPort     int
@@ -41,6 +44,7 @@ type Config struct {
 	Node           sqalx.Node
 	AuthHashKey    []byte
 	VehicleHandler *compute.VehicleHandler
+	StatsHandler   *compute.StatsHandler
 }
 
 type userInfo struct {
@@ -54,6 +58,7 @@ func New(c Config) (*MQTTGateway, error) {
 		Log:            c.Log,
 		Node:           c.Node,
 		vehicleHandler: c.VehicleHandler,
+		statsHandler:   c.StatsHandler,
 		authHashKey:    c.AuthHashKey,
 		stopChan:       make(chan interface{}, 1),
 	}
@@ -198,6 +203,12 @@ func (g *MQTTGateway) handleOnClose(client *gmqtt.Client, err error) {
 	g.Log.Println("Pair", info.Pair.Key, "disconnected from the MQTT gateway after being connected for", time.Now().Sub(info.ConnectTime))
 }
 
+type payloadRealtimeLocation struct {
+	StationID string `msgpack:"s" json:"s"`
+	// DirectionID may be missing/empty if the user just entered the network
+	DirectionID string `msgpack:"d" json:"d"`
+}
+
 func (g *MQTTGateway) handleOnPublish(client *gmqtt.Client, publish *packets.Publish) bool {
 	if client.UserData() == nil {
 		g.Log.Println("Unauthenticated client attempted publishing and will be disconnected")
@@ -206,8 +217,63 @@ func (g *MQTTGateway) handleOnPublish(client *gmqtt.Client, publish *packets.Pub
 	}
 
 	info := client.UserData().(userInfo)
-	// for now, clients are not allowed to publish to any channel
+	// clients are only allowed to publish to some channels
+	if strings.HasPrefix(string(publish.TopicName), "msgpack/rtloc/") || strings.HasPrefix(string(publish.TopicName), "dev-msgpack/rtloc/") {
+		g.handleRealTimeLocationPublish(info, client, publish)
+		return false
+	}
 	g.Log.Println("Pair", info.Pair.Key, "attempted publishing and will be disconnected")
 	client.Close()
 	return false
+}
+
+func (g *MQTTGateway) handleRealTimeLocationPublish(info userInfo, client *gmqtt.Client, publish *packets.Publish) {
+	var request payloadRealtimeLocation
+	err := msgpack.Unmarshal(publish.Payload, &request)
+	if err != nil {
+		g.Log.Println(err)
+		return
+	}
+
+	tx, err := g.Node.Beginx()
+	if err != nil {
+		g.Log.Println(err)
+		return
+	}
+	defer tx.Commit() // read-only tx
+
+	station, err := dataobjects.GetStation(tx, request.StationID)
+	if err != nil {
+		g.Log.Println(err)
+		return
+	}
+
+	lines, err := station.Lines(tx)
+	if err != nil {
+		g.Log.Println(err)
+		return
+	}
+
+	if g.statsHandler != nil {
+		if request.DirectionID == "" {
+			g.statsHandler.RegisterActivity(lines, info.Pair, true)
+		} else {
+			g.statsHandler.RegisterActivity(lines, info.Pair, false)
+		}
+	}
+
+	if g.vehicleHandler != nil {
+		if request.DirectionID != "" {
+			direction, err := dataobjects.GetStation(tx, request.DirectionID)
+			if err != nil {
+				g.Log.Println(err)
+				return
+			}
+
+			g.vehicleHandler.RegisterTrainPassenger(station, direction)
+			g.Log.Println("Received real-time location report through MQTT, station", station.ID, "direction", direction.ID)
+		} else {
+			g.Log.Println("Received real-time location report through MQTT, station", station.ID)
+		}
+	}
 }
