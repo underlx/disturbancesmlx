@@ -30,7 +30,7 @@ func (r *Backers) headOrGet(c *yarf.Context) error {
 		locale = "en"
 	}
 	if !funk.ContainsString(utils.SupportedLocales[:], locale) {
-		return yarf.ErrorNotFound()
+		locale = "en"
 	}
 	filename := "stationkb/" + locale + "/backers.html"
 
