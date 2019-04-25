@@ -1,11 +1,14 @@
 package mqttgateway
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"time"
 
+	"github.com/DrmagicE/gmqtt"
 	"github.com/DrmagicE/gmqtt/pkg/packets"
+	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
@@ -130,31 +133,10 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 	}
 
 	for _, station := range stations {
-		directions, err := station.Directions(tx)
+		structs, err := g.buildStructsForStation(tx, station)
 		if err != nil {
 			return err
 		}
-
-		structs := []interface{}{}
-
-		for _, direction := range directions {
-			eta, err := g.vehicleHandler.NextTrainETA(tx, station, direction)
-			if err != nil {
-				// oh well, information not available
-			} else if eta.Seconds() < 0 {
-				structs = append(structs,
-					buildVehicleETALessThanStruct(direction.ID, 35*time.Second, 30*time.Second, true))
-			} else if eta.Seconds() < 90 {
-				structs = append(structs,
-					buildVehicleETALessThanStruct(direction.ID, 35*time.Second, 2*time.Minute, false))
-			} else {
-				lower := time.Duration(eta.Seconds()*0.7) * time.Second
-				upper := time.Duration(eta.Seconds()*1.2) * time.Second
-				structs = append(structs,
-					buildVehicleETAIntervalStruct(direction.ID, 35*time.Second, lower, upper, false))
-			}
-		}
-
 		if len(structs) == 0 {
 			continue
 		}
@@ -166,5 +148,64 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 		})
 
 	}
+	return nil
+}
+
+func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *dataobjects.Station) ([]interface{}, error) {
+	structs := []interface{}{}
+
+	directions, err := station.Directions(tx)
+	if err != nil {
+		return structs, err
+	}
+
+	for _, direction := range directions {
+		eta, err := g.vehicleHandler.NextTrainETA(tx, station, direction)
+		if err != nil {
+			// oh well, information not available
+		} else if eta.Seconds() < 0 {
+			structs = append(structs,
+				buildVehicleETALessThanStruct(direction.ID, 35*time.Second, 30*time.Second, true))
+		} else if eta.Seconds() < 90 {
+			structs = append(structs,
+				buildVehicleETALessThanStruct(direction.ID, 35*time.Second, 2*time.Minute, false))
+		} else {
+			lower := time.Duration(eta.Seconds()*0.7) * time.Second
+			upper := time.Duration(eta.Seconds()*1.2) * time.Second
+			structs = append(structs,
+				buildVehicleETAIntervalStruct(direction.ID, 35*time.Second, lower, upper, false))
+		}
+	}
+	return structs, nil
+}
+
+// SendVehicleETAForStationToClient publishes, to the given client, vehicle ETAs for the specified station
+func (g *MQTTGateway) SendVehicleETAForStationToClient(client *gmqtt.Client, networkID, stationID string) error {
+	tx, err := g.Node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Commit() // read-only tx
+
+	station, err := dataobjects.GetStation(tx, stationID)
+	if err != nil {
+		return err
+	}
+
+	if station.Network.ID != networkID {
+		return errors.New("Mismatch between expected network ID and station ID")
+	}
+
+	structs, err := g.buildStructsForStation(tx, station)
+	if err != nil || len(structs) == 0 {
+		return err
+	}
+
+	g.server.Publish(&packets.Publish{
+		Qos:       packets.QOS_0,
+		TopicName: []byte(fmt.Sprintf("dev-msgpack/vehicleeta/%s/%s", station.Network.ID, station.ID)),
+		Payload:   buildVehicleETAPayload(structs...),
+	}, client.ClientOptions().ClientID)
+
 	return nil
 }

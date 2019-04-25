@@ -116,22 +116,7 @@ func (g *MQTTGateway) Start() error {
 	g.server.RegisterOnConnect(g.handleOnConnect)
 	g.server.RegisterOnClose(g.handleOnClose)
 	g.server.RegisterOnPublish(g.handleOnPublish)
-
-	g.server.RegisterOnSubscribe(func(client *gmqtt.Client, topic packets.Topic) uint8 {
-		if topic.Name == "test/nosubscribe" {
-			return packets.SUBSCRIBE_FAILURE
-		}
-		if client.UserData() != nil {
-			info := client.UserData().(userInfo)
-			g.Log.Println("Pair", info.Pair.Key, "subscribed to", topic.Name)
-			g.Log.Println("Current subscriptions:")
-			subs := g.server.Monitor.ClientSubscriptions(client.ClientOptions().ClientID)
-			for _, sub := range subs {
-				g.Log.Println("  " + sub.Name)
-			}
-		}
-		return topic.Qos
-	})
+	g.server.RegisterOnSubscribe(g.handleOnSubscribe)
 
 	g.server.Run()
 
@@ -201,6 +186,36 @@ func (g *MQTTGateway) handleOnClose(client *gmqtt.Client, err error) {
 	}
 	info := client.UserData().(userInfo)
 	g.Log.Println("Pair", info.Pair.Key, "disconnected from the MQTT gateway after being connected for", time.Now().Sub(info.ConnectTime))
+}
+
+func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topic) uint8 {
+	if topic.Name == "test/nosubscribe" {
+		return packets.SUBSCRIBE_FAILURE
+	}
+	if client.UserData() != nil {
+		info := client.UserData().(userInfo)
+		g.Log.Println("Pair", info.Pair.Key, "subscribed to", topic.Name)
+		g.Log.Println("Current subscriptions:")
+		subs := g.server.Monitor.ClientSubscriptions(client.ClientOptions().ClientID)
+		for _, sub := range subs {
+			g.Log.Println("  " + sub.Name)
+		}
+		g.Log.Println("  " + topic.Name)
+
+		if /*strings.HasPrefix(topic.Name, "msgpack/vehicleeta/") ||*/ strings.HasPrefix(topic.Name, "dev-msgpack/vehicleeta/") {
+			parts := strings.Split(topic.Name, "/")
+			if len(parts) == 4 {
+				go func() {
+					time.Sleep(1 * time.Second)
+					err := g.SendVehicleETAForStationToClient(client, parts[2], parts[3])
+					if err != nil {
+						g.Log.Println(err)
+					}
+				}()
+			}
+		}
+	}
+	return topic.Qos
 }
 
 type payloadRealtimeLocation struct {
