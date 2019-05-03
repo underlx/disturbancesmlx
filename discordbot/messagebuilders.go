@@ -743,6 +743,7 @@ func buildPosPlayXPMessage(m *discordgo.MessageCreate) (*Embed, error) {
 		embed = NewEmbed().
 			SetTitle(fmt.Sprintf("<:posplay:499252980273381376> **%s** no PosPlay", info.Username)).
 			SetDescription(desc).
+			SetURL(info.ProfileURL).
 			SetThumbnail(info.AvatarURL)
 		if info.RankThisWeek > 0 {
 			embed.AddField("Esta semana", fmt.Sprintf("%d XP - **%d**º lugar", info.XPthisWeek, info.RankThisWeek))

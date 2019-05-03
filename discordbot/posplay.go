@@ -71,6 +71,7 @@ type PosPlayBridge struct {
 // PosPlayXPInfo contains information for the $xp command
 type PosPlayXPInfo struct {
 	Username      string
+	ProfileURL    string
 	AvatarURL     string
 	Level         int
 	LevelProgress float64

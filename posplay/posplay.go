@@ -465,6 +465,7 @@ func playerXPinfoWithTx(tx sqalx.Node, userID string) (discordbot.PosPlayXPInfo,
 	}
 	return discordbot.PosPlayXPInfo{
 		Username:      username,
+		ProfileURL:    config.PathPrefix + "/users/" + uidConvI(player.DiscordID),
 		AvatarURL:     avatar,
 		Level:         level,
 		LevelProgress: progress,
