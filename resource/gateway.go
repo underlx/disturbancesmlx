@@ -4,6 +4,9 @@ import (
 	"github.com/yarf-framework/yarf"
 )
 
+// EnableMQTTGateway controls whether clients are informed about the MQTT gateway
+var EnableMQTTGateway = true
+
 // Gateway composites resource
 // Gateways are the UnderLX's form of real-time communication between server and clients
 // They are used to support communication paradigms that are poorly supported by conventional HTTP,
@@ -44,16 +47,18 @@ func (r *Gateway) RegisterMQTTGateway(mqtt MQTTGatewayInfoProvider) *Gateway {
 // Get serves HTTP GET requests on this resource
 func (r *Gateway) Get(c *yarf.Context) error {
 	data := []interface{}{}
-	for _, g := range r.mqttGateways {
-		data = append(data, apiMQTTGateway{
-			apiGateway: apiGateway{
-				Protocol: "mqtt",
-			},
-			Host:        g.Hostname(),
-			Port:        g.Port(),
-			MqttVersion: g.MQTTVersion(),
-			TLS:         g.IsTLS(),
-		})
+	if EnableMQTTGateway {
+		for _, g := range r.mqttGateways {
+			data = append(data, apiMQTTGateway{
+				apiGateway: apiGateway{
+					Protocol: "mqtt",
+				},
+				Host:        g.Hostname(),
+				Port:        g.Port(),
+				MqttVersion: g.MQTTVersion(),
+				TLS:         g.IsTLS(),
+			})
+		}
 	}
 
 	RenderData(c, data, "s-maxage=10")

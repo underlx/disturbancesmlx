@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/underlx/disturbancesmlx/ankiddie"
+	"github.com/underlx/disturbancesmlx/resource"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -164,4 +165,26 @@ func (r *BotCommandReceiver) SendCommandMetaBroadcast(versionFilter, localeFilte
 // GetAnkiddie returns a reference to the global Ankiddie system
 func (r *BotCommandReceiver) GetAnkiddie() *ankiddie.Ankiddie {
 	return kiddie
+}
+
+// SetMQTTGatewayEnabled enables or disables the MQTT gateway
+func (r *BotCommandReceiver) SetMQTTGatewayEnabled(enabled bool) string {
+	if resource.EnableMQTTGateway == enabled {
+		return "already"
+	}
+	if enabled {
+		err := mqttGateway.Start()
+		if err != nil {
+			mainLog.Println(err)
+			return err.Error()
+		}
+	} else {
+		err := mqttGateway.Stop()
+		if err != nil {
+			mainLog.Println(err)
+			return err.Error()
+		}
+	}
+	resource.EnableMQTTGateway = enabled
+	return "ok"
 }

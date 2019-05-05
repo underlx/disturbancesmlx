@@ -252,6 +252,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("scraper", handleControlScraper).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("notifs", handleControlNotifs).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("russia", handleRUSSIA).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("mqtt", handleMQTT).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendbroadcast", handleSendBroadcast).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendcommand", handleSendCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendtochannel", handleSendToChannel).WithRequirePrivilege(PrivilegeAdmin))
@@ -648,6 +649,32 @@ func handleRUSSIA(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 		return
 	}
 
+}
+
+func handleMQTT(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {
+	if len(words) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+
+	var result string
+	switch words[0] {
+	case "enable":
+		result = cmdReceiver.SetMQTTGatewayEnabled(true)
+	case "disable":
+		result = cmdReceiver.SetMQTTGatewayEnabled(false)
+	default:
+		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `enable` or `disable`")
+		return
+	}
+	switch result {
+	case "ok":
+		s.ChannelMessageSend(m.ChannelID, "✅")
+	case "already":
+		s.ChannelMessageSend(m.ChannelID, "❌ already "+words[0]+"d")
+	default:
+		s.ChannelMessageSend(m.ChannelID, "❌ "+result)
+	}
 }
 
 func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {

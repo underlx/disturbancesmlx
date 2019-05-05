@@ -51,4 +51,7 @@ type CommandReceiver interface {
 
 	// GetAnkiddie returns a reference to the global Ankiddie system
 	GetAnkiddie() *ankiddie.Ankiddie
+
+	// SetMQTTGatewayEnabled enables or disables the MQTT gateway
+	SetMQTTGatewayEnabled(enabled bool) string
 }

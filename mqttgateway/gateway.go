@@ -93,6 +93,7 @@ func New(c Config) (*MQTTGateway, error) {
 // Start starts the MQTT gateway
 func (g *MQTTGateway) Start() error {
 	g.server = gmqtt.NewServer()
+	g.stopChan = make(chan interface{}, 1)
 
 	var ln net.Listener
 	var err error
