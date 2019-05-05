@@ -48,8 +48,7 @@ type Config struct {
 }
 
 type userInfo struct {
-	Pair        *dataobjects.APIPair
-	ConnectTime time.Time
+	Pair *dataobjects.APIPair
 }
 
 // New returns a new MQTTGateway with the specified settings
@@ -129,6 +128,14 @@ func (g *MQTTGateway) Start() error {
 				if err != nil {
 					g.Log.Println(err)
 				}
+
+				// disconnect clients that appear to be doing nothing
+				for _, client := range g.server.Monitor.Clients() {
+					if time.Since(client.ConnectedAt) > 30*time.Second && len(g.server.Monitor.ClientSubscriptions(client.ClientID)) == 0 {
+						g.server.Client(client.ClientID).Close()
+						g.Log.Println("Disconnected client", client.ClientID, "as it seemed idle")
+					}
+				}
 			case <-g.stopChan:
 				return
 			}
@@ -173,8 +180,7 @@ func (g *MQTTGateway) handleOnConnect(client *gmqtt.Client) (code uint8) {
 	}
 	g.Log.Println("Pair", pair.Key, "connected to the MQTT gateway")
 	client.SetUserData(userInfo{
-		Pair:        pair,
-		ConnectTime: time.Now(),
+		Pair: pair,
 	})
 	return packets.CodeAccepted
 }
@@ -185,7 +191,12 @@ func (g *MQTTGateway) handleOnClose(client *gmqtt.Client, err error) {
 		return
 	}
 	info := client.UserData().(userInfo)
-	g.Log.Println("Pair", info.Pair.Key, "disconnected from the MQTT gateway after being connected for", time.Now().Sub(info.ConnectTime))
+	minfo, ok := g.server.Monitor.GetClient(client.ClientOptions().ClientID)
+	if !ok {
+		g.Log.Println("Client not present in monitor disconnected from the MQTT gateway")
+		return
+	}
+	g.Log.Println("Pair", info.Pair.Key, "disconnected from the MQTT gateway after being connected for", time.Now().Sub(minfo.ConnectedAt))
 }
 
 func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topic) uint8 {
