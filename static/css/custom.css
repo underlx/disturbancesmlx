@@ -636,3 +636,14 @@ ul.exit-list > li.stairs::before {
 .achievement-box:hover {
   background-color: #eee;
 }
+
+.leaderboard-snip-row {
+  height: 5px;
+  background: repeating-linear-gradient(
+    135deg,
+    #cbcbcb,
+    #cbcbcb 5px,
+    #e0e0e0 5px,
+    #e0e0e0 10px
+  );
+}
