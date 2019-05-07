@@ -48,7 +48,8 @@ type Config struct {
 }
 
 type userInfo struct {
-	Pair *dataobjects.APIPair
+	Pair        *dataobjects.APIPair
+	ConnectedAt time.time
 }
 
 // New returns a new MQTTGateway with the specified settings
@@ -181,7 +182,8 @@ func (g *MQTTGateway) handleOnConnect(client *gmqtt.Client) (code uint8) {
 	}
 	g.Log.Println("Pair", pair.Key, "connected to the MQTT gateway")
 	client.SetUserData(userInfo{
-		Pair: pair,
+		Pair:        pair,
+		ConnectedAt: time.Now(),
 	})
 	return packets.CodeAccepted
 }
@@ -192,12 +194,7 @@ func (g *MQTTGateway) handleOnClose(client *gmqtt.Client, err error) {
 		return
 	}
 	info := client.UserData().(userInfo)
-	minfo, ok := g.server.Monitor.GetClient(client.ClientOptions().ClientID)
-	if !ok {
-		g.Log.Println("Client not present in monitor disconnected from the MQTT gateway")
-		return
-	}
-	g.Log.Println("Pair", info.Pair.Key, "disconnected from the MQTT gateway after being connected for", time.Now().Sub(minfo.ConnectedAt))
+	g.Log.Println("Pair", info.Pair.Key, "disconnected from the MQTT gateway after being connected for", time.Now().Sub(info.ConnectedAt))
 }
 
 func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topic) uint8 {
