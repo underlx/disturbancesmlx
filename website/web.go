@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/pprof"
 	"strconv"
 	"strings"
 	"text/template"
@@ -102,6 +103,13 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/dotAccount64Logo.png", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/img/logo.png")
 	})
+
+	router.HandleFunc("/debug/pprof/", pprof.Index)
+	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	router.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	router.PathPrefix("/debug/pprof/").HandlerFunc(pprof.Index)
 
 	if DEBUG {
 		router.Use(templateReloadingMiddleware)

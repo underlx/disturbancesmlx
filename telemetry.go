@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime"
 	"time"
 
 	cache "github.com/patrickmn/go-cache"
@@ -27,12 +28,6 @@ func StatsSender() {
 		mainLog.Fatal("statsd address/prefix not present in telemetry keybox")
 	}
 
-	network, err := dataobjects.GetNetwork(rootSqalxNode, MLnetworkID)
-	if err != nil {
-		mainLog.Println(err)
-		return
-	}
-
 	c, err := statsd.New(statsd.Address(statsdAddress), statsd.Prefix(statsdPrefix))
 	if err != nil {
 		// If nothing is listening on the target port, an error is returned and
@@ -47,9 +42,6 @@ func StatsSender() {
 	for {
 		select {
 		case <-ticker.C:
-			// this one stays here for compatibility
-			c.Gauge("online_in_transit", statsHandler.OITInNetwork(network, 0))
-
 			statsHandler.RangeNetworks(rootSqalxNode, func(n *dataobjects.Network, cache *cache.Cache) bool {
 				c.Gauge("online_in_transit_"+n.ID, statsHandler.OITInNetwork(n, 0))
 				return true
@@ -61,6 +53,25 @@ func StatsSender() {
 				c.Gauge("report_threshold_"+l.ID, reportHandler.GetThresholdForLine(l))
 				return true
 			})
+
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
+
+			c.Gauge("profiling.mem.alloc", m.Alloc)
+			c.Gauge("profiling.mem.totalalloc", m.TotalAlloc)
+			c.Gauge("profiling.mem.sys", m.Sys)
+			c.Gauge("profiling.mem.pausetotalns", m.PauseTotalNs)
+			c.Gauge("profiling.mem.heapobjects", m.HeapObjects)
+			c.Gauge("profiling.mem.mallocs", m.Mallocs)
+			c.Gauge("profiling.mem.frees", m.Frees)
+
+			c.Gauge("profiling.goroutines", runtime.NumGoroutine())
+
+			dbStats := rdb.Stats()
+			c.Gauge("profiling.db.openconnections", dbStats.OpenConnections)
+			c.Gauge("profiling.db.inuse", dbStats.InUse)
+			c.Gauge("profiling.db.idle", dbStats.Idle)
+
 		case <-APIrequestTelemetry:
 			c.Increment("apicalls")
 		}
