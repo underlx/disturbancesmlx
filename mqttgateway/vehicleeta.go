@@ -6,8 +6,8 @@ import (
 	"math"
 	"time"
 
-	"github.com/DrmagicE/gmqtt"
-	"github.com/DrmagicE/gmqtt/pkg/packets"
+	"github.com/gbl08ma/gmqtt"
+	"github.com/gbl08ma/gmqtt/pkg/packets"
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"gopkg.in/vmihailenco/msgpack.v2"

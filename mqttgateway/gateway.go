@@ -13,8 +13,8 @@ import (
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/vmihailenco/msgpack"
 
-	"github.com/DrmagicE/gmqtt"
-	"github.com/DrmagicE/gmqtt/pkg/packets"
+	"github.com/gbl08ma/gmqtt"
+	"github.com/gbl08ma/gmqtt/pkg/packets"
 	"github.com/gbl08ma/keybox"
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"

@@ -144,4 +144,4 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/DrmagicE/gmqtt"
+  name = "github.com/gbl08ma/gmqtt"
