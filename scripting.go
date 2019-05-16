@@ -3,6 +3,8 @@ package main
 import (
 	"reflect"
 
+	"github.com/underlx/disturbancesmlx/scraper"
+
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/ankiddie"
 	"github.com/underlx/disturbancesmlx/compute"
@@ -78,6 +80,9 @@ func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 	}
 	packages["underlx"]["MQTTGateway"] = func() *mqttgateway.MQTTGateway {
 		return mqttGateway
+	}
+	packages["underlx"]["ContestScraper"] = func() scraper.AnnouncementScraper {
+		return contestscr
 	}
 
 	discordbot.AnkoPackageConfigurator(packages, packageTypes)

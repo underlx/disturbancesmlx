@@ -12,6 +12,7 @@ import (
 
 // PPLeaderboardEntry represents a PosPlay leaderboard entry
 type PPLeaderboardEntry struct {
+	RowNum   int
 	Position int
 	Player   *PPPlayer
 	Score    int
@@ -45,7 +46,7 @@ func PPLeaderboardBetween(node sqalx.Node, start, end time.Time, size int, showN
 			strings.Join(mustIDs, ", "))
 	}
 
-	query += `SELECT discord_id, s, position
+	query += `SELECT discord_id, s, position, rownum
 	FROM lb
 	WHERE rownum <= $3`
 
@@ -64,7 +65,7 @@ func PPLeaderboardBetween(node sqalx.Node, start, end time.Time, size int, showN
 	for rows.Next() {
 		var discordID uint64
 		entry := PPLeaderboardEntry{}
-		err := rows.Scan(&discordID, &entry.Score, &entry.Position)
+		err := rows.Scan(&discordID, &entry.Score, &entry.Position, &entry.RowNum)
 		if err != nil {
 			return entries, err
 		}

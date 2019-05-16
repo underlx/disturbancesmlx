@@ -49,7 +49,7 @@ type Config struct {
 
 type userInfo struct {
 	Pair        *dataobjects.APIPair
-	ConnectedAt time.time
+	ConnectedAt time.Time
 }
 
 // New returns a new MQTTGateway with the specified settings

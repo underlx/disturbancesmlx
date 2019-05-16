@@ -157,3 +157,8 @@ func handleControlNotifs(notiftype string, enable bool) {
 		enableAnnouncementNotifs = enable
 	}
 }
+
+// SendNotificationForContest does nothing (stub method to be overriden on runtime by our awesome scripting system)
+func SendNotificationForContest(a *dataobjects.Announcement) {
+
+}

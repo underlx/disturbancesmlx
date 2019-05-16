@@ -17,6 +17,7 @@ var Functions = map[string]reflect.Value{
 	"DiscordBot":                      reflect.ValueOf(DiscordBot),
 	"SendMetaBroadcast":               reflect.ValueOf(SendMetaBroadcast),
 	"SendNotificationForAnnouncement": reflect.ValueOf(SendNotificationForAnnouncement),
+	"SendNotificationForContest":      reflect.ValueOf(SendNotificationForContest),
 	"SendNotificationForDisturbance":  reflect.ValueOf(SendNotificationForDisturbance),
 	"SendPersonalNotification":        reflect.ValueOf(SendPersonalNotification),
 	"SetUpAnnouncements":              reflect.ValueOf(SetUpAnnouncements),

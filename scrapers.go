@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	mlxscr    scraper.StatusScraper
-	rssmlxscr scraper.AnnouncementScraper
-	fbmlxscr  scraper.AnnouncementScraper
+	mlxscr     scraper.StatusScraper
+	rssmlxscr  scraper.AnnouncementScraper
+	fbmlxscr   scraper.AnnouncementScraper
+	contestscr scraper.AnnouncementScraper
 
 	scrapers = make(map[string]scraper.Scraper)
 )
@@ -135,38 +136,46 @@ func TearDownScrapers() {
 // SetUpAnnouncements sets up the scrapers used to obtain network announcements
 func SetUpAnnouncements(facebookAccessToken string) {
 	network, err := dataobjects.GetNetwork(rootSqalxNode, MLnetworkID)
+	if err != nil {
+		mainLog.Println(err)
+		return
+	}
 
 	rssl := log.New(os.Stdout, "rssscraper", log.Ldate|log.Ltime)
-	if err != nil {
-		mainLog.Println(err)
-	} else {
-		rssmlxscr = &mlxscraper.RSSScraper{
-			URL:     network.NewsURL,
-			Network: network,
-			Period:  1 * time.Minute,
-		}
-		rssmlxscr.Init(rssl, SendNotificationForAnnouncement)
-		rssmlxscr.Begin()
-		scrapers[rssmlxscr.ID()] = rssmlxscr
-
-		annStore.AddScraper(rssmlxscr)
+	rssmlxscr = &mlxscraper.RSSScraper{
+		URL:     network.NewsURL,
+		Network: network,
+		Period:  1 * time.Minute,
 	}
+	rssmlxscr.Init(rssl, SendNotificationForAnnouncement)
+	rssmlxscr.Begin()
+	scrapers[rssmlxscr.ID()] = rssmlxscr
+
+	annStore.AddScraper(rssmlxscr)
 
 	fbl := log.New(os.Stdout, "fbscraper", log.Ldate|log.Ltime)
-	if err != nil {
-		mainLog.Println(err)
-	} else {
-		fbmlxscr = &mlxscraper.FacebookScraper{
-			AccessToken: facebookAccessToken,
-			Network:     network,
-			Period:      1 * time.Minute,
-		}
-		fbmlxscr.Init(fbl, SendNotificationForAnnouncement)
-		fbmlxscr.Begin()
-		scrapers[fbmlxscr.ID()] = fbmlxscr
-
-		annStore.AddScraper(fbmlxscr)
+	fbmlxscr = &mlxscraper.FacebookScraper{
+		AccessToken: facebookAccessToken,
+		Network:     network,
+		Period:      1 * time.Minute,
 	}
+	fbmlxscr.Init(fbl, SendNotificationForAnnouncement)
+	fbmlxscr.Begin()
+	scrapers[fbmlxscr.ID()] = fbmlxscr
+
+	annStore.AddScraper(fbmlxscr)
+
+	// contest scraper - not really connected to the general announcements framework for now
+	contestl := log.New(os.Stdout, "contestscraper", log.Ldate|log.Ltime)
+
+	contestscr = &mlxscraper.RSSScraper{
+		URL:     "https://passatempos.metrolisboa.pt/feed/",
+		Network: network,
+		Period:  5 * time.Minute,
+	}
+	contestscr.Init(contestl, SendNotificationForAnnouncement)
+	contestscr.Begin()
+	scrapers[contestscr.ID()] = contestscr
 }
 
 // TearDownAnnouncements terminates and cleans up the scrapers used to obtain network announcements
@@ -176,6 +185,9 @@ func TearDownAnnouncements() {
 	}
 	if fbmlxscr != nil {
 		fbmlxscr.End()
+	}
+	if contestscr != nil {
+		contestscr.End()
 	}
 }
 

@@ -19,7 +19,7 @@
   <tbody>
     {{ $includedSelf := not .Self }}
     {{ $includedHighlight := not .Highlight }}
-    {{ $prevPos := -1 }}
+    {{ $prevRowNum := -1 }}
     {{ range $entry := .Entries }}
       {{ $isHighlight := false}}
       {{ if $.Highlight }}
@@ -35,13 +35,13 @@
       {{ if $isHighlight }}
         {{ $includedHighlight = true }}
       {{end}}
-      {{ if (gt $entry.Position 0 )}}
-      {{ if (and (gt $prevPos 0) (gt $entry.Position (plus $prevPos 1)) ) }}
+      {{ if (gt $entry.RowNum 0 )}}
+      {{ if (and (gt $prevRowNum 0) (gt $entry.RowNum (plus $prevRowNum 1)) ) }}
         <tr class="leaderboard-snip-row">
           <td colspan="3" style="padding: 0;"></td>
         </tr>
       {{end}}
-      {{ $prevPos = $entry.Position }}
+      {{ $prevRowNum = $entry.RowNum }}
       <tr {{if $isHighlight }}style="background-color: #d3eda3;"{{ else if $isSelf }}style="background-color: rgb(255, 234, 133);"{{end}}>
         <td style="white-space: nowrap;">{{ $entry.Position }}º</td>
         <td>
