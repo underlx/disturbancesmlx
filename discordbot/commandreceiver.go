@@ -54,4 +54,7 @@ type CommandReceiver interface {
 
 	// SetMQTTGatewayEnabled enables or disables the MQTT gateway
 	SetMQTTGatewayEnabled(enabled bool) string
+
+	// SendMQTTGatewayCommand sends a command to the MQTT subsystem
+	SendMQTTGatewayCommand(command string, args ...string) string
 }

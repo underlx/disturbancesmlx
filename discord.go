@@ -188,3 +188,8 @@ func (r *BotCommandReceiver) SetMQTTGatewayEnabled(enabled bool) string {
 	resource.EnableMQTTGateway = enabled
 	return "ok"
 }
+
+// SendMQTTGatewayCommand sends a command to the MQTT subsystem
+func (r *BotCommandReceiver) SendMQTTGatewayCommand(command string, args ...string) string {
+	return mqttGateway.HandleControlCommand(command, args...)
+}

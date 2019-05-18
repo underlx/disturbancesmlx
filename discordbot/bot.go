@@ -663,8 +663,16 @@ func handleMQTT(s *discordgo.Session, m *discordgo.MessageCreate, words []string
 		result = cmdReceiver.SetMQTTGatewayEnabled(true)
 	case "disable":
 		result = cmdReceiver.SetMQTTGatewayEnabled(false)
+	case "command":
+		if len(words) < 2 {
+			s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+			return
+		}
+		result = cmdReceiver.SendMQTTGatewayCommand(words[1], words[2:]...)
+		s.ChannelMessageSend(m.ChannelID, result)
+		return
 	default:
-		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `enable` or `disable`")
+		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `enable`, `disable` or `command`")
 		return
 	}
 	switch result {

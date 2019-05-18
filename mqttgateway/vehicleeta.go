@@ -121,6 +121,9 @@ func buildVehicleETAPayload(structs ...interface{}) []byte {
 
 // SendVehicleETAs publishes vehicle ETAs for all stations and directions in the respective topics
 func (g *MQTTGateway) SendVehicleETAs() error {
+	if g.etaAvailability == "none" || g.etaAvailability == "" {
+		return nil
+	}
 	tx, err := g.Node.Beginx()
 	if err != nil {
 		return err
@@ -141,11 +144,20 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 			continue
 		}
 
+		payload := buildVehicleETAPayload(structs...)
 		g.server.Publish(&packets.Publish{
 			Qos:       packets.QOS_0,
 			TopicName: []byte(fmt.Sprintf("dev-msgpack/vehicleeta/%s/%s", station.Network.ID, station.ID)),
-			Payload:   buildVehicleETAPayload(structs...),
+			Payload:   payload,
 		})
+
+		if g.etaAvailability == "all" {
+			g.server.Publish(&packets.Publish{
+				Qos:       packets.QOS_0,
+				TopicName: []byte(fmt.Sprintf("msgpack/vehicleeta/%s/%s", station.Network.ID, station.ID)),
+				Payload:   payload,
+			})
+		}
 
 	}
 	return nil

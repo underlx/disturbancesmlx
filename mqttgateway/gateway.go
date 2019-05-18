@@ -22,16 +22,17 @@ import (
 
 // MQTTGateway is a real-time gateway that uses the MQTT protocol
 type MQTTGateway struct {
-	Log            *log.Logger
-	Node           sqalx.Node
-	vehicleHandler *compute.VehicleHandler
-	statsHandler   *compute.StatsHandler
-	listenAddr     string
-	publicHost     string
-	publicPort     int
-	tlsCertPath    string
-	tlsKeyPath     string
-	authHashKey    []byte
+	Log             *log.Logger
+	Node            sqalx.Node
+	vehicleHandler  *compute.VehicleHandler
+	statsHandler    *compute.StatsHandler
+	listenAddr      string
+	publicHost      string
+	publicPort      int
+	tlsCertPath     string
+	tlsKeyPath      string
+	authHashKey     []byte
+	etaAvailability string
 
 	server   *gmqtt.Server
 	stopChan chan interface{}
@@ -55,12 +56,13 @@ type userInfo struct {
 // New returns a new MQTTGateway with the specified settings
 func New(c Config) (*MQTTGateway, error) {
 	g := &MQTTGateway{
-		Log:            c.Log,
-		Node:           c.Node,
-		vehicleHandler: c.VehicleHandler,
-		statsHandler:   c.StatsHandler,
-		authHashKey:    c.AuthHashKey,
-		stopChan:       make(chan interface{}, 1),
+		Log:             c.Log,
+		Node:            c.Node,
+		vehicleHandler:  c.VehicleHandler,
+		statsHandler:    c.StatsHandler,
+		authHashKey:     c.AuthHashKey,
+		stopChan:        make(chan interface{}, 1),
+		etaAvailability: "dev",
 	}
 	var present, present2 bool
 	g.listenAddr, present = c.Keybox.Get("listenAddr")
@@ -173,6 +175,26 @@ func (g *MQTTGateway) Stop() error {
 	return g.server.Stop(context.Background())
 }
 
+// HandleControlCommand handles a human-issued command to control the behavior of the gateway
+// It returns a human-readable with the result
+func (g *MQTTGateway) HandleControlCommand(command string, args ...string) string {
+	switch command {
+	case "setETAavailability":
+		if len(args) != 1 {
+			return "Invalid number of arguments"
+		}
+		if args[0] != "all" && args[0] != "none" && args[0] != "dev" {
+			return "Argument must be one of `all`, `none` or `dev`"
+		}
+		g.etaAvailability = args[0]
+		fallthrough
+	case "getETAavailability":
+		return "Vehicle ETA availability set to `" + g.etaAvailability + "`"
+	default:
+		return "Unknown MQTT control command `" + command + "`. Supported commands: `setETAavailability`, `getETAavailability`"
+	}
+}
+
 func (g *MQTTGateway) handleOnConnect(client *gmqtt.Client) (code uint8) {
 	key := client.ClientOptions().Username
 	secret := client.ClientOptions().Password
@@ -211,17 +233,28 @@ func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topi
 		}
 		g.Log.Println("  " + topic.Name)
 
-		if /*strings.HasPrefix(topic.Name, "msgpack/vehicleeta/") ||*/ strings.HasPrefix(topic.Name, "dev-msgpack/vehicleeta/") {
-			parts := strings.Split(topic.Name, "/")
-			if len(parts) == 4 {
-				go func() {
-					time.Sleep(1 * time.Second)
-					err := g.SendVehicleETAForStationToClient(client, parts[2], parts[3])
-					if err != nil {
-						g.Log.Println(err)
-					}
-				}()
+		switch g.etaAvailability {
+		case "all":
+			if !strings.HasPrefix(topic.Name, "msgpack/vehicleeta/") && !strings.HasPrefix(topic.Name, "dev-msgpack/vehicleeta/") {
+				return topic.Qos
 			}
+		case "dev":
+			if !strings.HasPrefix(topic.Name, "dev-msgpack/vehicleeta/") {
+				return topic.Qos
+			}
+		default:
+			return topic.Qos
+		}
+
+		parts := strings.Split(topic.Name, "/")
+		if len(parts) == 4 {
+			go func() {
+				time.Sleep(1 * time.Second)
+				err := g.SendVehicleETAForStationToClient(client, parts[2], parts[3])
+				if err != nil {
+					g.Log.Println(err)
+				}
+			}()
 		}
 	}
 	return topic.Qos
