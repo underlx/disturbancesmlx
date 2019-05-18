@@ -250,7 +250,7 @@ func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topi
 		if len(parts) == 4 {
 			go func() {
 				time.Sleep(1 * time.Second)
-				err := g.SendVehicleETAForStationToClient(client, parts[2], parts[3])
+				err := g.SendVehicleETAForStationToClient(client, topic.Name, parts[2], parts[3])
 				if err != nil {
 					g.Log.Println(err)
 				}

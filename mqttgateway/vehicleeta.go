@@ -192,7 +192,7 @@ func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *dataobjects
 }
 
 // SendVehicleETAForStationToClient publishes, to the given client, vehicle ETAs for the specified station
-func (g *MQTTGateway) SendVehicleETAForStationToClient(client *gmqtt.Client, networkID, stationID string) error {
+func (g *MQTTGateway) SendVehicleETAForStationToClient(client *gmqtt.Client, topicID, networkID, stationID string) error {
 	tx, err := g.Node.Beginx()
 	if err != nil {
 		return err
@@ -215,7 +215,7 @@ func (g *MQTTGateway) SendVehicleETAForStationToClient(client *gmqtt.Client, net
 
 	g.server.Publish(&packets.Publish{
 		Qos:       packets.QOS_0,
-		TopicName: []byte(fmt.Sprintf("dev-msgpack/vehicleeta/%s/%s", station.Network.ID, station.ID)),
+		TopicName: []byte(topicID),
 		Payload:   buildVehicleETAPayload(structs...),
 	}, client.ClientOptions().ClientID)
 
