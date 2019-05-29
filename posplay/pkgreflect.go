@@ -19,6 +19,7 @@ var Types = map[string]reflect.Type{
 }
 
 var Functions = map[string]reflect.Value{
+	"BaseURL":                     reflect.ValueOf(BaseURL),
 	"ConfigureRouter":             reflect.ValueOf(ConfigureRouter),
 	"DescriptionForRarity":        reflect.ValueOf(DescriptionForRarity),
 	"DescriptionForXPTransaction": reflect.ValueOf(DescriptionForXPTransaction),

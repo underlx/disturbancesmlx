@@ -1,5 +1,5 @@
-<p><a href="/posplay/users/{{ .Player.DiscordID }}" style="color:inherit; text-decoration: inherit;"><img src="{{ .AvatarURL }}" style="width: 128px; border-radius: 50%;"></a></p>
-<a href="/posplay/users/{{ .Player.DiscordID }}" style="color:inherit; text-decoration: inherit;"><h3 style="margin: 0">{{ .Player.CachedName }}</h3></a>
+<p><a href="/users/{{ .Player.DiscordID }}" style="color:inherit; text-decoration: inherit;"><img src="{{ .AvatarURL }}" style="width: 128px; border-radius: 50%;"></a></p>
+<a href="/users/{{ .Player.DiscordID }}" style="color:inherit; text-decoration: inherit;"><h3 style="margin: 0">{{ .Player.CachedName }}</h3></a>
 <p style="margin-top: 0.5em; margin-bottom: 0.5em">
   <strong>{{ .XP }} XP</strong> - Nível <strong>{{ .Level }}</strong>
 </p>
@@ -17,15 +17,15 @@
 <div class="pure-menu" style="display: inline-block; text-align: left;">
   <ul class="pure-menu-list">
     <li class="pure-menu-heading">A sua conta</li>
-    <li class="pure-menu-item {{ if eq .SidebarSelected "home" }}pure-menu-selected{{end}}"><a href="/posplay" class="pure-menu-link">Início</a></li>
-    <li class="pure-menu-item"><a href="/posplay/users/{{ .Player.DiscordID }}" class="pure-menu-link">Perfil</a></li>
-    <li class="pure-menu-item {{ if eq .SidebarSelected "pair" }}pure-menu-selected{{end}}"><a href="/posplay/pair" class="pure-menu-link">Associar dispositivo</a></li>
-    <li class="pure-menu-item {{ if eq .SidebarSelected "settings" }}pure-menu-selected{{end}}"><a href="/posplay/settings" class="pure-menu-link">Definições</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "home" }}pure-menu-selected{{end}}"><a href="/" class="pure-menu-link">Início</a></li>
+    <li class="pure-menu-item"><a href="/users/{{ .Player.DiscordID }}" class="pure-menu-link">Perfil</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "pair" }}pure-menu-selected{{end}}"><a href="/pair" class="pure-menu-link">Associar dispositivo</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "settings" }}pure-menu-selected{{end}}"><a href="/settings" class="pure-menu-link">Definições</a></li>
     <li class="pure-menu-heading">Jogar</li>
-    <li class="pure-menu-item {{ if eq .SidebarSelected "achievements" }}pure-menu-selected{{end}}"><a href="/posplay/achievements" class="pure-menu-link">Proezas</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "achievements" }}pure-menu-selected{{end}}"><a href="/achievements" class="pure-menu-link">Proezas</a></li>
     {{ if false }}
-    <li class="pure-menu-item {{ if eq .SidebarSelected "challenges" }}pure-menu-selected{{end}}"><a href="/posplay/challenges" class="pure-menu-link">Desafios</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "challenges" }}pure-menu-selected{{end}}"><a href="/challenges" class="pure-menu-link">Desafios</a></li>
     {{end}}
-    <li class="pure-menu-item {{ if eq .SidebarSelected "leaderboards" }}pure-menu-selected{{end}}"><a href="/posplay/leaderboards" class="pure-menu-link">Classificações</a></li>
+    <li class="pure-menu-item {{ if eq .SidebarSelected "leaderboards" }}pure-menu-selected{{end}}"><a href="/leaderboards" class="pure-menu-link">Classificações</a></li>
   </ul>
 </div>

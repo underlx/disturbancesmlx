@@ -9,7 +9,7 @@ func forceLogin(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	if !redirected {
-		http.Redirect(w, r, config.PathPrefix, http.StatusTemporaryRedirect)
+		http.Redirect(w, r, BaseURL(), http.StatusTemporaryRedirect)
 	}
 }
 
@@ -27,5 +27,5 @@ func forceLogout(w http.ResponseWriter, r *http.Request) {
 	if session != nil {
 		session.Logout(r, w)
 	}
-	http.Redirect(w, r, config.PathPrefix, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, BaseURL(), http.StatusTemporaryRedirect)
 }

@@ -298,7 +298,7 @@ func settingsLikePage(w http.ResponseWriter, r *http.Request, isOnboarding bool)
 	}
 
 	if isOnboarding && p.SavedSettings {
-		http.Redirect(w, r, config.PathPrefix+"/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, BaseURL()+"/", http.StatusTemporaryRedirect)
 		return
 	} else if isOnboarding {
 		err = webtemplate.ExecuteTemplate(w, "onboarding.html", p)

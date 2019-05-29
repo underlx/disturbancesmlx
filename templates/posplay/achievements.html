@@ -8,7 +8,7 @@
         <h1>Proezas</h1>
         <p>Clique numa proeza para ver mais informações sobre a mesma.</p>
         {{ range $ach := .Achieved }}
-          <a class="pure-g achievement-box" href="/posplay/achievements/{{ $ach.ID }}">
+          <a class="pure-g achievement-box" href="/achievements/{{ $ach.ID }}">
             <div class="pure-u-3-4">
               <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
             </div>
@@ -25,7 +25,7 @@
         {{ end }}
         <div style="height: 2em"></div>
         {{ range $ach := .NonAchieved }}
-          <a class="pure-g achievement-box" {{ if ge (index $.ProgressTotal $ach.ID) 0 }}href="/posplay/achievements/{{ $ach.ID }}"{{end}}>
+          <a class="pure-g achievement-box" {{ if ge (index $.ProgressTotal $ach.ID) 0 }}href="/achievements/{{ $ach.ID }}"{{end}}>
             <div class="pure-u-3-4">
               <h3 style="margin-top: 0; margin-bottom: 0.5em">
                 {{ if lt (index $.ProgressTotal $ach.ID) 0 }}

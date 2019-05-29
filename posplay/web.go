@@ -56,6 +56,7 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/oauth/callback", callbackHandler)
 	router.HandleFunc("/welcome", onboardingPage)
 	router.HandleFunc("/privacy", privacyPolicyPage)
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 	if DEBUG {
 		router.Use(templateReloadingMiddleware)
 	}

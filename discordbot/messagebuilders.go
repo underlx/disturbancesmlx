@@ -718,7 +718,7 @@ func buildPosPlayXPMessage(m *discordgo.MessageCreate) (*Embed, error) {
 	if err != nil {
 		embed = NewEmbed().
 			SetTitle("⚠ Não é um jogador do <:posplay:499252980273381376> PosPlay").
-			SetDescription("[Inscreva-se no PosPlay](https://perturbacoes.pt/posplay/)")
+			SetDescription("[Inscreva-se no PosPlay](https://posplay.underlx.com/)")
 	} else {
 		bar := progress.NewBar(nil)
 		bar.Min = 0

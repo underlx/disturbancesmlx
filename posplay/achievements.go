@@ -89,14 +89,14 @@ func achieveAchievement(tx sqalx.Node, player *dataobjects.PPPlayer, achievement
 		if sendDiscordNotif {
 			discordbot.SendDMtoUser(uidConvI(player.DiscordID), &discordgo.MessageSend{
 				Content: fmt.Sprintf("Acabou de alcançar a proeza \"%s\"%s 👍\n%s",
-					achievement.Names[achievement.MainLocale], rewardText, config.PathPrefix+"/achievements/"+achievement.ID),
+					achievement.Names[achievement.MainLocale], rewardText, BaseURL()+"/achievements/"+achievement.ID),
 			})
 		}
 		if sendAppNotif {
 			data := map[string]string{
 				"title": fmt.Sprintf("Alcançou a proeza \"%s\"", achievement.Names[achievement.MainLocale]),
 				"body":  fmt.Sprintf("Acabou de alcançar a proeza \"%s\"%s", achievement.Names[achievement.MainLocale], rewardText),
-				"url":   config.PathPrefix + "/achievements/" + achievement.ID,
+				"url":   BaseURL() + "/achievements/" + achievement.ID,
 			}
 			config.SendAppNotification(appNotifPair, "posplay-notification", data)
 		}

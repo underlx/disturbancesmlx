@@ -56,9 +56,9 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ppsession.GoToOnboarding {
-		http.Redirect(w, r, config.PathPrefix+"/welcome", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, BaseURL()+"/welcome", http.StatusTemporaryRedirect)
 	} else {
-		http.Redirect(w, r, config.PathPrefix+"/", http.StatusTemporaryRedirect)
+		http.Redirect(w, r, BaseURL()+"/", http.StatusTemporaryRedirect)
 	}
 	tx.Commit()
 }

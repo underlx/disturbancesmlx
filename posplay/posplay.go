@@ -27,6 +27,7 @@ import (
 
 var oauthConfig *oauth2.Config
 var webtemplate *template.Template
+var websiteURL string
 
 type lightXPTXinfo struct {
 	id         string
@@ -95,7 +96,6 @@ type Config struct {
 	Log                 *log.Logger
 	Store               *sessions.CookieStore
 	Node                sqalx.Node
-	PathPrefix          string
 	GitCommit           string
 	SendAppNotification func(pair *dataobjects.APIPair, msgType string, data map[string]string)
 }
@@ -109,6 +109,13 @@ func Initialize(ppconfig Config) error {
 	gob.Register(Session{})
 
 	config = ppconfig
+
+	var present bool
+	websiteURL, present = config.Keybox.Get("websiteURL")
+	if !present {
+		return errors.New("Website URL not present in posplay keybox")
+	}
+
 	clientID, present := config.Keybox.Get("oauthClientId")
 	if !present {
 		return errors.New("OAuth client ID not present in posplay keybox")
@@ -131,7 +138,7 @@ func Initialize(ppconfig Config) error {
 	csrfMiddleware = csrf.Protect([]byte(csrfAuthKey), csrfOpts...)
 
 	oauthConfig = &oauth2.Config{
-		RedirectURL:  config.PathPrefix + "/oauth/callback",
+		RedirectURL:  BaseURL() + "/oauth/callback",
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Scopes:       []string{"identify"},
@@ -155,6 +162,11 @@ func Initialize(ppconfig Config) error {
 	go serialProcessor()
 
 	return nil
+}
+
+// BaseURL returns the base URL of the website without trailing slash
+func BaseURL() string {
+	return websiteURL
 }
 
 // RegisterTripSubmission schedules a trip submission for analysis
@@ -186,7 +198,7 @@ func RegisterEventWinCallback(userID, messageID string, XPreward int, eventType 
 	if err != nil {
 		// this user is not yet a PosPlay player
 		discordbot.SendDMtoUser(userID, &discordgo.MessageSend{
-			Content: fmt.Sprintf("Para poder receber XP por participar nos eventos no servidor de Discord do UnderLX, tem de se registar no PosPlay primeiro: " + config.PathPrefix),
+			Content: fmt.Sprintf("Para poder receber XP por participar nos eventos no servidor de Discord do UnderLX, tem de se registar no PosPlay primeiro: " + BaseURL()),
 		})
 		return false
 	}
@@ -244,7 +256,7 @@ func RegisterEventWinCallback(userID, messageID string, XPreward int, eventType 
 			data := map[string]string{
 				"title": fmt.Sprintf("Recebeu %d XP", XPreward),
 				"body":  fmt.Sprintf("Recebeu %d XP pela participação num evento no servidor de Discord do UnderLX", XPreward),
-				"url":   config.PathPrefix + "/xptx",
+				"url":   BaseURL() + "/xptx",
 			}
 			config.SendAppNotification(appNotifPair, "posplay-notification", data)
 		}
@@ -465,7 +477,7 @@ func playerXPinfoWithTx(tx sqalx.Node, userID string) (discordbot.PosPlayXPInfo,
 	}
 	return discordbot.PosPlayXPInfo{
 		Username:      username,
-		ProfileURL:    config.PathPrefix + "/users/" + uidConvI(player.DiscordID),
+		ProfileURL:    BaseURL() + "/users/" + uidConvI(player.DiscordID),
 		AvatarURL:     avatar,
 		Level:         level,
 		LevelProgress: progress,

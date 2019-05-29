@@ -21,13 +21,13 @@
       <div class="pure-u-1">
         <h2>Este perfil é privado</h2>
         {{ if not .Player }}
-        <p>Poderá passar a ter acesso a ele se <a href="/posplay/login">iniciar sessão</a>.</p>
+        <p>Poderá passar a ter acesso a ele se <a href="/login">iniciar sessão</a>.</p>
         {{end}}
       </div>
 {{else}}
       <div class="pure-u-1">
         {{ if eq .ProfilePlayer.ProfilePrivacy "PRIVATE" }}
-        <p><em>Os outros jogadores não vêem estas informações - <a href="/posplay/settings">definições</a>.</em></p>
+        <p><em>Os outros jogadores não vêem estas informações - <a href="/settings">definições</a>.</em></p>
         {{end}}
         <h2 style="margin-bottom: 0;">Classificações</h2>
         <div class="pure-g">
@@ -49,7 +49,7 @@
         <div class="pure-g">
           {{ range $ach := .Achieved }}
           <div class="pure-u-1 pure-u-md-1-2"><div style="padding-left: 1em; padding-right: 1em;">
-            <a class="pure-g achievement-box" href="/posplay/achievements/{{ $ach.ID }}">
+            <a class="pure-g achievement-box" href="/achievements/{{ $ach.ID }}">
               <div class="pure-u-3-4">
                 <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
               </div>
@@ -64,7 +64,7 @@
           </div></div>
           {{ end }}
         </div>
-        <p style="text-align: center;"><a class="pure-button" href="/posplay/users/{{ .ProfilePlayer.DiscordID }}/achievements">Ver todas as proezas alcançadas por {{ .ProfilePlayer.CachedName }}</a></p>
+        <p style="text-align: center;"><a class="pure-button" href="/users/{{ .ProfilePlayer.DiscordID }}/achievements">Ver todas as proezas alcançadas por {{ .ProfilePlayer.CachedName }}</a></p>
         {{else}}
         <p>Nenhuma proeza alcançada.</p>
         {{end}}

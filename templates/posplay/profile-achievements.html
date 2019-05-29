@@ -21,20 +21,20 @@
       <div class="pure-u-1">
         <h2>Este perfil é privado</h2>
         {{ if not .Player }}
-        <p>Poderá passar a ter acesso a ele se <a href="/posplay/login">iniciar sessão</a>.</p>
+        <p>Poderá passar a ter acesso a ele se <a href="/login">iniciar sessão</a>.</p>
         {{end}}
       </div>
 {{else}}
       <div class="pure-u-1">
         {{ if eq .ProfilePlayer.ProfilePrivacy "PRIVATE" }}
-        <p><em>Os outros jogadores não vêem estas informações - <a href="/posplay/settings">definições</a>.</em></p>
+        <p><em>Os outros jogadores não vêem estas informações - <a href="/settings">definições</a>.</em></p>
         {{end}}
         <h2 style="margin-bottom: 0;">Proezas</h2>
         {{ if gt (len .Achieved) 0 }}
         <div class="pure-g">
           {{ range $ach := .Achieved }}
           <div class="pure-u-1">
-            <a class="pure-g achievement-box" href="/posplay/achievements/{{ $ach.ID }}">
+            <a class="pure-g achievement-box" href="/achievements/{{ $ach.ID }}">
               <div class="pure-u-3-4">
                 <h3 style="margin-top: 0; margin-bottom: 0.5em">{{ index $ach.Names $ach.MainLocale }}</h3>
               </div>

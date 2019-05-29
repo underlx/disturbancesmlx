@@ -28,17 +28,21 @@ func WebServer() {
 	}
 
 	// PosPlay sub-website
-	posplay.Initialize(posplay.Config{
+	posplayRouter := mux.NewRouter().StrictSlash(true)
+	err := posplay.Initialize(posplay.Config{
 		Keybox:              posplayKeybox,
 		Log:                 posplayLog,
 		Store:               website.SessionStore(),
 		Node:                rootSqalxNode,
-		PathPrefix:          website.BaseURL() + "/posplay",
 		GitCommit:           GitCommit,
 		SendAppNotification: SendPersonalNotification})
+	if err != nil {
+		posplayLog.Fatal(err)
+	}
 
 	// this order is important. see https://github.com/gorilla/mux/issues/411 (still open at the time of writing)
-	posplay.ConfigureRouter(router.PathPrefix("/posplay").Subrouter())
+	//posplay.ConfigureRouter(router.PathPrefix("/posplay").Subrouter())
+	posplay.ConfigureRouter(posplayRouter.PathPrefix("/").Subrouter())
 	website.ConfigureRouter(router.PathPrefix("/").Subrouter())
 
 	channel, present := webKeybox.Get("discordInviteChannel")
@@ -53,12 +57,25 @@ func WebServer() {
 		Addr:    ":8089",
 		Handler: router,
 	}
-
-	err := server.ListenAndServe()
-	if err != nil {
-		webLog.Println(err)
+	ppserver := http.Server{
+		Addr:    ":8092",
+		Handler: posplayRouter,
 	}
-	webLog.Println("Web server terminated")
+
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			webLog.Println(err)
+		}
+		webLog.Println("Web server terminated")
+	}()
+	go func() {
+		err := ppserver.ListenAndServe()
+		if err != nil {
+			posplayLog.Println(err)
+		}
+		webLog.Println("PosPlay web server terminated")
+	}()
 }
 
 func inviteHandler(channelID, fallbackInviteURL string) func(w http.ResponseWriter, r *http.Request) {
