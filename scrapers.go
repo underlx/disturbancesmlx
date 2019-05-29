@@ -173,7 +173,7 @@ func SetUpAnnouncements(facebookAccessToken string) {
 		Network: network,
 		Period:  5 * time.Minute,
 	}
-	contestscr.Init(contestl, SendNotificationForAnnouncement)
+	contestscr.Init(contestl, SendNotificationForContest)
 	contestscr.Begin()
 	scrapers[contestscr.ID()] = contestscr
 }
