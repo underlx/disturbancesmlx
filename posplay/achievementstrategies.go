@@ -9,6 +9,7 @@ import (
 	"github.com/thoas/go-funk"
 
 	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/website"
 )
 
 func init() {
@@ -390,7 +391,7 @@ func (s *VisitStationsAchievementStrategy) ProgressHTML(context *dataobjects.PPA
 	})
 
 	for _, station := range stations {
-		result += "<li><a href=\"/s/" + station.ID + "\">" + station.Name + "</a></li>"
+		result += "<li><a href=\"" + website.BaseURL() + "/s/" + station.ID + "\">" + station.Name + "</a></li>"
 	}
 
 	result += "</ul>"
@@ -425,7 +426,7 @@ func (s *VisitStationsAchievementStrategy) CriteriaHTML(context *dataobjects.PPA
 	})
 
 	for _, station := range stations {
-		result += "<li><a href=\"/s/" + station.ID + "\">" + station.Name + "</a></li>"
+		result += "<li><a href=\"" + website.BaseURL() + "/s/" + station.ID + "\">" + station.Name + "</a></li>"
 	}
 
 	result += "</ul></li>"
@@ -567,7 +568,7 @@ func (s *VisitThroughoutLineAchievementStrategy) CriteriaHTML(context *dataobjec
 		result = "<ul><li>Percorrer qualquer linha"
 	} else {
 		line, _ = dataobjects.GetLine(context.Node, config.Line)
-		result = "<ul><li>Percorrer a linha <a href=\"/l/" + line.ID + "\">" + line.Name + "</a>"
+		result = "<ul><li>Percorrer a linha <a href=\"" + website.BaseURL() + "/l/" + line.ID + "\">" + line.Name + "</a>"
 	}
 	switch config.Direction {
 	case "*":
@@ -875,7 +876,7 @@ func (s *TripDuringDisturbanceAchievementStrategy) CriteriaHTML(context *dataobj
 	}
 
 	if line != nil {
-		result += "<li>Viajar na linha <a href=\"/l/" + line.ID + "\">" + line.Name + "</a> enquanto decorre uma perturbação que a afecte;</li>"
+		result += "<li>Viajar na linha <a href=\"" + website.BaseURL() + "/l/" + line.ID + "\">" + line.Name + "</a> enquanto decorre uma perturbação que a afecte;</li>"
 	} else if network != nil {
 		result += "<li>Viajar na rede " + network.Name + " enquanto decorre uma perturbação nesta rede;</li>"
 	} else {
