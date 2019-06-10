@@ -42,12 +42,13 @@
         </tr>
       {{end}}
       {{ $prevRowNum = $entry.RowNum }}
-      <tr style="cursor: pointer; {{if $isHighlight }}background-color: #d3eda3;{{ else if $isSelf }}background-color: rgb(255, 234, 133);{{end}}"
-        onclick="window.location='/users/{{ $entry.Player.DiscordID }}'">
+      {{ $public := (or (eq $entry.Player.LBPrivacy "PUBLIC") $isHighlight $isSelf) }}
+      <tr style="{{ if $public }}cursor: pointer;{{end}} {{if $isHighlight }}background-color: #d3eda3;{{ else if $isSelf }}background-color: rgb(255, 234, 133);{{end}}"
+        {{ if $public }} onclick="window.location='/users/{{ $entry.Player.DiscordID }}'" {{end}}>
         <td style="white-space: nowrap;">{{ $entry.Position }}º</td>
         <td>
           <div style="display:flex; align-items: center;">
-            {{ if (or (eq $entry.Player.LBPrivacy "PUBLIC") $isHighlight $isSelf) }}
+            {{ if $public }}
               <a href="/users/{{ $entry.Player.DiscordID }}" style="color: inherit; text-decoration: inherit; display: block;">
                 <img src="{{ userAvatarURL $entry.Player.DiscordID "64" }}"
                   style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px;">
