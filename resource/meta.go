@@ -20,6 +20,23 @@ type apiMeta struct {
 
 	// The minimum build number of the Android client that is guaranteed to still be compatible with this endpoint
 	MinAndroidClient int `msgpack:"minAndroidClient" json:"minAndroidClient"`
+
+	// A "message of the day" to display to the user, with more or less prominency (lower priority = more prominency)
+	MOTD apiMOTD `msgpack:"motd" json:"motd"`
+}
+
+// MOTD is the "message of the day" that is served to API clients
+var MOTD apiMOTD
+
+func init() {
+	MOTD.HTML = make(map[string]string)
+}
+
+// apiMOTD contains a "message of the day"
+type apiMOTD struct {
+	HTML       map[string]string `msgpack:"html" json:"html"`
+	MainLocale string            `msgpack:"mainLocale" json:"mainLocale"`
+	Priority   int               `msgpack:"priority" json:"priority"`
 }
 
 // WithNode associates a sqalx Node with this resource
@@ -34,6 +51,7 @@ func (r *Meta) Get(c *yarf.Context) error {
 		Supported:        true,
 		Up:               true,
 		MinAndroidClient: 1,
+		MOTD:             MOTD,
 	}, "s-maxage=10")
 	return nil
 }

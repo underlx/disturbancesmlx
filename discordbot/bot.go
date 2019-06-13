@@ -253,6 +253,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	commandLib.Register(NewCommand("notifs", handleControlNotifs).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("russia", handleRUSSIA).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("mqtt", handleMQTT).WithRequirePrivilege(PrivilegeAdmin))
+	commandLib.Register(NewCommand("motd", handleMOTD).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendbroadcast", handleSendBroadcast).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendcommand", handleSendCommand).WithRequirePrivilege(PrivilegeAdmin))
 	commandLib.Register(NewCommand("sendtochannel", handleSendToChannel).WithRequirePrivilege(PrivilegeAdmin))
@@ -683,6 +684,45 @@ func handleMQTT(s *discordgo.Session, m *discordgo.MessageCreate, words []string
 	default:
 		s.ChannelMessageSend(m.ChannelID, "❌ "+result)
 	}
+}
+
+func handleMOTD(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {
+	if len(words) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+
+	switch words[0] {
+	case "clear":
+		cmdReceiver.ClearAPIMOTD()
+	case "set":
+		if len(words) < 2 {
+			s.ChannelMessageSend(m.ChannelID, "🆖 missing locale argument")
+			return
+		}
+		cmdReceiver.SetAPIMOTDforLocale(words[1], strings.Join(words[2:], " "))
+	case "mainlocale":
+		if len(words) < 2 {
+			s.ChannelMessageSend(m.ChannelID, "🆖 missing locale argument")
+			return
+		}
+		cmdReceiver.SetAPIMOTDmainLocale(words[1])
+	case "priority":
+		if len(words) < 2 {
+			s.ChannelMessageSend(m.ChannelID, "🆖 missing priority argument")
+			return
+		}
+		priority, err := strconv.Atoi(words[1])
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+			return
+		}
+		cmdReceiver.SetAPIMOTDpriority(priority)
+	default:
+		s.ChannelMessageSend(m.ChannelID, "🆖 first argument must be `clear`, `set`, `mainlocale` or `priority`")
+		return
+	}
+	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 
 func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {

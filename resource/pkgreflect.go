@@ -5,32 +5,34 @@ package resource
 import "reflect"
 
 var Types = map[string]reflect.Type{
-	"Announcement":           reflect.TypeOf((*Announcement)(nil)).Elem(),
-	"AuthTest":               reflect.TypeOf((*AuthTest)(nil)).Elem(),
-	"Backers":                reflect.TypeOf((*Backers)(nil)).Elem(),
-	"Connection":             reflect.TypeOf((*Connection)(nil)).Elem(),
-	"Dataset":                reflect.TypeOf((*Dataset)(nil)).Elem(),
-	"Disturbance":            reflect.TypeOf((*Disturbance)(nil)).Elem(),
-	"DisturbanceReport":      reflect.TypeOf((*DisturbanceReport)(nil)).Elem(),
-	"Feedback":               reflect.TypeOf((*Feedback)(nil)).Elem(),
-	"Line":                   reflect.TypeOf((*Line)(nil)).Elem(),
-	"LineCondition":          reflect.TypeOf((*LineCondition)(nil)).Elem(),
-	"Lobby":                  reflect.TypeOf((*Lobby)(nil)).Elem(),
-	"Meta":                   reflect.TypeOf((*Meta)(nil)).Elem(),
-	"Network":                reflect.TypeOf((*Network)(nil)).Elem(),
-	"POI":                    reflect.TypeOf((*POI)(nil)).Elem(),
-	"Pair":                   reflect.TypeOf((*Pair)(nil)).Elem(),
-	"PairConnection":         reflect.TypeOf((*PairConnection)(nil)).Elem(),
-	"PairConnectionHandler":  reflect.TypeOf((*PairConnectionHandler)(nil)).Elem(),
-	"Realtime":               reflect.TypeOf((*Realtime)(nil)).Elem(),
-	"RealtimeStatsHandler":   reflect.TypeOf((*RealtimeStatsHandler)(nil)).Elem(),
-	"RealtimeVehicleHandler": reflect.TypeOf((*RealtimeVehicleHandler)(nil)).Elem(),
-	"ReportHandler":          reflect.TypeOf((*ReportHandler)(nil)).Elem(),
-	"Station":                reflect.TypeOf((*Station)(nil)).Elem(),
-	"Stats":                  reflect.TypeOf((*Stats)(nil)).Elem(),
-	"StatsCalculator":        reflect.TypeOf((*StatsCalculator)(nil)).Elem(),
-	"Transfer":               reflect.TypeOf((*Transfer)(nil)).Elem(),
-	"Trip":                   reflect.TypeOf((*Trip)(nil)).Elem(),
+	"Announcement":            reflect.TypeOf((*Announcement)(nil)).Elem(),
+	"AuthTest":                reflect.TypeOf((*AuthTest)(nil)).Elem(),
+	"Backers":                 reflect.TypeOf((*Backers)(nil)).Elem(),
+	"Connection":              reflect.TypeOf((*Connection)(nil)).Elem(),
+	"Dataset":                 reflect.TypeOf((*Dataset)(nil)).Elem(),
+	"Disturbance":             reflect.TypeOf((*Disturbance)(nil)).Elem(),
+	"DisturbanceReport":       reflect.TypeOf((*DisturbanceReport)(nil)).Elem(),
+	"Feedback":                reflect.TypeOf((*Feedback)(nil)).Elem(),
+	"Gateway":                 reflect.TypeOf((*Gateway)(nil)).Elem(),
+	"Line":                    reflect.TypeOf((*Line)(nil)).Elem(),
+	"LineCondition":           reflect.TypeOf((*LineCondition)(nil)).Elem(),
+	"Lobby":                   reflect.TypeOf((*Lobby)(nil)).Elem(),
+	"MQTTGatewayInfoProvider": reflect.TypeOf((*MQTTGatewayInfoProvider)(nil)).Elem(),
+	"Meta":                    reflect.TypeOf((*Meta)(nil)).Elem(),
+	"Network":                 reflect.TypeOf((*Network)(nil)).Elem(),
+	"POI":                     reflect.TypeOf((*POI)(nil)).Elem(),
+	"Pair":                    reflect.TypeOf((*Pair)(nil)).Elem(),
+	"PairConnection":          reflect.TypeOf((*PairConnection)(nil)).Elem(),
+	"PairConnectionHandler":   reflect.TypeOf((*PairConnectionHandler)(nil)).Elem(),
+	"Realtime":                reflect.TypeOf((*Realtime)(nil)).Elem(),
+	"RealtimeStatsHandler":    reflect.TypeOf((*RealtimeStatsHandler)(nil)).Elem(),
+	"RealtimeVehicleHandler":  reflect.TypeOf((*RealtimeVehicleHandler)(nil)).Elem(),
+	"ReportHandler":           reflect.TypeOf((*ReportHandler)(nil)).Elem(),
+	"Station":                 reflect.TypeOf((*Station)(nil)).Elem(),
+	"Stats":                   reflect.TypeOf((*Stats)(nil)).Elem(),
+	"StatsCalculator":         reflect.TypeOf((*StatsCalculator)(nil)).Elem(),
+	"Transfer":                reflect.TypeOf((*Transfer)(nil)).Elem(),
+	"Trip":                    reflect.TypeOf((*Trip)(nil)).Elem(),
 }
 
 var Functions = map[string]reflect.Value{
@@ -40,6 +42,9 @@ var Functions = map[string]reflect.Value{
 	"RenderUnauthorized":            reflect.ValueOf(RenderUnauthorized),
 }
 
-var Variables = map[string]reflect.Value{}
+var Variables = map[string]reflect.Value{
+	"EnableMQTTGateway": reflect.ValueOf(&EnableMQTTGateway),
+	"MOTD":              reflect.ValueOf(&MOTD),
+}
 
 var Consts = map[string]reflect.Value{}

@@ -57,4 +57,16 @@ type CommandReceiver interface {
 
 	// SendMQTTGatewayCommand sends a command to the MQTT subsystem
 	SendMQTTGatewayCommand(command string, args ...string) string
+
+	// SetAPIMOTDforLocale sets the "message of the day" of the API for the specified locale
+	SetAPIMOTDforLocale(locale, html string)
+
+	// SetAPIMOTDpriority sets the "message of the day" priority
+	SetAPIMOTDpriority(priority int)
+
+	// SetAPIMOTDmainLocale sets the "message of the day" main locale
+	SetAPIMOTDmainLocale(mainLocale string)
+
+	// ClearAPIMOTD clears the API MOTD
+	ClearAPIMOTD()
 }
