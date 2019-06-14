@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 
 	fcm "github.com/NaySoftware/go-fcm"
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -94,7 +95,7 @@ func SendNotificationForAnnouncement(a *dataobjects.Announcement) {
 }
 
 // SendMetaBroadcast sends a FCM message containing actions to execute on all clients
-func SendMetaBroadcast(id, broadcastType, forVersions, forLocales string, args ...[2]string) {
+func SendMetaBroadcast(shardID, shardMax int, id, broadcastType, forVersions, forLocales string, args ...[2]string) {
 	if fcmcl == nil {
 		// too soon
 		return
@@ -103,6 +104,11 @@ func SendMetaBroadcast(id, broadcastType, forVersions, forLocales string, args .
 	data := map[string]string{
 		"id":   id,
 		"type": broadcastType,
+	}
+
+	if shardID > 0 && shardMax > 0 {
+		data["shardID"] = strconv.Itoa(shardID)
+		data["shardMax"] = strconv.Itoa(shardMax)
 	}
 
 	if forVersions != "" {

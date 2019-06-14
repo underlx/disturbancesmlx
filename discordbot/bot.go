@@ -772,27 +772,52 @@ func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 }
 
 func handleSendBroadcast(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-	if len(args) < 2 {
+	if len(args) < 4 {
 		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
 		return
-	} else if len(args) < 3 {
-		cmdReceiver.SendNotificationMetaBroadcast("", "", args[0], args[1], "")
-	} else if len(args) < 4 {
-		cmdReceiver.SendNotificationMetaBroadcast("", "", args[0], args[1], args[2])
-	} else if len(args) < 5 {
-		cmdReceiver.SendNotificationMetaBroadcast("", args[0], args[1], args[2], args[3])
+	}
+
+	shardID, err := strconv.Atoi(args[0])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+	shardMax, err := strconv.Atoi(args[1])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+
+	if len(args) < 5 {
+		cmdReceiver.SendNotificationMetaBroadcast(shardID, shardMax, "", "", args[2], args[3], "")
+	} else if len(args) < 6 {
+		cmdReceiver.SendNotificationMetaBroadcast(shardID, shardMax, "", "", args[2], args[3], args[4])
+	} else if len(args) < 7 {
+		cmdReceiver.SendNotificationMetaBroadcast(shardID, shardMax, "", args[2], args[3], args[4], args[5])
 	} else {
-		cmdReceiver.SendNotificationMetaBroadcast(args[0], args[1], args[2], args[3], args[4])
+		cmdReceiver.SendNotificationMetaBroadcast(shardID, shardMax, args[2], args[3], args[4], args[5], args[6])
 	}
 	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 
 func handleSendCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-	if len(args) < 3 {
+	if len(args) < 5 {
 		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
 		return
 	}
-	cmdReceiver.SendCommandMetaBroadcast(args[0], args[1], args[2], args[3:]...)
+
+	shardID, err := strconv.Atoi(args[0])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+	shardMax, err := strconv.Atoi(args[1])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+
+	cmdReceiver.SendCommandMetaBroadcast(shardID, shardMax, args[2], args[3], args[4], args[5:]...)
 	s.ChannelMessageSend(m.ChannelID, "✅")
 }
 

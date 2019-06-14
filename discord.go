@@ -138,26 +138,28 @@ func (r *BotCommandReceiver) GetStats() (dbOpenConnections, apiTR int) {
 }
 
 // SendNotificationMetaBroadcast sends a FCM message containing a notification to show on some/all clients
-func (r *BotCommandReceiver) SendNotificationMetaBroadcast(versionFilter, localeFilter, title, body, url string) {
+func (r *BotCommandReceiver) SendNotificationMetaBroadcast(shardID, shardMax int, versionFilter, localeFilter, title, body, url string) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return
 	}
 
-	SendMetaBroadcast(id.String(), "notification", versionFilter, localeFilter,
+	SendMetaBroadcast(shardID, shardMax,
+		id.String(), "notification", versionFilter, localeFilter,
 		[2]string{"title", title},
 		[2]string{"body", body},
 		[2]string{"url", url})
 }
 
 // SendCommandMetaBroadcast sends a FCM message containing a command to run on some/all clients
-func (r *BotCommandReceiver) SendCommandMetaBroadcast(versionFilter, localeFilter, command string, args ...string) {
+func (r *BotCommandReceiver) SendCommandMetaBroadcast(shardID, shardMax int, versionFilter, localeFilter, command string, args ...string) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return
 	}
 
-	SendMetaBroadcast(id.String(), "command", versionFilter, localeFilter,
+	SendMetaBroadcast(shardID, shardMax,
+		id.String(), "command", versionFilter, localeFilter,
 		[2]string{"command", command},
 		[2]string{"args", strings.Join(args, "|")})
 }

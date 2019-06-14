@@ -44,10 +44,10 @@ type CommandReceiver interface {
 	GetStats() (dbOpenConnections, apiTotalRequests int)
 
 	// SendNotificationMetaBroadcast sends a FCM message containing a notification to show on some/all clients
-	SendNotificationMetaBroadcast(versionFilter, localeFilter, title, body, url string)
+	SendNotificationMetaBroadcast(shardID, shardMax int, versionFilter, localeFilter, title, body, url string)
 
 	// SendCommandMetaBroadcast sends a FCM message containing a command to run on some/all clients
-	SendCommandMetaBroadcast(versionFilter, localeFilter, command string, args ...string)
+	SendCommandMetaBroadcast(shardID, shardMax int, versionFilter, localeFilter, command string, args ...string)
 
 	// GetAnkiddie returns a reference to the global Ankiddie system
 	GetAnkiddie() *ankiddie.Ankiddie
