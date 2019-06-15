@@ -1,6 +1,10 @@
 package posplay
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/underlx/disturbancesmlx/dataobjects"
+)
 
 func homePage(w http.ResponseWriter, r *http.Request) {
 	session, _, err := GetSession(r, w, false)
@@ -14,9 +18,50 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tx, err := config.Node.Beginx()
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer tx.Commit() // read-only tx
+
 	p := struct {
 		pageCommons
+		TotalPlayers      int
+		TotalXP           int
+		TotalTrips        int
+		TotalAchievements int
 	}{}
+
+	p.TotalPlayers, err = dataobjects.CountPPPlayers(tx)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.TotalXP, err = dataobjects.GetPPXPTransactionsTotal(tx)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.TotalTrips, err = dataobjects.CountPPXPTransactionsWithType(tx, "TRIP_SUBMIT_REWARD")
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.TotalAchievements, err = dataobjects.CountPPPlayerAchievementsAchieved(tx)
+	if err != nil {
+		config.Log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	p.pageCommons, err = initPageCommons(nil, w, r, "Página principal", session, nil)
 	if err != nil {
 		config.Log.Println(err)

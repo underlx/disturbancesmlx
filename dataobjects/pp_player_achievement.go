@@ -26,6 +26,23 @@ func GetPPPlayerAchievements(node sqalx.Node) ([]*PPPlayerAchievement, error) {
 	return getPPPlayerAchievementsWithSelect(node, sdb.Select())
 }
 
+// CountPPPlayerAchievementsAchieved returns the total of achieved achievements
+func CountPPPlayerAchievementsAchieved(node sqalx.Node) (int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	var count int
+	err = sdb.Select("COUNT(*)").
+		From("pp_player_has_achievement").
+		Where("achieved IS NOT NULL").
+		RunWith(tx).
+		Scan(&count)
+	return count, err
+}
+
 func getPPPlayerAchievementsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*PPPlayerAchievement, error) {
 	achievements := []*PPPlayerAchievement{}
 

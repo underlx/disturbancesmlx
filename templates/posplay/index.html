@@ -2,22 +2,86 @@
 {{ $top := . }}
   <div class="widecontent">
     <div class="pure-g">
-      <div class="pure-u-1 pure-u-md-1-3">
-        <div class="pure-g">
-          <div class="pure-u-1-2" style="text-align: right;"><img src="/static/img/posplay-1024-nomargin.png" style="max-width:100%; max-height: 256px"></div>
-          <div class="pure-u-1-2" style="position: relative;"><img src="/static/img/underlx.png" style="position: absolute; bottom: 0; max-width:100%; max-height: 90px"></div>
-        </div>
-        <div class="pure-g">
-          <div class="pure-u-1-2" style="text-align: right;"><img src="https://discordapp.com/assets/f8389ca1a741a115313bede9ac02e2c0.svg" style="max-width:100px; max-height: 100px"></div>
-          <div class="pure-u-1-2"><img src="/static/img/logo.png" style="margin-top: 5px; margin-left: 5px; max-width:100%; max-height: 80px"></div>
+      <div class="pure-u-1">
+        <div style="padding: 10px">
+          <img src="/static/img/posplay-1024-nomargin.png" style="height: 90px; float: left; margin-right: 20px;">
+          <h1 style="margin-top: 0">PosPlay</h1>
+          <h2 style="font-weight: 200;">O jogo do UnderLX</h2>
         </div>
       </div>
+    </div>
+    <div class="pure-g">
       <div class="pure-u-1 pure-u-md-2-3">
-        <h1>PosPlay <small>O jogo do UnderLX</small></h1>
-        <p>O PosPlay é um jogo experimental, multijogador e baseado em localização, cujo objectivo é tornar mais interessante a utilização dos transportes públicos. O PosPlay é parte do projecto <a href="https://underlx.com">UnderLX</a> e funciona como uma componente completamente opcional da aplicação e website.</p>
-        <p>Para participar nas principais actividades do jogo é necessário instalar a <a href="https://play.google.com/store/apps/details?id=im.tny.segvault.disturbances&utm_source=perturbacoes.pt&utm_campaign=posplay-index&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1">aplicação UnderLX para Android</a>. Algumas actividades extra decorrem no nosso <a href="https://perturbacoes.pt/discord">servidor de Discord</a>.</p>
-        <p><strong>Para começar, inicie sessão com a sua conta de Discord</strong></p>
-        <p><a class="pure-button pure-button-primary" href="/login" style="font-size: 150%">Iniciar sessão pelo Discord</a></p>
+        <div style="padding: 10px">
+          <p>O PosPlay é um jogo em que utilizadores do <a href="https://underlx.com" rel="noopener" target="_blank">UnderLX</a> competem para tentar acumular o máximo de pontos, todas as semanas.</p>
+          <h4>Andar de Metro nunca foi tão competitivo</h4>
+          <p>Acumule pontos e alcance proezas ao viajar no Metro de Lisboa, ao utilizar a
+            <a rel="noopener" target="_blank" href="https://play.google.com/store/apps/details?id=im.tny.segvault.disturbances&utm_source=posplay.underlx.com&utm_campaign=posplay-index&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1">aplicação UnderLX</a>,
+             e ao participar no <a href="https://perturbacoes.pt/discord" rel="noopener" target="_blank">nosso Discord</a>.</p>
+          <p>Funcionando como uma componente opcional da aplicação, no PosPlay a sua <a href="/privacy">privacidade</a> está igualmente protegida.</p>
+        </div>
+      </div>
+      <div class="pure-u-1 pure-u-md-1-3" style="display: flex; flex-direction: column;">
+        <div style="padding: 10px; height: 100%; display: flex; flex-direction: column; background-color: #eee;">
+          <p>Para participar no PosPlay é necessário ter uma conta no Discord.<br><a href="https://discordapp.com/register" rel="noopener" target="_blank">Criar conta</a></p>
+          <div style="flex-grow: 1;"></div>
+          <p style="text-align: center"><a class="pure-button pure-button-primary" href="/login" style="font-size: 120%; white-space: normal;">Iniciar sessão pelo <br><img src="/static/img/discord-logo-wordmark-white.png" style="max-width: 130px;" alt="Discord"></a></p>
+        </div>
+      </div>
+    </div>
+    <div class="pure-g" style="margin-top: 25px; margin-bottom: 25px; text-align: center;">
+      <div class="pure-u-1 pure-u-md-1-4" style="display: flex; align-items: center; flex-direction: column; margin-bottom: 5px; margin-top: 5px;">
+        <div><span style="font-size: 200%">{{ .TotalPlayers }}</span><br>jogadores</div>
+      </div>
+      <div class="pure-u-1 pure-u-md-1-4" style="display: flex; align-items: center; flex-direction: column; margin-bottom: 5px; margin-top: 5px;">
+        <div><span style="font-size: 200%">{{ .TotalTrips }}</span><br>viagens</div>
+      </div>
+      <div class="pure-u-1 pure-u-md-1-4" style="display: flex; align-items: center; flex-direction: column; margin-bottom: 5px; margin-top: 5px;">
+        <div><span style="font-size: 200%">{{ .TotalXP }}</span><br>XP acumulados</div>
+      </div>
+      <div class="pure-u-1 pure-u-md-1-4" style="display: flex; align-items: center; flex-direction: column; margin-bottom: 5px; margin-top: 5px;">
+        <div><span style="font-size: 200%">{{ .TotalAchievements }}</span><br>proezas alcançadas</div>
+      </div>
+    </div>
+    <div class="pure-g">
+      <div class="pure-u-1 pure-u-md-1-2">
+        <div style="padding: 10px">
+          <h2>Jogue com as suas viagens</h2>
+          <p>Mais estações, mais linhas, mais pontos. Andar nas horas mortas dá direito a bónus, e confirmar ou corrigir os registos de viagem na aplicação também.</p>
+        </div>
+      </div>
+      <div class="pure-u-1 pure-u-md-1-2">
+        <div style="padding: 10px">
+          <h2>Todas as semanas, um novo vencedor</h2>
+          <p>Nunca é tarde para começar a participar. No início de cada semana, inauguramos uma nova tabela de classificação. Compita com os veteranos, desde o primeiro dia!</p>
+        </div>
+      </div>
+      <div class="pure-u-1 pure-u-md-1-2">
+        <div style="padding: 10px">
+          <h2>Falou?<br>Ganhou!</h2>
+          <p>Enviar mensagens no nosso servidor de Discord dá pontos. Venha falar com outros utilizadores e com a equipa: temos espaço para praticamente todos os assuntos.</p>
+        </div>
+      </div>
+      <div class="pure-u-1 pure-u-md-1-2">
+        <div style="padding: 10px">
+          <h2>Viagens aborrecidas,<br>proezas merecidas</h2>
+          <p>Perturbações na circulação? Deixou passar a estação? Já correu a linha de uma ponta à outra? Só o PosPlay lhe dá o derradeiro prémio de consolação, sob a forma de <em>achievements</em>.</p>
+        </div>
+      </div>
+      <div class="pure-u-1">
+          <div style="padding: 10px; text-align: center">
+            <h2>Em constante evolução</h2>
+            <p>Tal como os restantes projetos da equipa do UnderLX, o PosPlay está continuamente <a href="https://github.com/underlx/disturbancesmlx" rel="noopener" target="_blank">em desenvolvimento</a>.<br>Dê-nos o seu <em>feedback</em> e ajude-nos a tornar a utilização dos transportes públicos mais divertida!</p>
+          </div>
+        </div>
+    </div>
+    <div class="pure-g">
+      <div class="pure-u-1" style="text-align: center;">
+        <div style="padding: 10px">
+          <h1>De que está à espera?</h1>
+          <p>Inicie sessão com o Discord - não teremos acesso às suas credenciais, mensagens ou amigos - e comece a jogar!</p>
+          <p style="text-align: center"><a class="pure-button pure-button-primary" href="/login" style="font-size: 120%; white-space: normal;">Iniciar sessão pelo <img src="/static/img/discord-logo-wordmark-white.png" style="max-height: 1.5em; vertical-align: text-bottom;" alt="Discord"></a></p>
+        </div>
       </div>
     </div>
   </div>

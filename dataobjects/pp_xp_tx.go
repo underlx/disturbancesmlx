@@ -42,6 +42,39 @@ func GetPPXPTransactionsWithType(node sqalx.Node, txtype string) ([]*PPXPTransac
 	return getPPXPTransactionsWithSelect(node, s)
 }
 
+// GetPPXPTransactionsTotal returns the total of XP in the system
+func GetPPXPTransactionsTotal(node sqalx.Node) (int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	var total int
+	err = sdb.Select("SUM(value)").
+		From("pp_xp_tx").
+		RunWith(tx).
+		Scan(&total)
+	return total, err
+}
+
+// CountPPXPTransactionsWithType returns the count of transactions with this type
+func CountPPXPTransactionsWithType(node sqalx.Node, txtype string) (int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	var count int
+	err = sdb.Select("COUNT(*)").
+		From("pp_xp_tx").
+		Where(sq.Eq{"type": txtype}).
+		RunWith(tx).
+		Scan(&count)
+	return count, err
+}
+
 func getPPXPTransactionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*PPXPTransaction, error) {
 	transactions := []*PPXPTransaction{}
 
