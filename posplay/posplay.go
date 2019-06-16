@@ -151,10 +151,14 @@ func Initialize(ppconfig Config) error {
 	discordbot.ThePosPlayBridge.OnEventWinCallback = RegisterEventWinCallback
 	discordbot.ThePosPlayBridge.OnDiscussionParticipationCallback = RegisterDiscussionParticipationCallback
 	discordbot.ThePosPlayBridge.ReloadAchievementsCallback = ReloadAchievements
+	discordbot.ThePosPlayBridge.ReloadTemplatesCallback = ReloadTemplates
 	discordbot.ThePosPlayBridge.PlayerXPInfo = playerXPinfo
 
-	ReloadTemplates()
-	err := ReloadAchievements()
+	err := ReloadTemplates()
+	if err != nil {
+		return err
+	}
+	err = ReloadAchievements()
 	if err != nil {
 		return err
 	}

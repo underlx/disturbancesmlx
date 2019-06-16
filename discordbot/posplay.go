@@ -59,6 +59,7 @@ type PosPlayBridge struct {
 	OnEventWinCallback                func(userID, messageID string, XPreward int, eventType string) bool
 	OnDiscussionParticipationCallback func(userID string, XPreward int) bool
 	ReloadAchievementsCallback        func() error
+	ReloadTemplatesCallback           func() error
 	ongoing                           sync.Map
 	participation                     *cache.Cache
 	spamChannels                      []string
@@ -113,6 +114,16 @@ type posPlayQuizEvent struct {
 
 func (e *PosPlayBridge) handleReloadAchievements(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	err := e.ReloadAchievementsCallback()
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+
+	s.ChannelMessageSend(m.ChannelID, "✅")
+}
+
+func (e *PosPlayBridge) handleReloadTemplates(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	err := e.ReloadTemplatesCallback()
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 		return

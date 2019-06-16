@@ -64,7 +64,7 @@ func ConfigureRouter(router *mux.Router) {
 }
 
 // ReloadTemplates reloads the templates for the website
-func ReloadTemplates() {
+func ReloadTemplates() error {
 	funcMap := template.FuncMap{
 		"minus": func(a, b int) int {
 			return a - b
@@ -160,12 +160,18 @@ func ReloadTemplates() {
 		},
 	}
 
-	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("templates/posplay/*.html"))
+	var err error
+	webtemplate, err = template.New("index.html").Funcs(funcMap).ParseGlob("templates/posplay/*.html")
+	return err
 }
 
 func templateReloadingMiddleware(next http.Handler) http.Handler {
-	ReloadTemplates()
-	err := ReloadAchievements()
+	err := ReloadTemplates()
+	if err != nil {
+		config.Log.Println(err)
+	}
+
+	err = ReloadAchievements()
 	if err != nil {
 		config.Log.Println(err)
 	}

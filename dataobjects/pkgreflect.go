@@ -32,6 +32,7 @@ var Types = map[string]reflect.Type{
 	"PPAchievementContext":  reflect.TypeOf((*PPAchievementContext)(nil)).Elem(),
 	"PPAchievementStrategy": reflect.TypeOf((*PPAchievementStrategy)(nil)).Elem(),
 	"PPLeaderboardEntry":    reflect.TypeOf((*PPLeaderboardEntry)(nil)).Elem(),
+	"PPNotificationSetting": reflect.TypeOf((*PPNotificationSetting)(nil)).Elem(),
 	"PPPair":                reflect.TypeOf((*PPPair)(nil)).Elem(),
 	"PPPlayer":              reflect.TypeOf((*PPPlayer)(nil)).Elem(),
 	"PPPlayerAchievement":   reflect.TypeOf((*PPPlayerAchievement)(nil)).Elem(),
@@ -56,7 +57,9 @@ var Types = map[string]reflect.Type{
 
 var Functions = map[string]reflect.Value{
 	"ComputeAPISecretHash":               reflect.ValueOf(ComputeAPISecretHash),
+	"CountPPPlayerAchievementsAchieved":  reflect.ValueOf(CountPPPlayerAchievementsAchieved),
 	"CountPPPlayers":                     reflect.ValueOf(CountPPPlayers),
+	"CountPPXPTransactionsWithType":      reflect.ValueOf(CountPPXPTransactionsWithType),
 	"CountPairActivationsByDay":          reflect.ValueOf(CountPairActivationsByDay),
 	"CountTripsByDay":                    reflect.ValueOf(CountTripsByDay),
 	"GenerateAPIKey":                     reflect.ValueOf(GenerateAPIKey),
@@ -91,6 +94,7 @@ var Functions = map[string]reflect.Value{
 	"GetPOIs":                            reflect.ValueOf(GetPOIs),
 	"GetPPAchievement":                   reflect.ValueOf(GetPPAchievement),
 	"GetPPAchievements":                  reflect.ValueOf(GetPPAchievements),
+	"GetPPNotificationSetting":           reflect.ValueOf(GetPPNotificationSetting),
 	"GetPPPair":                          reflect.ValueOf(GetPPPair),
 	"GetPPPairForKey":                    reflect.ValueOf(GetPPPairForKey),
 	"GetPPPairs":                         reflect.ValueOf(GetPPPairs),
@@ -101,6 +105,7 @@ var Functions = map[string]reflect.Value{
 	"GetPPXPTransaction":                 reflect.ValueOf(GetPPXPTransaction),
 	"GetPPXPTransactions":                reflect.ValueOf(GetPPXPTransactions),
 	"GetPPXPTransactionsBetween":         reflect.ValueOf(GetPPXPTransactionsBetween),
+	"GetPPXPTransactionsTotal":           reflect.ValueOf(GetPPXPTransactionsTotal),
 	"GetPPXPTransactionsWithType":        reflect.ValueOf(GetPPXPTransactionsWithType),
 	"GetPair":                            reflect.ValueOf(GetPair),
 	"GetPairIfCorrect":                   reflect.ValueOf(GetPairIfCorrect),
@@ -134,6 +139,7 @@ var Functions = map[string]reflect.Value{
 	"PosPlayLevelToXP":                   reflect.ValueOf(PosPlayLevelToXP),
 	"PosPlayPlayerLevel":                 reflect.ValueOf(PosPlayPlayerLevel),
 	"RegisterPPAchievementStrategy":      reflect.ValueOf(RegisterPPAchievementStrategy),
+	"SetPPNotificationSetting":           reflect.ValueOf(SetPPNotificationSetting),
 	"UnregisterPPAchievementStrategy":    reflect.ValueOf(UnregisterPPAchievementStrategy),
 }
 
