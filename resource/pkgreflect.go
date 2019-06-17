@@ -36,15 +36,19 @@ var Types = map[string]reflect.Type{
 }
 
 var Functions = map[string]reflect.Value{
+	"ClearMOTD":                     reflect.ValueOf(ClearMOTD),
 	"RegisterPairConnectionHandler": reflect.ValueOf(RegisterPairConnectionHandler),
 	"RenderData":                    reflect.ValueOf(RenderData),
 	"RenderMsgpack":                 reflect.ValueOf(RenderMsgpack),
 	"RenderUnauthorized":            reflect.ValueOf(RenderUnauthorized),
+	"SetMOTDHTML":                   reflect.ValueOf(SetMOTDHTML),
+	"SetMOTDHTMLForLocale":          reflect.ValueOf(SetMOTDHTMLForLocale),
+	"SetMOTDMainLocale":             reflect.ValueOf(SetMOTDMainLocale),
+	"SetMOTDPriority":               reflect.ValueOf(SetMOTDPriority),
 }
 
 var Variables = map[string]reflect.Value{
 	"EnableMQTTGateway": reflect.ValueOf(&EnableMQTTGateway),
-	"MOTD":              reflect.ValueOf(&MOTD),
 }
 
 var Consts = map[string]reflect.Value{}

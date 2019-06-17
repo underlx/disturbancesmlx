@@ -32,6 +32,7 @@ func (ssys *ScriptSystem) Setup(node sqalx.Node, cl *CommandLibrary, privilege P
 	cl.Register(NewCommand("ankostatus", ssys.handleStatus).WithRequirePrivilege(privilege))
 	cl.Register(NewCommand("ankosavescript", ssys.handleSaveScript).WithRequirePrivilege(privilege))
 	cl.Register(NewCommand("ankouploadscript", ssys.handleUploadScript).WithRequirePrivilege(privilege))
+	cl.Register(NewCommand("ankodownloadscript", ssys.handleDownloadScript).WithRequirePrivilege(privilege))
 	cl.Register(NewCommand("ankolistscripts", ssys.handleListScripts).WithRequirePrivilege(privilege))
 	cl.Register(NewCommand("ankoautorunscript", ssys.handleAutorunScript).WithRequirePrivilege(privilege))
 }
@@ -267,6 +268,9 @@ func (ssys *ScriptSystem) handleUploadScript(s *discordgo.Session, m *discordgo.
 			id = args[i]
 		} else {
 			id = attachment.Filename
+			if strings.HasSuffix(id, ".anko") && len(id) > 5 {
+				id = id[0 : len(id)-5]
+			}
 		}
 
 		script, err := cmdReceiver.GetAnkiddie().SaveScript(id, string(content))
@@ -275,6 +279,55 @@ func (ssys *ScriptSystem) handleUploadScript(s *discordgo.Session, m *discordgo.
 			return
 		}
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("💾📜🆔`%s`", script.ID))
+	}
+}
+
+func (ssys *ScriptSystem) handleDownloadScript(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 1 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments")
+		return
+	}
+	tx, err := ssys.node.Beginx()
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+	defer tx.Commit() // read-only tx
+
+	files := []*discordgo.File{}
+	content := ""
+	for _, scriptName := range args {
+		asTXT := strings.HasSuffix(scriptName, ".txt") && len(scriptName) > 4
+		if asTXT {
+			scriptName = scriptName[0 : len(scriptName)-4]
+		}
+
+		script, err := dataobjects.GetScript(tx, scriptName)
+		if err != nil {
+			content += "🆖📜🆔 `" + scriptName + "`\n"
+			continue
+		}
+
+		name := script.ID + ".anko"
+		if asTXT {
+			name = script.ID + ".txt"
+		}
+
+		files = append(files, &discordgo.File{
+			Name:        name,
+			ContentType: "text/plain",
+			Reader:      strings.NewReader(script.Code),
+		})
+	}
+
+	if len(files) > 0 {
+		content += "✅"
+		s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+			Content: content,
+			Files:   files,
+		})
+	} else {
+		s.ChannelMessageSend(m.ChannelID, content)
 	}
 }
 

@@ -198,22 +198,20 @@ func (r *BotCommandReceiver) SendMQTTGatewayCommand(command string, args ...stri
 
 // SetAPIMOTDforLocale sets the "message of the day" of the API for the specified locale
 func (r *BotCommandReceiver) SetAPIMOTDforLocale(locale, html string) {
-	resource.MOTD.HTML[locale] = html
+	resource.SetMOTDHTMLForLocale(locale, html)
 }
 
 // SetAPIMOTDpriority sets the "message of the day" priority
 func (r *BotCommandReceiver) SetAPIMOTDpriority(priority int) {
-	resource.MOTD.Priority = priority
+	resource.SetMOTDPriority(priority)
 }
 
 // SetAPIMOTDmainLocale sets the "message of the day" main locale
 func (r *BotCommandReceiver) SetAPIMOTDmainLocale(mainLocale string) {
-	resource.MOTD.MainLocale = mainLocale
+	resource.SetMOTDMainLocale(mainLocale)
 }
 
 // ClearAPIMOTD clears the API MOTD
 func (r *BotCommandReceiver) ClearAPIMOTD() {
-	resource.MOTD.Priority = 0
-	resource.MOTD.HTML = make(map[string]string)
-	resource.MOTD.MainLocale = ""
+	resource.ClearMOTD()
 }

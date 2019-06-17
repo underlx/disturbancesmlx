@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"sync"
+
 	"github.com/gbl08ma/sqalx"
 	"github.com/yarf-framework/yarf"
 )
@@ -26,10 +28,47 @@ type apiMeta struct {
 }
 
 // MOTD is the "message of the day" that is served to API clients
-var MOTD apiMOTD
+var motd apiMOTD
+var motdMutex sync.Mutex
 
+// SetMOTDHTML sets motd.HTML
+func SetMOTDHTML(v map[string]string) {
+	motdMutex.Lock()
+	defer motdMutex.Unlock()
+	motd.HTML = v
+}
+
+// SetMOTDHTMLForLocale sets motd.HTML for locale
+func SetMOTDHTMLForLocale(locale, message string) {
+	motdMutex.Lock()
+	defer motdMutex.Unlock()
+	motd.HTML[locale] = message
+}
+
+// SetMOTDMainLocale sets motd.MainLocale
+func SetMOTDMainLocale(v string) {
+	motdMutex.Lock()
+	defer motdMutex.Unlock()
+	motd.MainLocale = v
+}
+
+// SetMOTDPriority sets motd.Priority
+func SetMOTDPriority(v int) {
+	motdMutex.Lock()
+	defer motdMutex.Unlock()
+	motd.Priority = v
+}
+
+// ClearMOTD resets motd
+func ClearMOTD() {
+	motdMutex.Lock()
+	defer motdMutex.Unlock()
+	motd = apiMOTD{
+		HTML: make(map[string]string),
+	}
+}
 func init() {
-	MOTD.HTML = make(map[string]string)
+	motd.HTML = make(map[string]string)
 }
 
 // apiMOTD contains a "message of the day"
@@ -47,11 +86,13 @@ func (r *Meta) WithNode(node sqalx.Node) *Meta {
 
 // Get serves HTTP GET requests on this resource
 func (r *Meta) Get(c *yarf.Context) error {
+	motdMutex.Lock()
+	defer motdMutex.Unlock()
 	RenderData(c, apiMeta{
 		Supported:        true,
 		Up:               true,
 		MinAndroidClient: 1,
-		MOTD:             MOTD,
+		MOTD:             motd,
 	}, "s-maxage=10")
 	return nil
 }
