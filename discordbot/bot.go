@@ -275,8 +275,8 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		s.ChannelMessageSend(m.ChannelID, "✅")
 	}).WithRequirePrivilege(PrivilegeRoot))
 	commandLib.Register(NewCommand("setcmdpriv", handleSetCommandPrivilege).WithRequirePrivilege(PrivilegeRoot))
-	scriptSystem.Setup(node, commandLib, PrivilegeRoot)
-	new(SQLSystem).Setup(node, commandLib, PrivilegeRoot)
+	scriptSystem.Setup(node, commandLib, PrivilegeAdmin)
+	new(SQLSystem).Setup(node, commandLib, PrivilegeAdmin)
 
 	reactionHandlers = append(reactionHandlers, ThePosPlayBridge)
 	messageHandlers = append(messageHandlers, ThePosPlayBridge)
