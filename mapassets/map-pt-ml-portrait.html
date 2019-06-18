@@ -1,0 +1,161 @@
+﻿<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8">
+    <title>Subway Map</title>
+    <script type="text/javascript" src="file:///android_asset/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="file:///android_asset/jquery.subwayMap-0.5.0.js"></script>
+    <style type="text/css">
+    body {
+        font-family: 'Roboto', sans-serif;
+        font-size: 9pt;
+    }
+    /* The main DIV for the map */
+
+    .subway-map {
+        margin: 0;
+        background-color: white;
+    }
+    /* Text labels */
+
+    .text {
+        text-decoration: none;
+        color: #142382;
+        font-size: 8pt;
+    }
+
+    #legend {
+        position: absolute;
+        left: 40px;
+        top: 850px;
+        float: left;
+        width: 250px;
+        height: 250px;
+    }
+
+    #legend div {
+        height: 25px;
+    }
+
+    #legend span {
+        margin: 5px 5px 5px 0;
+    }
+
+    .subway-map span {
+        margin: 5px 5px 5px 0;
+    }
+
+    .subway-map ul {
+        display: none;
+    }
+    </style>
+</head>
+
+<body class="">
+    <div class="subway-map" data-columns="14" data-rows="31" data-cellSize="26" data-legendId="legend" data-textClass="text" data-gridNumbers="true" data-grid="false" data-lineWidth="8" style="background-color: transparent;">
+        <ul data-color="#E6196E" data-label="Linha Vermelha">
+            <li data-coords="3,16"></li>
+            <li data-coords="11,16"></li>
+            <li data-coords="12,15" data-dir="E"></li>
+            <li data-coords="12,14" data-labelPos="W"><a href="#pt-ml-ol">Olaias</a></li>
+            <li data-coords="12,12.375" data-labelPos="W"><a href="#pt-ml-bv">Bela Vista</a></li>
+            <li data-coords="12,10.75" data-labelPos="W"><a href="#pt-ml-ch">Chelas</a></li>
+            <li data-coords="12,9.125" data-labelPos="W"><a href="#pt-ml-os">Olivais</a></li>
+            <li data-coords="12,7.5" data-labelPos="W"><a href="#pt-ml-cr">Cabo Ruivo</a></li>
+            <li data-coords="12,5.875" data-marker="interchange" data-labelPos="W"><a href="#pt-ml-or">Oriente</a></li>
+            <li data-coords="12,4.25" data-labelPos="W"><a href="#pt-ml-mo">Moscavide</a></li>
+            <li data-coords="12,2.625" data-labelPos="W"><a href="#pt-ml-en">Encarnação</a></li>
+            <li data-coords="12,1" data-labelPos="W"><a href="#pt-ml-ap">Aeroporto</a></li>
+        </ul>
+        <ul data-color="#FAB914" data-label="Linha Amarela">
+            <li data-coords="3,23" data-labelPos="W"><a href="#pt-ml-ra">Rato</a></li>
+            <li data-coords="3,20.5" data-dir="N"></li>
+            <li data-coords="4,19.5" data-dir="N"></li>
+            <li data-coords="5,19.5"></li>
+            <li data-coords="6,18.5" data-dir="E"></li>
+            <li data-coords="6,17.75" data-labelPos="W"><a href="#pt-ml-pi">Picoas</a></li>
+            <li data-coords="6,16" data-labelPos="SW-alt" data-marker="station"><a href="#pt-ml-sa">Saldanha</a></li>
+            <li data-coords="6,14.5" data-labelPos="W"><a href="#pt-ml-cp">Campo\nPequeno</a></li>
+            <li data-coords="6,13" data-labelPos="W" data-marker="interchange"><a href="#pt-ml-ec">Entre\nCampos</a></li>
+            <li data-coords="6,10.5" data-labelPos="W"><a href="#pt-ml-cu">Cidade\nUniversitária</a></li>
+            <li data-coords="6,9.85" data-dir="N"></li>
+            <li data-coords="7,8.85" data-dir="N"></li>
+            <li data-coords="7.5,8.85"><a href="#pt-ml-cg">&nbsp;</a></li>
+            <li data-coords="8,8.85"></li>
+            <li data-coords="9,7.85" data-dir="E"></li>
+            <li data-coords="9,7" data-labelPos="W"><a href="#pt-ml-qc">Quinta das\nConchas</a></li>
+            <li data-coords="9,5.5" data-labelPos="W"><a href="#pt-ml-lu">Lumiar</a></li>
+            <li data-coords="9,4" data-labelPos="W"><a href="#pt-ml-ax">Ameixoeira</a></li>
+            <li data-coords="9,2.5" data-labelPos="W"><a href="#pt-ml-sr">Senhor Roubado</a></li>
+            <li data-coords="9,1" data-labelPos="W"><a href="#pt-ml-od">Odivelas</a></li>
+        </ul>
+        <ul data-color="#00A0A5" data-label="Linha Verde">
+            <li data-coords="6,29.5" data-labelPos="W" data-marker="interchange"><a href="#pt-ml-cs">Cais do Sodré</a></li>
+            <li data-coords="6,27" data-dir="N"></li>
+            <li data-coords="7,26" data-dir="N"></li>
+
+            <li data-coords="8,26"></li>
+            <li data-coords="9,25" data-dir="E"></li>
+            <li data-coords="9,24" data-labelPos="E"><a href="#pt-ml-ro">Rossio</a></li>
+            <li data-coords="9,22.4" data-labelPos="E"><a href="#pt-ml-mm">Martim Moniz</a></li>
+            <li data-coords="9,20.85" data-labelPos="E"><a href="#pt-ml-in">Intendente</a></li>
+            <li data-coords="9,19.3" data-labelPos="E"><a href="#pt-ml-an">Anjos</a></li>
+            <li data-coords="9,17.75" data-labelPos="E"><a href="#pt-ml-ar">Arroios</a></li>
+            <li data-coords="9,16" data-labelPos="SW-alt" data-marker="@station"><a href="#pt-ml-am">Alameda</a></li>
+            <li data-coords="9,14.5" data-labelPos="W" data-marker="interchange"><a href="#pt-ml-ae">Areeiro</a></li>
+            <li data-coords="9,13" data-labelPos="W" data-marker="interchange"><a href="#pt-ml-rm">Roma</a></li>
+            <li data-coords="9,11.5" data-labelPos="W"><a href="#pt-ml-al">Alvalade</a></li>
+            <li data-coords="9,10.5"></li>
+            <li data-coords="8,9.5"></li>
+            <li data-coords="7.5,9.5" data-labelPos="S" data-marker="interchange" data-markerInfo="v2"><a href="#pt-ml-cg">Campo\nGrande</a></li>
+            <li data-coords="7,9.5"></li>
+            <li data-coords="6,8.5" data-dir="W"></li>
+            <li data-coords="6,7" data-labelPos="W"><a href="#pt-ml-te">Telheiras</a></li>
+        </ul>
+        <ul data-color="#5082C3" data-label="Linha Azul">
+            <li data-coords="3,1" data-labelPos="W" data-marker="interchange"><a href="#pt-ml-rb">Reboleira</a></li>
+            <li data-coords="3,2.5" data-labelPos="W"><a href="#pt-ml-as">Amadora Este</a></li>
+            <li data-coords="3,4" data-labelPos="W"><a href="#pt-ml-af">Alfornelos</a></li>
+            <li data-coords="3,5.5" data-labelPos="W"><a href="#pt-ml-po">Pontinha</a></li>
+            <li data-coords="3,7" data-labelPos="W"><a href="#pt-ml-ca">Carnide</a></li>
+            <li data-coords="3,8.5" data-labelPos="W"><a href="#pt-ml-cm">Colégio\nMilitar/Luz</a></li>
+            <li data-coords="3,10" data-labelPos="W"><a href="#pt-ml-ah">Alto dos\nMoinhos</a></li>
+            <li data-coords="3,11.5" data-labelPos="W"><a href="#pt-ml-la">Laranjeiras</a></li>
+            <li data-coords="3,13" data-labelPos="W" data-marker="interchange"><a href="#pt-ml-jz">Jardim\nZoológico</a></li>
+            <li data-coords="3,14.5" data-labelPos="W"><a href="#pt-ml-pe">Praça de\nEspanha</a></li>
+            <li data-coords="3,16" data-labelPos="W" data-marker="station"><a href="#pt-ml-ss">São Sebastião</a></li>
+            <li data-coords="3,17.75" data-labelPos="W"><a href="#pt-ml-pa">Parque</a></li>
+            <li data-coords="3,18.5" data-dir="S"></li>
+            <li data-coords="4,19.5" data-dir="S"></li>
+            <li data-coords="4.5,19.5" data-labelPos="S"><a href="#pt-ml-mp">Marquês\nde Pombal</a></li>
+            <li data-coords="5,19.5"></li>
+            <li data-coords="6,20.5" data-dir="E"></li>
+            <li data-coords="6,21.5" data-labelPos="E"><a href="#pt-ml-av">Avenida</a></li>
+            <li data-coords="6,24" data-labelPos="W" data-marker="interchange"><a href="#pt-ml-re">Restauradores</a></li>
+            <li data-coords="6,25" data-dir="S"></li>
+            <li data-coords="7,26" data-dir="S"></li>
+            <li data-coords="7.5,26" data-labelPos="S"><a href="#pt-ml-bc">Baixa-Chiado</a></li>
+            <li data-coords="8,26"></li>
+            <li data-coords="9,27" data-dir="E"></li>
+            <li data-coords="9,28" data-labelPos="E"><a href="#pt-ml-tp">Terreiro do Paço</a></li>
+            <li data-coords="9,29.5" data-labelPos="E" data-marker="interchange"><a href="#pt-ml-sp">Santa Apolónia</a></li>
+        </ul>
+    </div>
+    <div id="legend"></div>
+    <script type="text/javascript">
+    $(".subway-map").subwayMap();
+
+    var elements = document.getElementsByTagName('a');
+    for(var i = 0, len = elements.length; i < len; i++) {
+        elements[i].addEventListener('click', function (event) {
+            if(event.target.href.split("#")[1] != "") {
+                android.onStationClicked(event.target.href.split("#")[1]);
+            }
+            event.preventDefault();
+            return false;
+        }, false);
+    }
+    </script>
+</body>
+
+</html>

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/gbl08ma/sqalx"
@@ -17,6 +18,7 @@ type VehicleHandler struct {
 	readings                      []PassengerReading
 	presenceByStationAndDirection map[string]time.Time
 	connectionDurationCache       map[string]int
+	connectionDurationCacheMutex  sync.Mutex
 }
 
 // NewVehicleHandler returns a new, initialized VehicleHandler
@@ -103,6 +105,8 @@ func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Stat
 	userAtIdx := cursor
 
 	getConnectionDuration := func(from, to string) int {
+		h.connectionDurationCacheMutex.Lock()
+		defer h.connectionDurationCacheMutex.Unlock()
 		if s, present := h.connectionDurationCache[from+"#"+to]; present {
 			return s
 		}
