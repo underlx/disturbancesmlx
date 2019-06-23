@@ -120,6 +120,24 @@ func (player *PPPlayer) XPTransactionsWithType(node sqalx.Node, txtype string) (
 	return getPPXPTransactionsWithSelect(node, s)
 }
 
+// CountXPTransactionsWithType counts the number of transactions for this player with the specified type
+func (player *PPPlayer) CountXPTransactionsWithType(node sqalx.Node, txtype string) (int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	var count int
+	err = sdb.Select("COUNT(*)").
+		From("pp_player").
+		Where(sq.Eq{"discord_id": player.DiscordID}).
+		Where(sq.Eq{"type": txtype}).
+		RunWith(tx).
+		Scan(&count)
+	return count, err
+}
+
 // XPTransactionsCustomFilter returns a slice with the transactions for this player matching a custom filter
 func (player *PPPlayer) XPTransactionsCustomFilter(node sqalx.Node, preds ...interface{}) ([]*PPXPTransaction, error) {
 	s := sdb.Select().

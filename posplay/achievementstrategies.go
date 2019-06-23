@@ -14,6 +14,7 @@ import (
 
 func init() {
 	dataobjects.RegisterPPAchievementStrategy(new(ReachLevelAchievementStrategy))
+	dataobjects.RegisterPPAchievementStrategy(new(DiscordEventParticipationAchievementStrategy))
 	dataobjects.RegisterPPAchievementStrategy(new(VisitStationsAchievementStrategy))
 	dataobjects.RegisterPPAchievementStrategy(new(VisitThroughoutLineAchievementStrategy))
 	dataobjects.RegisterPPAchievementStrategy(new(SubmitAchievementStrategy))
@@ -190,6 +191,215 @@ func (s *ReachLevelAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchi
 			</ul>
 		</li>
 	</ul>`, achievementLevel, dataobjects.PosPlayLevelToXP(achievementLevel))
+}
+
+// DiscordEventParticipationAchievementStrategy is an achievement strategy that rewards users when they participate in a set number of Discord events
+type DiscordEventParticipationAchievementStrategy struct {
+	StubAchievementStrategy
+}
+
+// ID returns the ID for this PPAchievementStrategy
+func (s *DiscordEventParticipationAchievementStrategy) ID() string {
+	return "discord_event_participation"
+}
+
+// HandleXPTransaction implements dataobjects.PPAchievementStrategy
+func (s *DiscordEventParticipationAchievementStrategy) HandleXPTransaction(context *dataobjects.PPAchievementContext, transaction *dataobjects.PPXPTransaction, actualValueDiff int) error {
+	var config map[string]interface{}
+	context.Achievement.UnmarshalConfig(&config)
+	includeReaction := true
+	includeChallenge := true
+	if config["eventType"] != nil {
+		switch config["eventType"].(string) {
+		case "reaction":
+			if transaction.Type != "DISCORD_REACTION_EVENT" {
+				return nil
+			}
+			includeChallenge = false
+		case "challenge":
+			if transaction.Type != "DISCORD_CHALLENGE_EVENT" {
+				return nil
+			}
+			includeReaction = false
+		}
+	}
+
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
+	if err == nil && existingData.Achieved {
+		// the player already has this achievement
+		return tx.Commit()
+	}
+
+	count := 0
+	if includeReaction {
+		c, err := context.Player.CountXPTransactionsWithType(tx, "DISCORD_REACTION_EVENT")
+		if err != nil {
+			return err
+		}
+		count += c
+	}
+	if includeChallenge {
+		c, err := context.Player.CountXPTransactionsWithType(tx, "DISCORD_CHALLENGE_EVENT")
+		if err != nil {
+			return err
+		}
+		count += c
+	}
+
+	achievementCount := int(config["count"].(float64))
+
+	if count >= achievementCount {
+		// ensure the achievement reward tx always appears after the cause by adding 1 ms
+		err = achieveAchievement(tx, context.Player, context.Achievement, transaction.Time.Add(1*time.Millisecond))
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// Progress implements dataobjects.PPAchievementStrategy
+func (s *DiscordEventParticipationAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
+	var config map[string]interface{}
+	context.Achievement.UnmarshalConfig(&config)
+	includeReaction := true
+	includeChallenge := true
+	if config["eventType"] != nil {
+		switch config["eventType"].(string) {
+		case "reaction":
+			includeChallenge = false
+		case "challenge":
+			includeReaction = false
+		}
+	}
+
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return 0, 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	count := 0
+	if includeReaction {
+		c, err := context.Player.CountXPTransactionsWithType(tx, "DISCORD_REACTION_EVENT")
+		if err != nil {
+			return 0, 0, err
+		}
+		count += c
+	}
+	if includeChallenge {
+		c, err := context.Player.CountXPTransactionsWithType(tx, "DISCORD_CHALLENGE_EVENT")
+		if err != nil {
+			return 0, 0, err
+		}
+		count += c
+	}
+
+	achievementCount := int(config["count"].(float64))
+
+	if count > achievementCount {
+		return count, achievementCount, nil
+	} else if count < achievementCount-50 {
+		// lock achievement
+		achievementCount = -2
+	}
+	return count, achievementCount, nil
+}
+
+// ProgressHTML implements dataobjects.PPAchievementStrategy
+func (s *DiscordEventParticipationAchievementStrategy) ProgressHTML(context *dataobjects.PPAchievementContext) string {
+	var config map[string]interface{}
+	context.Achievement.UnmarshalConfig(&config)
+	achievementCount := int(config["count"].(float64))
+
+	includeReaction := true
+	includeChallenge := true
+	if config["eventType"] != nil {
+		switch config["eventType"].(string) {
+		case "reaction":
+			includeChallenge = false
+		case "challenge":
+			includeReaction = false
+		}
+	}
+
+	tx, err := context.Node.Beginx()
+	if err != nil {
+		return ""
+	}
+	defer tx.Commit() // read-only tx
+
+	existingData, err := context.Player.Achievement(tx, context.Achievement.ID)
+	if err == nil && existingData.Achieved {
+		return ""
+	}
+
+	count := 0
+	if includeReaction {
+		c, err := context.Player.CountXPTransactionsWithType(tx, "DISCORD_REACTION_EVENT")
+		if err != nil {
+			return ""
+		}
+		count += c
+	}
+	if includeChallenge {
+		c, err := context.Player.CountXPTransactionsWithType(tx, "DISCORD_CHALLENGE_EVENT")
+		if err != nil {
+			return ""
+		}
+		count += c
+	}
+
+	remaining := achievementCount - count
+
+	plural := "s"
+	if remaining == 1 {
+		plural = ""
+	}
+	if includeChallenge && includeReaction {
+		return fmt.Sprintf("Falta-lhe participar em %d evento%s ou desafio%s para alcançar esta proeza.", remaining, plural, plural)
+	} else if includeChallenge {
+		return fmt.Sprintf("Falta-lhe participar em %d desafio%s para alcançar esta proeza.", remaining, plural)
+	} else {
+		return fmt.Sprintf("Falta-lhe participar em %d evento%s para alcançar esta proeza.", remaining, plural)
+	}
+}
+
+// CriteriaHTML implements dataobjects.PPAchievementStrategy
+func (s *DiscordEventParticipationAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+	var config map[string]interface{}
+	context.Achievement.UnmarshalConfig(&config)
+	achievementCount := int(config["count"].(float64))
+
+	typeSingular := "evento ou desafio"
+	typePlural := "eventos ou desafios"
+	if config["eventType"] != nil {
+		switch config["eventType"].(string) {
+		case "reaction":
+			typeSingular = "evento"
+			typePlural = "eventos"
+		case "challenge":
+			typeSingular = "desafio"
+			typePlural = "desafios"
+		}
+	}
+
+	t := typePlural
+	if achievementCount == 1 {
+		t = typeSingular
+	}
+
+	return fmt.Sprintf(`
+	<ul>
+		<li>Participar em %d %s no servidor de Discord do UnderLX;</li>
+		<li>Terá de participar nos %s antes da sua hora de fecho.</li>
+	</ul>`, achievementCount, t, typePlural)
 }
 
 // VisitStationsAchievementStrategy is an achievement strategy that rewards users when they visit certain stations
