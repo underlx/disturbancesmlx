@@ -9,12 +9,14 @@
         <div class="pure-menu pure-menu-horizontal">
           <ul class="pure-menu-list">
             <li class="pure-menu-item"><a href="/leaderboards/weekly" class="pure-menu-link">Semanal</a></li>
-            <li class="pure-menu-item"><a href="/leaderboards/monthly" class="pure-menu-link">Mensal</a></li>
-            <li class="pure-menu-item pure-menu-selected"><a href="/leaderboards/alltime" class="pure-menu-link">Desde sempre</a></li>
+            <li class="pure-menu-item pure-menu-selected"><a href="/leaderboards/monthly" class="pure-menu-link">Mensal</a></li>
+            <li class="pure-menu-item"><a href="/leaderboards/alltime" class="pure-menu-link">Desde sempre</a></li>
           </ul>
         </div>
-        <h2>Classificações globais - 50 melhores</h2>
-        {{ template "leaderboard.html" dict "Entries" .Leaderboard.Entries "Self" .Player }}
+        {{ range $leaderboard := .Leaderboards }}
+        <h2>{{ formatPortugueseMonth $leaderboard.Start.Month }} de {{ $leaderboard.Start.Year }}</h2>
+        {{ template "leaderboard.html" dict "Entries" $leaderboard.Entries "Self" $.Player }}
+        {{end}}
       </div>
     </div>
   </div>

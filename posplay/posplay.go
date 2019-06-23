@@ -424,6 +424,18 @@ func WeekStart() time.Time {
 	return endTime
 }
 
+// MonthStart returns when the current competition month started
+func MonthStart() time.Time {
+	loc, _ := time.LoadLocation(GameTimezone)
+	now := time.Now().In(loc)
+	t := time.Date(now.Year(), now.Month(), 1, 2, 0, 0, 0, loc)
+	if t.After(now) {
+		// it's the first of the month, but it's not 2 AM yet
+		t = t.AddDate(0, -1, 0)
+	}
+	return t
+}
+
 func getDisplayNameFromNameType(nameType string, user *discordgo.User, guildMember *discordgo.Member) string {
 	switch nameType {
 	case NicknameNameType:

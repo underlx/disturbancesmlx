@@ -46,8 +46,9 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/xptx", xpTransactionHistoryPage)
 	router.HandleFunc("/achievements", achievementsPage)
 	router.HandleFunc("/achievements/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", achievementPage)
-	router.HandleFunc("/leaderboards", leaderboardsPage)
-	router.HandleFunc("/leaderboards/weekly", leaderboardsPage)
+	router.HandleFunc("/leaderboards", leaderboardsWeekPage)
+	router.HandleFunc("/leaderboards/weekly", leaderboardsWeekPage)
+	router.HandleFunc("/leaderboards/monthly", leaderboardsMonthPage)
 	router.HandleFunc("/leaderboards/alltime", leaderboardsAllTimePage)
 	router.HandleFunc("/users/{id:[0-9]{7,20}}", profilePage) // in theory, discord/twitter snowflakes can be between 7 and 20 digits in length
 	router.HandleFunc("/users/{id:[0-9]{7,20}}/achievements", profileAchievementsPage)
