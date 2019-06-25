@@ -51,7 +51,7 @@
             {{ if $public }}
               <a href="/users/{{ $entry.Player.DiscordID }}" style="color: inherit; text-decoration: inherit; display: block;">
                 <img src="{{ userAvatarURL $entry.Player.DiscordID "64" }}"
-                  style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px;">
+                  style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px; box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);">
               </a>
               <span>
                 <a href="/users/{{ $entry.Player.DiscordID }}" style="color: inherit; text-decoration: inherit; display: block;">{{ $entry.Player.CachedName }}</a>
@@ -60,7 +60,7 @@
               </span>
             {{else}}
               <img src="https://api.adorable.io/avatars/64/{{ $entry.Player.Seed }}.png"
-                style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px;">
+                style="border-radius: 50%; display:block; max-height: 32px; float: left; margin-right: 5px; box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);">
               <span>
                 <em>{{ $entry.Player.AnonymousName }}</em>
               </span>
