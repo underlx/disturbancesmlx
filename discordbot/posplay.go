@@ -410,6 +410,15 @@ func (e *PosPlayBridge) registerUserActivity(userID string) {
 	e.OnDiscussionParticipationCallback(userID, 1)
 }
 
+// EnsureUserInRole attempts to add an user to a role
+func (e *PosPlayBridge) EnsureUserInRole(guildID, userID, roleID string) {
+	if session == nil {
+		return
+	}
+
+	session.GuildMemberRoleAdd(guildID, userID, roleID)
+}
+
 // Name returns the name of this handler
 func (e *PosPlayBridge) Name() string {
 	return "PosPlayBridge"

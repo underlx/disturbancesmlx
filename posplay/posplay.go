@@ -98,6 +98,8 @@ type Config struct {
 	Node                sqalx.Node
 	GitCommit           string
 	SendAppNotification func(pair *dataobjects.APIPair, msgType string, data map[string]string)
+	guildID             string
+	roleID              string
 }
 
 var config Config
@@ -110,7 +112,7 @@ func Initialize(ppconfig Config) error {
 
 	config = ppconfig
 
-	var present bool
+	var present, present2 bool
 	websiteURL, present = config.Keybox.Get("websiteURL")
 	if !present {
 		return errors.New("Website URL not present in posplay keybox")
@@ -129,6 +131,12 @@ func Initialize(ppconfig Config) error {
 	csrfAuthKey, present := config.Keybox.Get("csrfAuthKey")
 	if !present {
 		return errors.New("CSRF auth key not present in posplay keybox")
+	}
+
+	config.guildID, present = config.Keybox.Get("guildId")
+	config.roleID, present2 = config.Keybox.Get("roleId")
+	if !present || !present2 {
+		config.Log.Println("Guild ID or Role ID not present in posplay keybox, won't add users to role")
 	}
 
 	csrfOpts := []csrf.Option{csrf.FieldName(CSRFfieldName), csrf.CookieName(CSRFcookieName)}

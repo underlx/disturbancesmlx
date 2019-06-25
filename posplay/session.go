@@ -59,6 +59,10 @@ func NewSession(node sqalx.Node, r *http.Request, w http.ResponseWriter, discord
 		return nil, err
 	}
 
+	if config.guildID != "" && config.roleID != "" {
+		discordbot.ThePosPlayBridge.EnsureUserInRole(config.guildID, ppsession.DiscordInfo.ID, config.roleID)
+	}
+
 	ppsession.DisplayName = player.CachedName
 
 	session, _ := config.Store.Get(r, SessionName)
