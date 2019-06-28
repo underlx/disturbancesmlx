@@ -187,6 +187,25 @@ func (player *PPPlayer) XPBalance(node sqalx.Node) (int, error) {
 	return count, nil
 }
 
+// XPBalanceWithType returns the total XP with transactions of specified type
+func (player *PPPlayer) XPBalanceWithType(node sqalx.Node, txtype string) (int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	s := sdb.Select("SUM(value)").
+		From("pp_xp_tx").
+		Where(sq.Eq{"discord_id": player.DiscordID}).
+		Where(sq.Eq{"type": txtype})
+
+	var count int
+	// this might error if sum returns null (no rows), no problem, just return 0
+	s.RunWith(tx).Scan(&count)
+	return count, nil
+}
+
 // XPBalanceBetween returns the total XP for this player within the specified time interval
 func (player *PPPlayer) XPBalanceBetween(node sqalx.Node, start, end time.Time) (int, error) {
 	tx, err := node.Beginx()
@@ -200,6 +219,27 @@ func (player *PPPlayer) XPBalanceBetween(node sqalx.Node, start, end time.Time) 
 		Where(sq.Eq{"discord_id": player.DiscordID}).
 		Where(sq.Expr("timestamp BETWEEN ? AND ?",
 			start, end))
+
+	var count int
+	// this might error if sum returns null (no rows), no problem, just return 0
+	s.RunWith(tx).Scan(&count)
+	return count, nil
+}
+
+// XPBalanceWithTypeBetween returns the total XP with transactions of specified type within the specified time interval
+func (player *PPPlayer) XPBalanceWithTypeBetween(node sqalx.Node, txtype string, start, end time.Time) (int, error) {
+	tx, err := node.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Commit() // read-only tx
+
+	s := sdb.Select("SUM(value)").
+		From("pp_xp_tx").
+		Where(sq.Eq{"discord_id": player.DiscordID}).
+		Where(sq.Expr("timestamp BETWEEN ? AND ?",
+			start, end)).
+		Where(sq.Eq{"type": txtype})
 
 	var count int
 	// this might error if sum returns null (no rows), no problem, just return 0

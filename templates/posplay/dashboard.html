@@ -33,6 +33,17 @@
         </table>
         <p style="text-align: center;"><a class="pure-button" href="/xptx">Ver histórico completo</a></p>
         {{ if .Player.InGuild }}
+        <h2>Recompensas por tipo</h2>
+        <div class="pure-g">
+          <div class="pure-u-1 pure-u-lg-1-2">
+            <h3>Esta semana</h3>
+            <div id="xpbreakdown-season" style="min-height: 200px;"></div>
+          </div>
+          <div class="pure-u-1 pure-u-lg-1-2">
+            <h3>Desde sempre</h3>
+            <div id="xpbreakdown-alltime" style="min-height: 200px;"></div>
+          </div>
+        </div>
         <h2>Está a ganhar mais pontos</h2>
         <p>Por participar no nosso servidor de Discord, receberá um bónus de 10% de XP com todas as viagens.</p>
         {{ else }}
@@ -47,4 +58,57 @@
       </div>
     </div>
   </div>
+
+  {{define "xpTxCategoryToString"}}
+  {{ if eq . "TRIPS"}}'Viagens'
+  {{ else if eq . "DISCORD_EVENTS"}}'Eventos no Discord'
+  {{ else if eq . "DISCORD_PARTICIPATION"}}'Participação no Discord'
+  {{ else if eq . "ACHIEVEMENTS"}}'Proezas'
+  {{ else if eq . "OTHER"}}'Outros'
+  {{else}}'{{.}}'{{end}}
+  {{end}}
+  <script type="text/javascript">
+  var seasonXPchart = c3.generate({
+    bindto: '#xpbreakdown-season',
+    data: {
+        columns: [
+            {{ range $xpInfo := .XPBreakdownSeason}}
+            [{{ template "xpTxCategoryToString" $xpInfo.Type }}, {{ $xpInfo.Value}}],
+            {{end}}
+        ],
+        type : 'pie',
+    },
+    pie: {
+      label: {
+        show: false
+      }
+    },
+    tooltip: {
+      format: {
+        value: function (value, ratio, id, index) { return value + " XP"; }
+      }
+    }
+  });
+  var alltimeXPchart = c3.generate({
+    bindto: '#xpbreakdown-alltime',
+    data: {
+        columns: [
+            {{ range $xpInfo := .XPBreakdownAllTime}}
+            [{{ template "xpTxCategoryToString" $xpInfo.Type }}, {{ $xpInfo.Value}}],
+            {{end}}
+        ],
+        type : 'pie'
+    },
+    pie: {
+      label: {
+        show: false
+      }
+    },
+    tooltip: {
+      format: {
+        value: function (value, ratio, id, index) { return value + " XP"; }
+      }
+    }
+  });
+  </script>
 {{template "footer.html" . }}

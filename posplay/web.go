@@ -35,6 +35,16 @@ type pageCommons struct {
 	LevelProgression float64
 	XPthisWeek       int
 	RankThisWeek     int
+
+	Dependencies pageDependencies
+}
+
+// pageDependencies is used by the header template to include certain dependencies
+type pageDependencies struct {
+	Leaflet     bool
+	Recaptcha   bool
+	Charts      bool
+	Flipcounter bool
 }
 
 // ConfigureRouter configures a router to handle PosPlay paths

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -26,11 +27,17 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 		return
 	}
 
+	type xpItem struct {
+		Type  string
+		Value int
+	}
 	p := struct {
 		pageCommons
 
-		XPTransactions []*dataobjects.PPXPTransaction
-		PairedDevice   bool
+		XPTransactions     []*dataobjects.PPXPTransaction
+		PairedDevice       bool
+		XPBreakdownSeason  []xpItem
+		XPBreakdownAllTime []xpItem
 	}{}
 	p.pageCommons, err = initPageCommons(tx, w, r, "Página principal", session, player)
 	if err != nil {
@@ -50,6 +57,61 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 	_, err = dataobjects.GetPPPair(tx, player.DiscordID)
 	p.PairedDevice = err == nil
 
+	types := [][]string{
+		[]string{"TRIPS", "TRIP_SUBMIT_REWARD", "TRIP_CONFIRM_REWARD"},
+		[]string{"DISCORD_EVENTS", "DISCORD_REACTION_EVENT", "DISCORD_CHALLENGE_EVENT"},
+		[]string{"DISCORD_PARTICIPATION", "DISCORD_PARTICIPATION"},
+		[]string{"ACHIEVEMENTS", "ACHIEVEMENT_REWARD"},
+	}
+
+	seasonStart := WeekStart()
+	now := time.Now()
+	typesTotal := 0
+	typesSeasonTotal := 0
+	for _, typeGroup := range types {
+		typeTotal := 0
+		typeSeasonTotal := 0
+
+		for _, t := range typeGroup[1:] {
+			s, err := player.XPBalanceWithType(tx, t)
+			if err != nil {
+				config.Log.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			typeTotal += s
+
+			s, err = player.XPBalanceWithTypeBetween(tx, t, seasonStart, now)
+			if err != nil {
+				config.Log.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			typeSeasonTotal += s
+		}
+
+		p.XPBreakdownAllTime = append(p.XPBreakdownAllTime, xpItem{
+			Type:  typeGroup[0],
+			Value: typeTotal,
+		})
+		typesTotal += typeTotal
+		p.XPBreakdownSeason = append(p.XPBreakdownSeason, xpItem{
+			Type:  typeGroup[0],
+			Value: typeSeasonTotal,
+		})
+		typesSeasonTotal += typesSeasonTotal
+	}
+
+	p.XPBreakdownAllTime = append(p.XPBreakdownAllTime, xpItem{
+		Type:  "OTHER",
+		Value: p.XP - typesTotal,
+	})
+	p.XPBreakdownSeason = append(p.XPBreakdownSeason, xpItem{
+		Type:  "OTHER",
+		Value: p.XPthisWeek - typesSeasonTotal,
+	})
+
+	p.Dependencies.Charts = true
 	err = webtemplate.ExecuteTemplate(w, "dashboard.html", p)
 	if err != nil {
 		config.Log.Println(err)
