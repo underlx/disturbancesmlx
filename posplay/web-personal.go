@@ -99,7 +99,7 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 			Type:  typeGroup[0],
 			Value: typeSeasonTotal,
 		})
-		typesSeasonTotal += typesSeasonTotal
+		typesSeasonTotal += typeSeasonTotal
 	}
 
 	p.XPBreakdownAllTime = append(p.XPBreakdownAllTime, xpItem{
