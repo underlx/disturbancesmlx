@@ -1020,33 +1020,35 @@ func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjec
 	visitedAffected := false
 
 	if line != nil {
+		prevUseWasAffected := false
 		for _, use := range trip.StationUses {
-			if use.Type == dataobjects.Interchange {
-				continue
-			}
 			lines, err := use.Station.Lines(tx)
 			if err != nil {
 				return err
 			}
+			thisUseWasAffected := false
 			for _, sline := range lines {
 				if line.ID == sline.ID {
-					visitedAffected = true
+					thisUseWasAffected = true
 					break
 				}
 			}
-			if visitedAffected {
-				break
-			}
-		}
-	} else if network != nil {
-		for _, use := range trip.StationUses {
-			if use.Type == dataobjects.Interchange {
-				continue
-			}
-			if use.Station.Network.ID == network.ID {
+			if thisUseWasAffected && prevUseWasAffected {
 				visitedAffected = true
 				break
 			}
+			prevUseWasAffected = thisUseWasAffected
+		}
+	} else if network != nil {
+		prevUseWasAffected := false
+		for _, use := range trip.StationUses {
+			thisUseWasAffected := use.Station.Network.ID == network.ID
+
+			if thisUseWasAffected && prevUseWasAffected {
+				visitedAffected = true
+				break
+			}
+			prevUseWasAffected = thisUseWasAffected
 		}
 	} else {
 		// if it's any line, then it's immediately affected
