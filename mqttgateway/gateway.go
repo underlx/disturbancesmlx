@@ -62,7 +62,7 @@ func New(c Config) (*MQTTGateway, error) {
 		statsHandler:    c.StatsHandler,
 		authHashKey:     c.AuthHashKey,
 		stopChan:        make(chan interface{}, 1),
-		etaAvailability: "dev",
+		etaAvailability: "all",
 	}
 	var present, present2 bool
 	g.listenAddr, present = c.Keybox.Get("listenAddr")
