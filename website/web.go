@@ -442,7 +442,6 @@ func ReloadTemplates() {
 	}
 
 	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("templates/*.html"))
-	webtemplate = template.Must(webtemplate.ParseFiles("stationkb/backers.html"))
 }
 
 // ShowOfficialDataOnly analyzes and modifies a request to check if the user wants to see

@@ -147,7 +147,7 @@ func FormatPortugueseDurationLong(d time.Duration) string {
 func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 	m := make(map[string]string)
 	for _, locale := range SupportedLocales {
-		m[locale] = "stationkb/" + locale + "/trivia/" + station.ID + ".html"
+		m[locale] = "stationkb/trivia/" + station.ID + "-" + locale + ".html"
 	}
 	return m
 }
@@ -159,7 +159,7 @@ func StationConnectionURLs(station *dataobjects.Station) map[string]map[string]s
 	connections := []string{"boat", "bus", "train", "park", "bike"}
 	for _, locale := range SupportedLocales {
 		for _, connection := range connections {
-			path := "stationkb/" + locale + "/connections/" + connection + "/" + station.ID + ".html"
+			path := "stationkb/connections/" + connection + "/" + station.ID + "-" + locale + ".html"
 			if info, err := os.Stat(path); err == nil && !info.IsDir() {
 				if m[connection] == nil {
 					m[connection] = make(map[string]string)

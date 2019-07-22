@@ -149,7 +149,7 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 // ReadStationTrivia returns the contents of the HTML file
 // containing trivia for the specified station ID
 func ReadStationTrivia(stationID, locale string) (string, error) {
-	buf, err := ioutil.ReadFile("stationkb/" + locale + "/trivia/" + stationID + ".html")
+	buf, err := ioutil.ReadFile("stationkb/trivia/" + stationID + "-" + locale + ".html")
 	if err != nil {
 		return "", err
 	}
@@ -162,7 +162,7 @@ func ReadStationConnections(stationID string) (data []ConnectionData, err error)
 	connections := []string{"boat", "bus", "train", "park", "bike"}
 	// try pt and use en as fallback
 	for _, connection := range connections {
-		path := "stationkb/pt/connections/" + connection + "/" + stationID + ".html"
+		path := "stationkb/connections/" + connection + "/" + stationID + "-pt.html"
 		if info, err := os.Stat(path); err == nil && !info.IsDir() {
 			buf, err := ioutil.ReadFile(path)
 			if err != nil {
@@ -177,7 +177,7 @@ func ReadStationConnections(stationID string) (data []ConnectionData, err error)
 				HTML: html,
 			})
 		} else {
-			path := "stationkb/en/connections/" + connection + "/" + stationID + ".html"
+			path := "stationkb/connections/" + connection + "/" + stationID + "-en.html"
 			if info, err := os.Stat(path); err == nil && !info.IsDir() {
 				buf, err := ioutil.ReadFile(path)
 				if err != nil {

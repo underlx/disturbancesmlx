@@ -32,7 +32,7 @@ func (r *Backers) headOrGet(c *yarf.Context) error {
 	if !funk.ContainsString(utils.SupportedLocales[:], locale) {
 		locale = "en"
 	}
-	filename := "stationkb/" + locale + "/backers.html"
+	filename := "stationkb/backers/backers-" + locale + ".html"
 
 	info, err := os.Stat(filename)
 	if err != nil {
