@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/thoas/go-funk"
 
@@ -110,6 +111,20 @@ type posPlayQuizEvent struct {
 	Answer       string
 	MaxAttempts  uint
 	AttemptTally *sync.Map
+}
+
+type posPlayMultipleChoiceQuizEvent struct {
+	posPlayEvent
+	Question      string
+	Choices       []string
+	Answer        int
+	SentChoicesTo *sync.Map
+}
+
+type posPlayMultipleChoiceQuizPersonalData struct {
+	Event    *posPlayMultipleChoiceQuizEvent
+	Answered bool // whether the user has answered yet
+	Answer   int  // answer given by the user
 }
 
 func (e *PosPlayBridge) handleReloadAchievements(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
@@ -275,7 +290,225 @@ func (e *PosPlayBridge) StartQuizEvent(s *discordgo.Session, channel *discordgo.
 			e.ongoing.Delete(event.Trigger)
 		}
 	}()
-	return nil, err
+	return message, err
+}
+
+func (e *PosPlayBridge) handleMultipleChoiceQuizStartCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
+	if len(args) < 7 {
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments: [channel ID] [question] [choices separated by ;] [answer] [max attempts] [XP reward] [duration in seconds]")
+		return
+	}
+	channel, err := s.Channel(args[0])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+	question := args[1]
+	choices := strings.Split(args[2], ";")
+	for i := range choices {
+		choices[i] = strings.TrimSpace(choices[i])
+	}
+
+	answerOffset := -1
+	answerNumber, err := strconv.Atoi(args[3])
+	if err == nil {
+		answerOffset = answerNumber - 1
+	} else if len(args[3]) == 1 {
+		answerOffset = int(strings.ToUpper(args[3])[0] - 'A')
+	} else {
+		for i, choice := range choices {
+			if strings.ToLower(choice) == strings.ToLower(args[3]) {
+				answerOffset = i
+				break
+			}
+		}
+	}
+	if answerOffset < 0 || answerOffset >= len(choices) {
+		s.ChannelMessageSend(m.ChannelID, "🆖 invalid answer specified")
+		return
+	}
+
+	numberOfAttempts, err := strconv.Atoi(args[4])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+	xpReward, err := strconv.Atoi(args[5])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+	seconds, err := strconv.Atoi(args[6])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+
+	duration := time.Duration(seconds) * time.Second
+	em, err := e.StartMultipleChoiceQuizEvent(s, channel, question, choices, answerOffset, numberOfAttempts, xpReward, duration)
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
+		return
+	}
+
+	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ event with ID `%s` started on channel <#%s> with duration %s and %d XP reward per user",
+		em.ID, channel.ID, duration.String(), xpReward))
+}
+
+// StartMultipleChoiceQuizEvent starts a quiz event on the specified channel with the given XP reward and message, expiring after the given duration
+func (e *PosPlayBridge) StartMultipleChoiceQuizEvent(s *discordgo.Session, channel *discordgo.Channel, question string, choices []string, answer int, numberOfAttempts int, xpReward int, duration time.Duration) (*discordgo.Message, error) {
+	messageContents := fmt.Sprintf("%s\n\n_Reaja a esta mensagem para receber as opções de resposta por DM. Receba %d XP ao acertar <:posplay:499252980273381376>_",
+		question, xpReward)
+
+	message, err := s.ChannelMessageSend(channel.ID, messageContents)
+	if err != nil {
+		return nil, err
+	}
+
+	event := posPlayMultipleChoiceQuizEvent{
+		posPlayEvent: posPlayEvent{
+			MessageID: message.ID,
+			XPreward:  xpReward,
+			stopChan:  make(chan interface{}, 1),
+		},
+		Question:      question,
+		Choices:       choices,
+		Answer:        answer,
+		SentChoicesTo: new(sync.Map),
+	}
+
+	e.ongoing.Store(message.ID, event)
+
+	giveRewards := func() {
+		// User IDs are the keys in SentChoicesTo
+		// DMs are the values in SentChoicesTo
+		event.SentChoicesTo.Range(func(key, value interface{}) bool {
+			userID := key.(string)
+			dm := value.(*discordgo.Message)
+			d, present := e.ongoing.Load(dm.ID)
+			if !present {
+				return true
+			}
+			data := d.(posPlayMultipleChoiceQuizPersonalData)
+			if !data.Answered {
+				return true
+			}
+
+			content := ""
+			if data.Answer != data.Event.Answer {
+				content = fmt.Sprintf("❌ Infelizmente \"%s\" não é a resposta correta, mas sim \"%s\".", data.Event.Choices[data.Answer], data.Event.Choices[data.Event.Answer])
+			} else if e.OnEventWinCallback != nil && e.OnEventWinCallback(userID, message.ID, event.XPreward, "DISCORD_CHALLENGE_EVENT") {
+				content = fmt.Sprintf("✅ \"%s\" é a resposta correta!", data.Event.Choices[data.Answer])
+			} else {
+				content = fmt.Sprintf("⚠ \"%s\" é a resposta correta, mas não foi possível atribuir-lhe a recompensa. Contacte a equipa do UnderLX.", data.Event.Choices[data.Answer])
+			}
+			SendDMtoUser(userID, &discordgo.MessageSend{
+				Content: content,
+			})
+			return true
+		})
+	}
+
+	cleanup := func() {
+		// delete posPlayMultipleChoiceQuizPersonalDatas (indexed by DM ID in ongoing)
+		// User IDs are the keys in SentChoicesTo
+		// DMs are the values in SentChoicesTo
+		event.SentChoicesTo.Range(func(key, value interface{}) bool {
+			dm := value.(*discordgo.Message)
+			// NOTICE: possible scalability issues if large numbers of users participate in the event
+			s.ChannelMessageEdit(dm.ChannelID, dm.ID, dm.Content+"\n\n**Este desafio terminou.**")
+			e.ongoing.Delete(dm.ID)
+			return true
+		})
+		e.ongoing.Delete(message.ID)
+	}
+
+	go func() {
+		select {
+		case <-event.StopChan():
+			s.ChannelMessageEdit(channel.ID, message.ID, question+"\n\n**Este desafio foi cancelado.**")
+			cleanup()
+		case <-time.After(duration):
+			s.ChannelMessageEdit(channel.ID, message.ID, question+"\n\n**Este desafio terminou. Seja mais rápido da próxima vez!**\nA resposta correta é: "+choices[answer])
+			giveRewards()
+			cleanup()
+		}
+	}()
+	return message, err
+}
+
+func (e *PosPlayBridge) sendMultipleChoiceQuizOptions(s *discordgo.Session, reaction *discordgo.MessageReactionAdd, event *posPlayMultipleChoiceQuizEvent) {
+	if _, present := event.SentChoicesTo.Load(reaction.UserID); present {
+		return
+	}
+
+	_, err := ThePosPlayBridge.PlayerXPInfo(reaction.UserID)
+	if err != nil {
+		// this user is not yet a PosPlay player
+		SendDMtoUser(reaction.UserID, &discordgo.MessageSend{
+			Content: fmt.Sprintf("Para poder participar nos eventos no servidor de Discord do UnderLX, tem de se registar no PosPlay primeiro: https://posplay.underlx.com"),
+		})
+		return
+	}
+
+	content := event.Question + "\n\n"
+	r, _ := utf8.DecodeRuneInString("🇦")
+	for i, choice := range event.Choices {
+		content += fmt.Sprintf("%s - %s\n", string(r+rune(i)), choice)
+	}
+	content += fmt.Sprintf("\nReaja a esta mensagem com a resposta correta para ganhar %d XP <:posplay:499252980273381376>", event.XPreward)
+
+	dm, err := SendDMtoUser(reaction.UserID, &discordgo.MessageSend{
+		Content: content,
+	})
+	if err != nil {
+		botLog.Println(err)
+		return
+	}
+	event.SentChoicesTo.Store(reaction.UserID, dm)
+
+	data := posPlayMultipleChoiceQuizPersonalData{
+		Event: event,
+	}
+
+	e.ongoing.Store(dm.ID, data)
+
+	go func() {
+		// pre-add reactions to make it easier to reply
+		for i := range event.Choices {
+			s.MessageReactionAdd(dm.ChannelID, dm.ID, string(r+rune(i)))
+		}
+	}()
+}
+
+func (e *PosPlayBridge) handleMultipleChoiceQuizAnswer(s *discordgo.Session, reaction *discordgo.MessageReactionAdd, data *posPlayMultipleChoiceQuizPersonalData) {
+	if data.Answered {
+		return
+	}
+
+	answerOffset := -1
+	r, _ := utf8.DecodeRuneInString("🇦")
+	for i := range data.Event.Choices {
+		if string(r+rune(i)) == reaction.Emoji.Name {
+			answerOffset = i
+			break
+		}
+	}
+	if answerOffset < 0 {
+		return
+	}
+
+	_, err := SendDMtoUser(reaction.UserID, &discordgo.MessageSend{
+		Content: fmt.Sprintf("Respondeu %s (\"%s\"). A resposta certa será revelada quando o desafio terminar. Se acertou, irá receber %d XP.",
+			reaction.Emoji.Name, data.Event.Choices[answerOffset], data.Event.XPreward),
+	})
+	if err != nil {
+		botLog.Println(err)
+		return
+	}
+	data.Answer = answerOffset
+	data.Answered = true
+	e.ongoing.Store(reaction.MessageID, *data)
 }
 
 func (e *PosPlayBridge) handleStopCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
@@ -338,6 +571,20 @@ func (e *PosPlayBridge) HandleReaction(s *discordgo.Session, m *discordgo.Messag
 	event, ok := v.(posPlayReactionEvent)
 	if ok && e.OnEventWinCallback != nil && e.OnEventWinCallback(m.UserID, event.MessageID, event.XPreward, "DISCORD_REACTION_EVENT") {
 		e.reactionsActedUponCount++
+		return false
+	}
+
+	choiceevent, ok := v.(posPlayMultipleChoiceQuizEvent)
+	if ok {
+		e.sendMultipleChoiceQuizOptions(s, m, &choiceevent)
+		e.reactionsActedUponCount++
+		return false
+	}
+
+	choicedata, ok := v.(posPlayMultipleChoiceQuizPersonalData)
+	if ok {
+		e.handleMultipleChoiceQuizAnswer(s, m, &choicedata)
+		e.reactionsActedUponCount++
 	}
 	return false
 }
@@ -388,14 +635,14 @@ func (e *PosPlayBridge) HandleMessage(s *discordgo.Session, m *discordgo.Message
 		attempts++
 		event.AttemptTally.Store(m.Author.ID, attempts)
 		if event.MaxAttempts > 0 && attempts >= event.MaxAttempts {
-			s.ChannelMessageSend(m.ChannelID, "❌ resposta incorrecta. Esgotou as suas tentativas 😦")
+			s.ChannelMessageSend(m.ChannelID, "❌ resposta incorreta. Esgotou as suas tentativas 😦")
 		} else {
-			s.ChannelMessageSend(m.ChannelID, "❌ resposta incorrecta 😦")
+			s.ChannelMessageSend(m.ChannelID, "❌ resposta incorreta 😦")
 		}
 	} else if e.OnEventWinCallback != nil && e.OnEventWinCallback(m.Author.ID, event.MessageID, event.XPreward, "DISCORD_CHALLENGE_EVENT") {
-		s.ChannelMessageSend(m.ChannelID, "✅ resposta correcta!")
+		s.ChannelMessageSend(m.ChannelID, "✅ resposta correta!")
 	} else {
-		s.ChannelMessageSend(m.ChannelID, "⚠ a sua resposta está correcta, mas não foi possível atribuir-lhe a recompensa.")
+		s.ChannelMessageSend(m.ChannelID, "⚠ a sua resposta está correta, mas não foi possível atribuir-lhe a recompensa.")
 	}
 	return true
 }
