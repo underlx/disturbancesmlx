@@ -295,7 +295,7 @@ func (e *PosPlayBridge) StartQuizEvent(s *discordgo.Session, channel *discordgo.
 
 func (e *PosPlayBridge) handleMultipleChoiceQuizStartCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
 	if len(args) < 7 {
-		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments: [channel ID] [question] [choices separated by ;] [answer] [max attempts] [XP reward] [duration in seconds]")
+		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments: [channel ID] [question] [choices separated by ;] [answer] [XP reward] [duration in seconds]")
 		return
 	}
 	channel, err := s.Channel(args[0])
@@ -327,25 +327,19 @@ func (e *PosPlayBridge) handleMultipleChoiceQuizStartCommand(s *discordgo.Sessio
 		s.ChannelMessageSend(m.ChannelID, "🆖 invalid answer specified")
 		return
 	}
-
-	numberOfAttempts, err := strconv.Atoi(args[4])
+	xpReward, err := strconv.Atoi(args[4])
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 		return
 	}
-	xpReward, err := strconv.Atoi(args[5])
-	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
-		return
-	}
-	seconds, err := strconv.Atoi(args[6])
+	seconds, err := strconv.Atoi(args[5])
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 		return
 	}
 
 	duration := time.Duration(seconds) * time.Second
-	em, err := e.StartMultipleChoiceQuizEvent(s, channel, question, choices, answerOffset, numberOfAttempts, xpReward, duration)
+	em, err := e.StartMultipleChoiceQuizEvent(s, channel, question, choices, answerOffset, xpReward, duration)
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 		return
@@ -356,7 +350,7 @@ func (e *PosPlayBridge) handleMultipleChoiceQuizStartCommand(s *discordgo.Sessio
 }
 
 // StartMultipleChoiceQuizEvent starts a quiz event on the specified channel with the given XP reward and message, expiring after the given duration
-func (e *PosPlayBridge) StartMultipleChoiceQuizEvent(s *discordgo.Session, channel *discordgo.Channel, question string, choices []string, answer int, numberOfAttempts int, xpReward int, duration time.Duration) (*discordgo.Message, error) {
+func (e *PosPlayBridge) StartMultipleChoiceQuizEvent(s *discordgo.Session, channel *discordgo.Channel, question string, choices []string, answer int, xpReward int, duration time.Duration) (*discordgo.Message, error) {
 	messageContents := fmt.Sprintf("%s\n\n_Reaja a esta mensagem para receber as opções de resposta por DM. Receba %d XP ao acertar <:posplay:499252980273381376>_",
 		question, xpReward)
 
