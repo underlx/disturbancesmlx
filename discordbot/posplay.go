@@ -294,7 +294,7 @@ func (e *PosPlayBridge) StartQuizEvent(s *discordgo.Session, channel *discordgo.
 }
 
 func (e *PosPlayBridge) handleMultipleChoiceQuizStartCommand(s *discordgo.Session, m *discordgo.MessageCreate, args []string) {
-	if len(args) < 7 {
+	if len(args) < 6 {
 		s.ChannelMessageSend(m.ChannelID, "🆖 missing arguments: [channel ID] [question] [choices separated by ;] [answer] [XP reward] [duration in seconds]")
 		return
 	}
