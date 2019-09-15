@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 	"sort"
-	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	cache "github.com/patrickmn/go-cache"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
@@ -93,52 +93,117 @@ func (sc *FacebookScraper) scrape() {
 }
 
 func (sc *FacebookScraper) update() {
-	response, err := http.Get("https://graph.facebook.com/MetroLisboa/posts?access_token=" + sc.AccessToken)
+	response, err := http.Get("https://mobile.facebook.com/metrolisboa")
 	if err != nil {
 		sc.log.Println(err)
 		return
 	}
-	defer response.Body.Close()
 
-	var dat map[string]interface{}
-	if err := json.NewDecoder(response.Body).Decode(&dat); err != nil {
+	doc, err := goquery.NewDocumentFromResponse(response)
+	if err != nil {
 		sc.log.Println(err)
 		return
 	}
-	if dat == nil || dat["data"] == nil {
-		sc.log.Println("FacebookScraper data is nil")
+
+	recent := doc.Find("#recent")
+	if recent.Length() == 0 {
+		sc.log.Println("Missing elements in response")
 		return
 	}
-	data := dat["data"].([]interface{})
-
+	recent = recent.Children().First()
+	if recent.Length() == 0 {
+		sc.log.Println("Missing elements in response")
+		return
+	}
+	recent = recent.Children().First()
+	if recent.Length() == 0 {
+		sc.log.Println("Missing elements in response")
+		return
+	}
 	announcements := []*dataobjects.Announcement{}
-	for _, item := range data {
-		pitem := item.(map[string]interface{})
-		body := ""
-		if pitem["message"] != nil {
-			body = pitem["message"].(string)
-		} else if pitem["story"] != nil {
-			body = pitem["story"].(string)
-		}
-		postTime, err := time.Parse("2006-01-02T15:04:05-0700", pitem["created_time"].(string))
-		if err != nil {
-			sc.log.Println(err)
-			continue
+	recent.Children().Each(func(i int, s *goquery.Selection) {
+		dataft, ok := s.Attr("data-ft")
+		if !ok {
+			sc.log.Println("Post missing data-ft attribute")
 		}
 
-		ids := strings.Split(pitem["id"].(string), "_")
+		var data map[string]interface{}
+		if err := json.Unmarshal([]byte(dataft), &data); err != nil {
+			sc.log.Println(err)
+			return
+		}
+		if data == nil {
+			sc.log.Println("data-ft is not valid json")
+			return
+		}
+
+		postIDiface := data["mf_story_key"]
+		if postIDiface == nil {
+			sc.log.Println("data-ft missing mf_story_key")
+			return
+		}
+		postID, ok := postIDiface.(string)
+		if !ok {
+			sc.log.Println("mf_story_key has unexpected type")
+			return
+		}
+
+		pageInsights := data["page_insights"]
+		if pageInsights == nil {
+			sc.log.Println("data-ft missing page_insights")
+			return
+		}
+		pageInsightsMap, ok := pageInsights.(map[string]interface{})
+		if !ok {
+			sc.log.Println("page_insights has unexpected type")
+			return
+		}
+
+		var postTime time.Time
+		for _, item := range pageInsightsMap {
+			// we only care about the item which has publish_time, we don't care what's its key
+			pi, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			postContextIface, ok := pi["post_context"]
+			if !ok {
+				continue
+			}
+			postContext, ok := postContextIface.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			tIface, ok := postContext["publish_time"]
+			if !ok {
+				continue
+			}
+			tfloat, ok := tIface.(float64)
+			if !ok {
+				continue
+			}
+			postTime = time.Unix(int64(tfloat), 0)
+		}
+		if postTime.IsZero() {
+			sc.log.Println("could not obtain post publish time")
+			return
+		}
+
+		body := s.Find("div:nth-child(2) > span").First().Text()
+
+		imgURL, _ := s.Find("div:nth-child(3) img").First().Attr("src")
 
 		ann := dataobjects.Announcement{
 			Time:     postTime,
 			Network:  sc.Network,
 			Title:    "",
 			Body:     body,
-			ImageURL: sc.getImageForPost(ids[1]),
-			URL:      "https://www.facebook.com/" + ids[0] + "/posts/" + ids[1],
+			ImageURL: imgURL,
+			URL:      "https://www.facebook.com/MetroLisboa/posts/" + postID,
 			Source:   "pt-ml-facebook",
 		}
 		announcements = append(announcements, &ann)
-	}
+	})
 
 	sort.SliceStable(announcements, func(i, j int) bool {
 		return announcements[i].Time.Before(announcements[j].Time)
@@ -162,30 +227,6 @@ func (sc *FacebookScraper) update() {
 	}
 	sc.announcements = announcements
 	sc.firstUpdate = false
-}
-
-func (sc *FacebookScraper) getImageForPost(objectID string) string {
-	url, present := sc.imageURLcache.Get(objectID)
-	if present {
-		return url.(string)
-	}
-
-	possibleImageURL := "https://graph.facebook.com/" + objectID + "/picture"
-	netClient := &http.Client{
-		Timeout: time.Second * 10,
-	}
-	imageHeadResponse, err := netClient.Head(possibleImageURL)
-	if err != nil {
-		return ""
-	}
-
-	if imageHeadResponse.StatusCode >= 400 {
-		// this post doesn't appear to have an image
-		sc.imageURLcache.SetDefault(objectID, "")
-		return ""
-	}
-	sc.imageURLcache.SetDefault(objectID, possibleImageURL)
-	return possibleImageURL
 }
 
 // Networks returns the networks monitored by this scraper
