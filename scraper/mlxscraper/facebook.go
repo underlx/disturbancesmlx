@@ -189,7 +189,7 @@ func (sc *FacebookScraper) update() {
 			return
 		}
 
-		body := s.Find("div:nth-child(2) > span").First().Text()
+		body := s.Find("div:nth-child(2) > span").First().Find("p").Text()
 
 		imgURL, _ := s.Find("div:nth-child(3) img").First().Attr("src")
 
