@@ -234,14 +234,15 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 			return err
 		}
 		creation = creation.Add(timeOffset)
+		if creation.Sub(time.Now()) > 1*time.Second {
+			sc.log.Println("Warning: received ETA seems to have been computed in the future by", creation.Sub(time.Now()))
+		}
 
 		commonETA := dataobjects.VehicleETA{
 			Station:   station,
 			Direction: sc.getDirection(dirETA),
-			//Computed:  creation,
-			// this assumes their ETAs were computed while producing the response to our request
 			Computed:  creation,
-			ValidFor:  sc.etaValidity,
+			ValidFor:  time.Now().Sub(creation) + sc.etaValidity,
 			Precision: 1 * time.Second,
 			Type:      dataobjects.RelativeExact,
 		}
