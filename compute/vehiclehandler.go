@@ -315,7 +315,7 @@ func (h *VehicleHandler) AllTrainETAs(node sqalx.Node) ([]TrainETA, error) {
 	}
 	trainETAs := []TrainETA{}
 	for _, station := range stations {
-		directions, err := station.Directions(tx)
+		directions, err := station.Directions(tx, false)
 		if err != nil {
 			return trainETAs, err
 		}

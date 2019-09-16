@@ -27,6 +27,12 @@ type StatusScraper interface {
 	LastUpdate() time.Time
 }
 
+// ETAScraper is something that runs in the background retrieving vehicle ETAs
+type ETAScraper interface {
+	Scraper
+	Init(node sqalx.Node, log *log.Logger) error
+}
+
 // AnnouncementScraper runs in the background retrieving announcements about a
 // network.
 type AnnouncementScraper interface {

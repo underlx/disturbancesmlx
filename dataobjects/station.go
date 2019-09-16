@@ -127,7 +127,7 @@ func (station *Station) POIs(node sqalx.Node) ([]*POI, error) {
 
 // Directions returns the directions (stations at an end of a line) that can be reached directly from this station
 // (i.e. without additional line changes)
-func (station *Station) Directions(node sqalx.Node) ([]*Station, error) {
+func (station *Station) Directions(node sqalx.Node, withAllServices bool) ([]*Station, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return nil, err
@@ -149,6 +149,15 @@ func (station *Station) Directions(node sqalx.Node) ([]*Station, error) {
 			ends = append(ends, stations[0])
 			if len(stations) > 1 {
 				ends = append(ends, stations[len(stations)-1])
+			}
+		}
+		// TODO un-hardcode this
+		if withAllServices && line.ID == "pt-ml-amarela" {
+			for _, s := range stations {
+				if s.ID == "pt-ml-cg" {
+					ends = append(ends, s)
+					break
+				}
 			}
 		}
 	}

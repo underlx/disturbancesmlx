@@ -23,7 +23,9 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Station        *dataobjects.Station
+		Station *dataobjects.Station
+		// we must make info about all stations available, so IDs in vehicle ETAs can be decoded
+		Stations       []*dataobjects.Station
 		StationLines   []*dataobjects.Line
 		Lobbies        []*dataobjects.Lobby
 		LobbySchedules [][]string
@@ -45,6 +47,13 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.Closed, err = p.Station.Closed(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	p.Stations, err = p.Station.Network.Stations(tx)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -139,6 +148,7 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.Dependencies.Leaflet = true
+	p.Dependencies.MQTT = true
 	err = webtemplate.ExecuteTemplate(w, "station.html", p)
 	if err != nil {
 		webLog.Println(err)

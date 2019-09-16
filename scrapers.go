@@ -14,6 +14,7 @@ import (
 
 var (
 	mlxscr     scraper.StatusScraper
+	mlxETAscr  scraper.ETAScraper
 	rssmlxscr  scraper.AnnouncementScraper
 	fbmlxscr   scraper.AnnouncementScraper
 	contestscr scraper.AnnouncementScraper
@@ -22,7 +23,7 @@ var (
 )
 
 // SetUpScrapers initializes and starts the scrapers used to obtain network information
-func SetUpScrapers(node sqalx.Node) error {
+func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err
@@ -56,7 +57,6 @@ func SetUpScrapers(node sqalx.Node) error {
 		}
 	}
 
-	l := log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime)
 	mlxscr = &mlxscraper.Scraper{
 		StatusCallback:    handleNewStatusNotify,
 		ConditionCallback: handleNewCondition,
@@ -69,9 +69,29 @@ func SetUpScrapers(node sqalx.Node) error {
 		},
 		Period: 1 * time.Minute,
 	}
-	mlxscr.Init(rootSqalxNode, l)
+	mlxscr.Init(rootSqalxNode,
+		log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime))
 	mlxscr.Begin()
 	scrapers[mlxscr.ID()] = mlxscr
+
+	if mlAccessToken != "" {
+		mlxETAscr = &mlxscraper.ETAScraper{
+			NewETACallback:       vehicleETAHandler.RegisterVehicleETA,
+			BearerToken:          mlAccessToken,
+			RequestURL:           "https://api.metrolisboa.pt:8243/estadoServicoML/1.0.0/tempoEspera/Estacao/todos",
+			Network:              network,
+			WaitPeriodBetweenAll: 10 * time.Second,
+		}
+		err = mlxETAscr.Init(rootSqalxNode,
+			log.New(os.Stdout, "mlxETAscraper", log.Ldate|log.Ltime))
+		if err != nil {
+			return err
+		}
+		mlxETAscr.Begin()
+		scrapers[mlxETAscr.ID()] = mlxETAscr
+	} else {
+		log.Println("Not scraping pt-ml ETAs, as access token is not present")
+	}
 	return tx.Commit()
 }
 

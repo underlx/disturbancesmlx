@@ -72,6 +72,9 @@ func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 	packages["underlx"]["VehicleHandler"] = func() *compute.VehicleHandler {
 		return vehicleHandler
 	}
+	packages["underlx"]["VehicleETAHandler"] = func() *compute.VehicleETAHandler {
+		return vehicleETAHandler
+	}
 	packages["underlx"]["StatsHandler"] = func() *compute.StatsHandler {
 		return statsHandler
 	}

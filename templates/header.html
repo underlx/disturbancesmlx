@@ -61,6 +61,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-easybutton@2.3.0/src/easy-button.css">
   <script src="https://unpkg.com/leaflet-easybutton@2.3.0/src/easy-button.js"></script>
   {{end}}
+  {{ if .Dependencies.MQTT }}
+  <script src='https://unpkg.com/mqtt@3.0.0/dist/mqtt.min.js'></script>
+  {{end}}
 
   <!-- Telemonsta -->
   <script type="text/javascript">

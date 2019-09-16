@@ -1,4 +1,13 @@
-<style>a.anchor:before { content: ''; display: block; position: relative; width: 0; height: 3em; margin-top: -3em }</style>
+<style>
+a.anchor:before { content: ''; display: block; position: relative; width: 0; height: 3em; margin-top: -3em }
+#etasList {
+  border-spacing: 5px;
+  border-collapse: separate;
+}
+#etasList > tr > td:first-child {
+  text-align: right;
+}
+</style>
 
 {{define "StationLineSelector"}}
 <div class="lineHeaderComplete">
@@ -44,6 +53,10 @@
         {{ end }}
       </div>
       <div class="pure-u-1" id="sectionsbar" style="position: sticky; top: 0px; margin-top: 10px; background-color: white; z-index: 100000000"><p style="text-align: center;"><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#pois" class="pure-button">Pontos de Interesse</a> <a href="#trivia" class="pure-button">Trívia</a></p></div>
+      <div class="pure-u-1" id="vehicleETAs" style="display: none">
+          <h2><a id="etas" class="anchor">Próximos comboios</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+          <p><table id="etasList"></table></p>
+      </div>
       <div class="pure-u-1" style="overflow: visible">
         <h2><a id="lobbies" class="anchor">Mapa de área local</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
         <div style="text-align: center">
@@ -167,5 +180,43 @@
     L.easyButton('<span style="font-size: 15px; margin-top: 5px;" title="Mostrar pontos de interesse"><i id="expandicon" class="fa fa-map-marker" aria-hidden="true"></i></span>', function(btn, map){
       map.fitBounds(poiMarkerGroup.getBounds().pad(0.1));
     }).addTo(map);
+
+    {{ if not .Closed }}
+    var stationNames = {
+      {{ range $station := .Stations }}"{{$station.ID}}": "{{$station.Name}}",{{end}}
+    };
+
+    var mqttClient = mqtt.connect("{{ .MQTTaddress }}", {"username": "ws", "keepalive": 30});
+
+    mqttClient.on('message', function (topic, message) {
+      // message is Buffer
+      let data = JSON.parse(message.toString());
+      let etasList = document.getElementById("etasList");
+      while (etasList.firstChild) {
+        etasList.removeChild(etasList.firstChild);
+      }
+      data.sort((a, b) => a.value - b.value);
+      for (eta of data) {
+        if (eta.type != "e") {
+          // only support exact ETAs for now
+          continue;
+        }
+        var minutes = Math.floor(eta.value / 60);
+        var seconds = eta.value - (minutes * 60);
+        if (minutes < 10) {minutes = "0"+minutes;}
+        if (seconds < 10) {seconds = "0"+seconds;}
+        let timeString = minutes+'m '+seconds + "s";
+        let li = document.createElement("tr");
+        li.innerHTML = "<td><a href='/s/" + eta.direction + "'>" + stationNames[eta.direction] + "</a></td><td>" + timeString + "</td>";
+        etasList.appendChild(li);
+      }
+      document.getElementById("vehicleETAs").style.display = etasList.children.length > 0 ? "block" : none;
+    });
+
+    mqttClient.on('connect', function () {
+      mqttClient.subscribe("json/vehicleeta/{{ .Station.Network.ID }}/{{ .Station.ID }}");
+    });
+    
+    {{end}}
   </script>
 {{template "footer.html" . }}

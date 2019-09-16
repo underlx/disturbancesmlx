@@ -1,9 +1,11 @@
 package mqttgateway
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/gbl08ma/gmqtt"
@@ -46,11 +48,27 @@ type vehicleETAInterval struct {
 	Upper      uint `msgpack:"upper" json:"upper"`
 }
 
-func buildVehicleETAExactStruct(direction string, validFor time.Duration, eta time.Duration, precise bool) vehicleETASingleValue {
+func buildVehicleETATimestampStruct(direction string, made time.Time, validFor time.Duration, eta time.Time) vehicleETASingleValue {
 	data := vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
-			Made:      time.Now().Unix(),
+			Made:      made.Unix(),
+			ValidFor:  uint(validFor.Seconds()),
+			Type:      vehicleETATypeTimestamp,
+		},
+	}
+
+	data.Units = vehicleETAUnitSeconds
+	data.Value = uint(eta.Unix())
+
+	return data
+}
+
+func buildVehicleETAExactStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool) vehicleETASingleValue {
+	data := vehicleETASingleValue{
+		vehicleETA: vehicleETA{
+			Direction: direction,
+			Made:      made.Unix(),
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeExact,
 		},
@@ -67,11 +85,11 @@ func buildVehicleETAExactStruct(direction string, validFor time.Duration, eta ti
 	return data
 }
 
-func buildVehicleETALessThanStruct(direction string, validFor time.Duration, eta time.Duration, precise bool) vehicleETASingleValue {
+func buildVehicleETALessThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool) vehicleETASingleValue {
 	data := vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
-			Made:      time.Now().Unix(),
+			Made:      made.Unix(),
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeLessThan,
 		},
@@ -88,11 +106,32 @@ func buildVehicleETALessThanStruct(direction string, validFor time.Duration, eta
 	return data
 }
 
-func buildVehicleETAIntervalStruct(direction string, validFor time.Duration, lower, upper time.Duration, precise bool) vehicleETAInterval {
+func buildVehicleETAMoreThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool) vehicleETASingleValue {
+	data := vehicleETASingleValue{
+		vehicleETA: vehicleETA{
+			Direction: direction,
+			Made:      made.Unix(),
+			ValidFor:  uint(validFor.Seconds()),
+			Type:      vehicleETATypeMoreThan,
+		},
+	}
+
+	if precise {
+		data.Units = vehicleETAUnitSeconds
+		data.Value = uint(eta.Seconds())
+	} else {
+		data.Units = vehicleETAUnitMinutes
+		data.Value = uint(math.Round(eta.Minutes()))
+	}
+
+	return data
+}
+
+func buildVehicleETAIntervalStruct(direction string, made time.Time, validFor time.Duration, lower, upper time.Duration, precise bool) vehicleETAInterval {
 	data := vehicleETAInterval{
 		vehicleETA: vehicleETA{
 			Direction: direction,
-			Made:      time.Now().Unix(),
+			Made:      made.Unix(),
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeInterval,
 		},
@@ -113,6 +152,14 @@ func buildVehicleETAIntervalStruct(direction string, validFor time.Duration, low
 
 func buildVehicleETAPayload(structs ...interface{}) []byte {
 	encoded, err := msgpack.Marshal(structs)
+	if err != nil {
+		return []byte{}
+	}
+	return encoded
+}
+
+func buildVehicleETAJSONPayload(structs ...interface{}) []byte {
+	encoded, err := json.Marshal(structs)
 	if err != nil {
 		return []byte{}
 	}
@@ -157,6 +204,13 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 				TopicName: []byte(fmt.Sprintf("msgpack/vehicleeta/%s/%s", station.Network.ID, station.ID)),
 				Payload:   payload,
 			})
+
+			jsonPayload := buildVehicleETAJSONPayload(structs...)
+			g.server.Publish(&packets.Publish{
+				Qos:       packets.QOS_0,
+				TopicName: []byte(fmt.Sprintf("json/vehicleeta/%s/%s", station.Network.ID, station.ID)),
+				Payload:   jsonPayload,
+			})
 		}
 
 	}
@@ -166,29 +220,38 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *dataobjects.Station) ([]interface{}, error) {
 	structs := []interface{}{}
 
-	directions, err := station.Directions(tx)
+	directions, err := station.Directions(tx, true)
 	if err != nil {
 		return structs, err
 	}
 
 	for _, direction := range directions {
-		eta, err := g.vehicleHandler.NextTrainETA(tx, station, direction)
-		if err != nil {
-			// oh well, information not available
-		} else if eta.Seconds() < 0 {
-			structs = append(structs,
-				buildVehicleETALessThanStruct(direction.ID, 35*time.Second, 30*time.Second, true))
-		} else if eta.Seconds() < 90 {
-			structs = append(structs,
-				buildVehicleETALessThanStruct(direction.ID, 35*time.Second, 2*time.Minute, false))
-		} else {
-			lower := time.Duration(eta.Seconds()*0.7) * time.Second
-			upper := time.Duration(eta.Seconds()*1.2) * time.Second
-			structs = append(structs,
-				buildVehicleETAIntervalStruct(direction.ID, 35*time.Second, lower, upper, false))
+		eta := g.vehicleETAhandler.NextVehicleETA(station, direction)
+		if eta != nil {
+			structs = append(structs, g.vehicleETAtoStruct(eta))
 		}
 	}
 	return structs, nil
+}
+
+func (g *MQTTGateway) vehicleETAtoStruct(eta *dataobjects.VehicleETA) interface{} {
+	precise := eta.Precision < 30*time.Second
+	switch eta.Type {
+	case dataobjects.Absolute:
+		return buildVehicleETATimestampStruct(eta.Direction.ID, eta.Computed,
+			eta.RemainingValidity(), eta.AbsoluteETA)
+	case dataobjects.RelativeExact:
+		return buildVehicleETAExactStruct(eta.Direction.ID, eta.Computed,
+			eta.RemainingValidity(), eta.LiveETA(), precise)
+	case dataobjects.RelativeMinimum:
+		return buildVehicleETAMoreThanStruct(eta.Direction.ID, eta.Computed,
+			eta.RemainingValidity(), eta.LiveETA(), precise)
+	case dataobjects.RelativeMaximum:
+		return buildVehicleETALessThanStruct(eta.Direction.ID, eta.Computed,
+			eta.RemainingValidity(), eta.LiveETA(), precise)
+	default:
+		return nil
+	}
 }
 
 // SendVehicleETAForStationToClient publishes, to the given client, vehicle ETAs for the specified station
@@ -213,10 +276,17 @@ func (g *MQTTGateway) SendVehicleETAForStationToClient(client *gmqtt.Client, top
 		return err
 	}
 
+	var payload []byte
+	if strings.HasPrefix(topicID, "msgpack/") {
+		payload = buildVehicleETAPayload(structs...)
+	} else {
+		payload = buildVehicleETAJSONPayload(structs...)
+	}
+
 	g.server.Publish(&packets.Publish{
 		Qos:       packets.QOS_0,
 		TopicName: []byte(topicID),
-		Payload:   buildVehicleETAPayload(structs...),
+		Payload:   payload,
 	}, client.ClientOptions().ClientID)
 
 	return nil

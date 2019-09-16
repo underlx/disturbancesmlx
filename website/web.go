@@ -33,6 +33,7 @@ var sessionStore *sessions.CookieStore
 var daClient *ssoclient.SSOClient
 var webcaptcha *recaptcha.R
 var websiteURL string
+var wsmqttURL string
 var webLog *log.Logger
 var rootSqalxNode sqalx.Node
 var vehicleHandler *compute.VehicleHandler
@@ -53,6 +54,7 @@ type PageCommons struct {
 	}
 	OfficialOnly bool
 	DebugBuild   bool
+	MQTTaddress  string
 	Dependencies PageDependencies
 }
 
@@ -62,6 +64,7 @@ type PageDependencies struct {
 	Recaptcha   bool
 	Charts      bool
 	Flipcounter bool
+	MQTT        bool
 }
 
 // ConnectionData contains the HTML with the connection information for the station with ID ID
@@ -137,6 +140,11 @@ func Initialize(snode sqalx.Node, webKeybox *keybox.Keybox, log *log.Logger,
 	websiteURL, present = webKeybox.Get("websiteURL")
 	if !present {
 		webLog.Fatal("Website URL not present in web keybox")
+	}
+
+	wsmqttURL, present = webKeybox.Get("webSocketMQTTURL")
+	if !present {
+		webLog.Fatal("WebSocket MQTT URL not present in web keybox")
 	}
 
 	recaptchakey, present := webKeybox.Get("recaptchaKey")
@@ -219,6 +227,7 @@ func InitPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 	commons.PageTitle = title + " | Perturbações.pt"
 	commons.OfficialOnly = ShowOfficialDataOnly(w, r)
 	commons.DebugBuild = DEBUG
+	commons.MQTTaddress = wsmqttURL
 
 	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
 	if err != nil {

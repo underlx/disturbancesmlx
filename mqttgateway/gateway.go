@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -22,17 +23,19 @@ import (
 
 // MQTTGateway is a real-time gateway that uses the MQTT protocol
 type MQTTGateway struct {
-	Log             *log.Logger
-	Node            sqalx.Node
-	vehicleHandler  *compute.VehicleHandler
-	statsHandler    *compute.StatsHandler
-	listenAddr      string
-	publicHost      string
-	publicPort      int
-	tlsCertPath     string
-	tlsKeyPath      string
-	authHashKey     []byte
-	etaAvailability string
+	Log               *log.Logger
+	Node              sqalx.Node
+	vehicleHandler    *compute.VehicleHandler
+	vehicleETAhandler *compute.VehicleETAHandler
+	statsHandler      *compute.StatsHandler
+	listenAddr        string
+	wsListenAddr      string
+	publicHost        string
+	publicPort        int
+	tlsCertPath       string
+	tlsKeyPath        string
+	authHashKey       []byte
+	etaAvailability   string
 
 	server   *gmqtt.Server
 	stopChan chan interface{}
@@ -40,34 +43,42 @@ type MQTTGateway struct {
 
 // Config contains runtime gateway configuration
 type Config struct {
-	Keybox         *keybox.Keybox
-	Log            *log.Logger
-	Node           sqalx.Node
-	AuthHashKey    []byte
-	VehicleHandler *compute.VehicleHandler
-	StatsHandler   *compute.StatsHandler
+	Keybox            *keybox.Keybox
+	Log               *log.Logger
+	Node              sqalx.Node
+	AuthHashKey       []byte
+	VehicleHandler    *compute.VehicleHandler
+	VehicleETAHandler *compute.VehicleETAHandler
+	StatsHandler      *compute.StatsHandler
 }
 
 type userInfo struct {
 	Pair        *dataobjects.APIPair
+	IsWebSocket bool
 	ConnectedAt time.Time
 }
 
 // New returns a new MQTTGateway with the specified settings
 func New(c Config) (*MQTTGateway, error) {
 	g := &MQTTGateway{
-		Log:             c.Log,
-		Node:            c.Node,
-		vehicleHandler:  c.VehicleHandler,
-		statsHandler:    c.StatsHandler,
-		authHashKey:     c.AuthHashKey,
-		stopChan:        make(chan interface{}, 1),
-		etaAvailability: "all",
+		Log:               c.Log,
+		Node:              c.Node,
+		vehicleHandler:    c.VehicleHandler,
+		vehicleETAhandler: c.VehicleETAHandler,
+		statsHandler:      c.StatsHandler,
+		authHashKey:       c.AuthHashKey,
+		stopChan:          make(chan interface{}, 1),
+		etaAvailability:   "all",
 	}
 	var present, present2 bool
 	g.listenAddr, present = c.Keybox.Get("listenAddr")
 	if !present {
 		return g, errors.New("Listening address not present in keybox")
+	}
+
+	g.wsListenAddr, present = c.Keybox.Get("wsListenAddr")
+	if !present {
+		return g, errors.New("WebCSocket listening address not present in keybox")
 	}
 
 	g.publicHost, present = c.Keybox.Get("hostname")
@@ -116,6 +127,11 @@ func (g *MQTTGateway) Start() error {
 	}
 	g.server.AddTCPListenner(ln)
 
+	ws := &gmqtt.WsServer{
+		Server: &http.Server{Addr: g.wsListenAddr},
+	}
+	g.server.AddWebSocketServer(ws)
+
 	g.server.RegisterOnConnect(g.handleOnConnect)
 	g.server.RegisterOnClose(g.handleOnClose)
 	g.server.RegisterOnPublish(g.handleOnPublish)
@@ -124,7 +140,7 @@ func (g *MQTTGateway) Start() error {
 	g.server.Run()
 
 	go func() {
-		ticker := time.NewTicker(30 * time.Second)
+		ticker := time.NewTicker(10 * time.Second)
 		for {
 			select {
 			case <-ticker.C:
@@ -198,6 +214,14 @@ func (g *MQTTGateway) HandleControlCommand(command string, args ...string) strin
 func (g *MQTTGateway) handleOnConnect(client *gmqtt.Client) (code uint8) {
 	key := client.ClientOptions().Username
 	secret := client.ClientOptions().Password
+	if key == "ws" {
+		g.Log.Println("WebSocket client connected to the MQTT gateway")
+		client.SetUserData(userInfo{
+			IsWebSocket: true,
+			ConnectedAt: time.Now(),
+		})
+		return packets.CodeAccepted
+	}
 	pair, err := dataobjects.GetPairIfCorrect(g.Node, key, secret, g.authHashKey)
 	if err != nil {
 		return packets.CodeBadUsernameorPsw
@@ -216,7 +240,11 @@ func (g *MQTTGateway) handleOnClose(client *gmqtt.Client, err error) {
 		return
 	}
 	info := client.UserData().(userInfo)
-	g.Log.Println("Pair", info.Pair.Key, "disconnected from the MQTT gateway after being connected for", time.Now().Sub(info.ConnectedAt))
+	if info.IsWebSocket {
+		g.Log.Println("WebSocket client disconnected from the MQTT gateway after being connected for", time.Now().Sub(info.ConnectedAt))
+	} else {
+		g.Log.Println("Pair", info.Pair.Key, "disconnected from the MQTT gateway after being connected for", time.Now().Sub(info.ConnectedAt))
+	}
 }
 
 func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topic) uint8 {
@@ -225,7 +253,11 @@ func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topi
 	}
 	if client.UserData() != nil {
 		info := client.UserData().(userInfo)
-		g.Log.Println("Pair", info.Pair.Key, "subscribed to", topic.Name)
+		if info.IsWebSocket {
+			g.Log.Println("WebSocket client subscribed to", topic.Name)
+		} else {
+			g.Log.Println("Pair", info.Pair.Key, "subscribed to", topic.Name)
+		}
 		g.Log.Println("Current subscriptions:")
 		subs := g.server.Monitor.ClientSubscriptions(client.ClientOptions().ClientID)
 		for _, sub := range subs {
@@ -235,21 +267,30 @@ func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topi
 
 		switch g.etaAvailability {
 		case "all":
-			if !strings.HasPrefix(topic.Name, "msgpack/vehicleeta/") && !strings.HasPrefix(topic.Name, "dev-msgpack/vehicleeta/") {
-				return topic.Qos
+			acceptableEncoding := "msgpack"
+			if info.IsWebSocket {
+				acceptableEncoding = "json"
+			}
+			if !strings.HasPrefix(topic.Name, acceptableEncoding+"/vehicleeta/") && !strings.HasPrefix(topic.Name, "dev-"+acceptableEncoding+"/vehicleeta/") {
+				return packets.SUBSCRIBE_FAILURE
 			}
 		case "dev":
+			if info.IsWebSocket {
+				return packets.SUBSCRIBE_FAILURE
+			}
 			if !strings.HasPrefix(topic.Name, "dev-msgpack/vehicleeta/") {
-				return topic.Qos
+				return packets.SUBSCRIBE_FAILURE
 			}
 		default:
-			return topic.Qos
+			return packets.SUBSCRIBE_FAILURE
 		}
 
 		parts := strings.Split(topic.Name, "/")
 		if len(parts) == 4 {
 			go func() {
-				time.Sleep(1 * time.Second)
+				if !(client.UserData().(userInfo)).IsWebSocket {
+					time.Sleep(1 * time.Second)
+				}
 				err := g.SendVehicleETAForStationToClient(client, topic.Name, parts[2], parts[3])
 				if err != nil {
 					g.Log.Println(err)
@@ -274,6 +315,11 @@ func (g *MQTTGateway) handleOnPublish(client *gmqtt.Client, publish *packets.Pub
 	}
 
 	info := client.UserData().(userInfo)
+	if info.IsWebSocket {
+		g.Log.Println("WebSocket client attempted publishing and will be disconnected")
+		client.Close()
+		return false
+	}
 	// clients are only allowed to publish to some channels
 	if strings.HasPrefix(string(publish.TopicName), "msgpack/rtloc/") || strings.HasPrefix(string(publish.TopicName), "dev-msgpack/rtloc/") {
 		g.handleRealTimeLocationPublish(info, client, publish)

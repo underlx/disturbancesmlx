@@ -34,11 +34,12 @@ var (
 	lastChange       time.Time
 	apiTotalRequests int
 
-	kiddie         *ankiddie.Ankiddie
-	vehicleHandler *compute.VehicleHandler
-	reportHandler  *compute.ReportHandler
-	statsHandler   *compute.StatsHandler
-	mqttGateway    *mqttgateway.MQTTGateway
+	kiddie            *ankiddie.Ankiddie
+	vehicleHandler    *compute.VehicleHandler
+	vehicleETAHandler *compute.VehicleETAHandler
+	reportHandler     *compute.ReportHandler
+	statsHandler      *compute.StatsHandler
+	mqttGateway       *mqttgateway.MQTTGateway
 
 	// GitCommit is provided by govvv at compile-time
 	GitCommit = "???"
@@ -87,6 +88,7 @@ func main() {
 
 	statsHandler = compute.NewStatsHandler()
 	vehicleHandler = compute.NewVehicleHandler()
+	vehicleETAHandler = compute.NewVehicleETAHandler()
 	// done like this to ensure rootSqalxNode is not nil at this point
 	reportHandler = compute.NewReportHandler(statsHandler, rootSqalxNode, handleNewStatus)
 
@@ -108,12 +110,13 @@ func main() {
 		mainLog.Println("MQTT keybox not present in keybox, MQTT gateway will not be available")
 	} else {
 		mqttGateway, err = mqttgateway.New(mqttgateway.Config{
-			Node:           rootSqalxNode,
-			Log:            mqttLog,
-			Keybox:         mqttKeybox,
-			VehicleHandler: vehicleHandler,
-			StatsHandler:   statsHandler,
-			AuthHashKey:    getHashKey(),
+			Node:              rootSqalxNode,
+			Log:               mqttLog,
+			Keybox:            mqttKeybox,
+			VehicleHandler:    vehicleHandler,
+			VehicleETAHandler: vehicleETAHandler,
+			StatsHandler:      statsHandler,
+			AuthHashKey:       getHashKey(),
 		})
 		if err != nil {
 			mainLog.Fatalln(err)
@@ -137,7 +140,9 @@ func main() {
 	}
 	go APIserver(certPath)
 
-	err = SetUpScrapers(rootSqalxNode)
+	mlAPItoken, _ := secrets.Get("pt-mlAPItoken")
+
+	err = SetUpScrapers(rootSqalxNode, mlAPItoken)
 	if err != nil {
 		mainLog.Fatalln(err)
 	}
