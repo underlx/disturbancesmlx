@@ -1,11 +1,23 @@
 <style>
 a.anchor:before { content: ''; display: block; position: relative; width: 0; height: 3em; margin-top: -3em }
-#etasList {
-  border-spacing: 5px;
+#etasTable {
+  border-spacing: 15px;
   border-collapse: separate;
 }
-#etasList > tr > td:first-child {
+#etasTable tr > td:first-child {
   text-align: right;
+  font-weight: bold;
+}
+#etasTable tr > td:nth-child(2) {
+  color: black;
+}
+#etasTable tr > td:nth-child(3) {
+  color: #555;
+  font-size: 90%;
+}
+#etasTable tr > td:nth-child(4) {
+  color: #777;
+  font-size: 80%;
 }
 h2 {
   overflow: hidden;
@@ -58,7 +70,12 @@ h2 {
       <div class="pure-u-1" id="sectionsbar" style="position: sticky; top: 0px; margin-top: 10px; background-color: white; z-index: 100000000"><p style="text-align: center;"><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#pois" class="pure-button">Pontos de Interesse</a> <a href="#trivia" class="pure-button">Trívia</a></p></div>
       <div class="pure-u-1" id="vehicleETAs" style="display: none">
           <h2><a id="etas" class="anchor">Próximos comboios</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
-          <p><table id="etasList"></table></p>
+          <p>
+            <table id="etasTable">
+              <thead><tr><td></td><td>Próximo</td><td>Segundo</td><td>Terceiro</td></tr></thead>
+              <tbody id="etasList"></tbody>
+            </table>
+          </p>
       </div>
       <div class="pure-u-1" style="overflow: visible">
         <h2><a id="lobbies" class="anchor">Mapa de área local</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
@@ -188,36 +205,103 @@ h2 {
     var stationNames = {
       {{ range $station := .Stations }}"{{$station.ID}}": "{{$station.Name}}",{{end}}
     };
+    var lineColors = {
+      {{ range $line := .Lines }}"{{$line.ID}}": "{{$line.Color}}",{{end}}
+    };
+    var lineOrder = [{{ range $line := .Lines }}"{{$line.ID}}",{{end}}];
+    var thisStationLines = [{{ range $line := .StationLines }}"{{$line.ID}}",{{end}}];
 
     var mqttClient = mqtt.connect("{{ .MQTTaddress }}", {"username": "ws", "keepalive": 30});
 
-    mqttClient.on('message', function (topic, message) {
-      // message is Buffer
-      let data = JSON.parse(message.toString());
-      let etasList = document.getElementById("etasList");
-      while (etasList.firstChild) {
-        etasList.removeChild(etasList.firstChild);
+    var stationInfo = {};
+    var stationInfoReqInProgress = {};
+    function getOrFetchStationInfo(id) {
+      if (stationInfoReqInProgress[id] === true) {
+        return stationInfo[id];
       }
-      data.sort((a, b) => a.value - b.value);
-      for (eta of data) {
+      stationInfoReqInProgress[id] = true;
+      let oReq = new XMLHttpRequest();
+      oReq.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          stationInfo[id] = JSON.parse(this.responseText);
+          updateETAsTable();
+        }
+      };
+      oReq.open("GET", "https://api.perturbacoes.tny.im/v1/stations/" + id);
+      oReq.setRequestHeader("Accept", "application/json");
+      oReq.send();
+      return stationInfo[id];
+    }
+
+    function getColorForStation(id) {
+      let info = getOrFetchStationInfo(id);
+      if(info === undefined) {
+        return "black";
+      }
+      let lines = info.lines.filter(value => -1 !== thisStationLines.indexOf(value));
+      return "#" + lineColors[lines[0]];
+    }
+
+    var lastETAsData = [];
+    function updateETAsTable() {
+      let etasList = document.getElementById("etasList");
+      let tableRows = etasList.getElementsByTagName("tr");
+      while (tableRows[0]) {
+        etasList.removeChild(tableRows[0]);
+      }
+      /*data.sort((a, b) => {
+        let lo = a.value - b.value;
+      });*/
+      let perDirection = {};
+      for (eta of lastETAsData) {
         if (eta.type != "e") {
           // only support exact ETAs for now
           continue;
         }
-        var minutes = Math.floor(eta.value / 60);
-        var seconds = eta.value - (minutes * 60);
-        if (minutes < 10) {minutes = "0"+minutes;}
-        if (seconds < 10) {seconds = "0"+seconds;}
-        let timeString = minutes+'m '+seconds + "s";
-        let li = document.createElement("tr");
-        li.innerHTML = "<td><a href='/s/" + eta.direction + "'>" + stationNames[eta.direction] + "</a></td><td>" + timeString + "</td>";
-        etasList.appendChild(li);
+        if (perDirection[eta.direction] === undefined) {
+          perDirection[eta.direction] = {};
+        }
+        perDirection[eta.direction][eta.order] = eta;
+      }
+      for (var direction in perDirection) {
+        let tr = document.createElement("tr");
+        let dirtd = document.createElement("td");
+        let color = getColorForStation(direction);
+        dirtd.innerHTML = "<a href='/s/" + direction + "' style='color: " + color + "'>" + stationNames[direction] + "</a>";
+        tr.appendChild(dirtd);
+
+        for (var order = 1; order < 4; order++) {
+          let eta = perDirection[direction][order];
+
+          let td = document.createElement("td");
+          if (eta !== undefined) {
+            if (eta.value == 0) {
+              td.innerHTML = "No cais";
+            } else {
+              var minutes = Math.floor(eta.value / 60);
+              var seconds = eta.value - (minutes * 60);
+              if (minutes < 10) {minutes = "0"+minutes;}
+              if (seconds < 10) {seconds = "0"+seconds;}
+              td.innerHTML = minutes+'m '+seconds + "s";
+            }
+          } else {
+            td.innerHTML = "Sem dados";
+          }
+          tr.appendChild(td);
+        }
+        etasList.appendChild(tr);
       }
       document.getElementById("vehicleETAs").style.display = etasList.children.length > 0 ? "block" : none;
+    }
+
+    mqttClient.on('message', function (topic, message) {
+      // message is Buffer
+      lastETAsData = JSON.parse(message.toString());
+      updateETAsTable();
     });
 
     mqttClient.on('connect', function () {
-      mqttClient.subscribe("json/vehicleeta/{{ .Station.Network.ID }}/{{ .Station.ID }}");
+      mqttClient.subscribe("json/vehicleeta/{{ .Station.Network.ID }}/{{ .Station.ID }}/all");
     });
     
     {{end}}

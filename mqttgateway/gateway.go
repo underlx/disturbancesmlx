@@ -286,7 +286,7 @@ func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topi
 		}
 
 		parts := strings.Split(topic.Name, "/")
-		if len(parts) == 4 {
+		if len(parts) == 4 || (len(parts) == 5 && parts[4] == "all") {
 			go func() {
 				if !(client.UserData().(userInfo)).IsWebSocket {
 					time.Sleep(1 * time.Second)

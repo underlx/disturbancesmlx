@@ -35,6 +35,7 @@ type vehicleETA struct {
 	ValidFor  uint   `msgpack:"validFor" json:"validFor"` // always in seconds
 	Type      string `msgpack:"type" json:"type"`
 	Units     string `msgpack:"units" json:"units"`
+	Order     uint   `msgpack:"order" json:"order"`
 }
 
 type vehicleETASingleValue struct {
@@ -48,29 +49,28 @@ type vehicleETAInterval struct {
 	Upper      uint `msgpack:"upper" json:"upper"`
 }
 
-func buildVehicleETATimestampStruct(direction string, made time.Time, validFor time.Duration, eta time.Time) vehicleETASingleValue {
-	data := vehicleETASingleValue{
+func buildVehicleETATimestampStruct(direction string, made time.Time, validFor time.Duration, eta time.Time, order uint) vehicleETASingleValue {
+	return vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
 			Made:      made.Unix(),
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeTimestamp,
+			Order:     order,
+			Units:     vehicleETAUnitSeconds,
 		},
+		Value: uint(eta.Unix()),
 	}
-
-	data.Units = vehicleETAUnitSeconds
-	data.Value = uint(eta.Unix())
-
-	return data
 }
 
-func buildVehicleETAExactStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool) vehicleETASingleValue {
+func buildVehicleETAExactStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool, order uint) vehicleETASingleValue {
 	data := vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
 			Made:      made.Unix(),
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeExact,
+			Order:     order,
 		},
 	}
 
@@ -85,13 +85,14 @@ func buildVehicleETAExactStruct(direction string, made time.Time, validFor time.
 	return data
 }
 
-func buildVehicleETALessThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool) vehicleETASingleValue {
+func buildVehicleETALessThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool, order uint) vehicleETASingleValue {
 	data := vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
 			Made:      made.Unix(),
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeLessThan,
+			Order:     order,
 		},
 	}
 
@@ -106,13 +107,14 @@ func buildVehicleETALessThanStruct(direction string, made time.Time, validFor ti
 	return data
 }
 
-func buildVehicleETAMoreThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool) vehicleETASingleValue {
+func buildVehicleETAMoreThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool, order uint) vehicleETASingleValue {
 	data := vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
 			Made:      made.Unix(),
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeMoreThan,
+			Order:     order,
 		},
 	}
 
@@ -127,13 +129,14 @@ func buildVehicleETAMoreThanStruct(direction string, made time.Time, validFor ti
 	return data
 }
 
-func buildVehicleETAIntervalStruct(direction string, made time.Time, validFor time.Duration, lower, upper time.Duration, precise bool) vehicleETAInterval {
+func buildVehicleETAIntervalStruct(direction string, made time.Time, validFor time.Duration, lower, upper time.Duration, precise bool, order uint) vehicleETAInterval {
 	data := vehicleETAInterval{
 		vehicleETA: vehicleETA{
 			Direction: direction,
 			Made:      made.Unix(),
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeInterval,
+			Order:     order,
 		},
 	}
 
@@ -183,41 +186,56 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 	}
 
 	for _, station := range stations {
-		structs, err := g.buildStructsForStation(tx, station)
+		structs, err := g.buildStructsForStation(tx, station, 1)
 		if err != nil {
 			return err
 		}
-		if len(structs) == 0 {
-			continue
+		if len(structs) != 0 {
+			g.sendStructsAccordingToAvailability(station, structs, false)
 		}
 
-		payload := buildVehicleETAPayload(structs...)
-		g.server.Publish(&packets.Publish{
-			Qos:       packets.QOS_0,
-			TopicName: []byte(fmt.Sprintf("dev-msgpack/vehicleeta/%s/%s", station.Network.ID, station.ID)),
-			Payload:   payload,
-		})
+		structsAll, err := g.buildStructsForStation(tx, station, 3)
+		if err != nil {
+			return err
+		}
 
-		if g.etaAvailability == "all" {
-			g.server.Publish(&packets.Publish{
-				Qos:       packets.QOS_0,
-				TopicName: []byte(fmt.Sprintf("msgpack/vehicleeta/%s/%s", station.Network.ID, station.ID)),
-				Payload:   payload,
-			})
-
-			jsonPayload := buildVehicleETAJSONPayload(structs...)
-			g.server.Publish(&packets.Publish{
-				Qos:       packets.QOS_0,
-				TopicName: []byte(fmt.Sprintf("json/vehicleeta/%s/%s", station.Network.ID, station.ID)),
-				Payload:   jsonPayload,
-			})
+		if len(structsAll) != 0 {
+			g.sendStructsAccordingToAvailability(station, structsAll, true)
 		}
 
 	}
 	return nil
 }
 
-func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *dataobjects.Station) ([]interface{}, error) {
+func (g *MQTTGateway) sendStructsAccordingToAvailability(station *dataobjects.Station, structs []interface{}, isAll bool) {
+	topicSuffix := ""
+	if isAll {
+		topicSuffix = "/all"
+	}
+	payload := buildVehicleETAPayload(structs...)
+	g.server.Publish(&packets.Publish{
+		Qos:       packets.QOS_0,
+		TopicName: []byte(fmt.Sprintf("dev-msgpack/vehicleeta/%s/%s%s", station.Network.ID, station.ID, topicSuffix)),
+		Payload:   payload,
+	})
+
+	if g.etaAvailability == "all" {
+		g.server.Publish(&packets.Publish{
+			Qos:       packets.QOS_0,
+			TopicName: []byte(fmt.Sprintf("msgpack/vehicleeta/%s/%s%s", station.Network.ID, station.ID, topicSuffix)),
+			Payload:   payload,
+		})
+
+		jsonPayload := buildVehicleETAJSONPayload(structs...)
+		g.server.Publish(&packets.Publish{
+			Qos:       packets.QOS_0,
+			TopicName: []byte(fmt.Sprintf("json/vehicleeta/%s/%s%s", station.Network.ID, station.ID, topicSuffix)),
+			Payload:   jsonPayload,
+		})
+	}
+}
+
+func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *dataobjects.Station, numVehicles int) ([]interface{}, error) {
 	structs := []interface{}{}
 
 	directions, err := station.Directions(tx, true)
@@ -226,8 +244,8 @@ func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *dataobjects
 	}
 
 	for _, direction := range directions {
-		eta := g.vehicleETAhandler.NextVehicleETA(station, direction)
-		if eta != nil {
+		etas := g.vehicleETAhandler.VehicleETAs(station, direction, numVehicles)
+		for _, eta := range etas {
 			structs = append(structs, g.vehicleETAtoStruct(eta))
 		}
 	}
@@ -239,16 +257,16 @@ func (g *MQTTGateway) vehicleETAtoStruct(eta *dataobjects.VehicleETA) interface{
 	switch eta.Type {
 	case dataobjects.Absolute:
 		return buildVehicleETATimestampStruct(eta.Direction.ID, eta.Computed,
-			eta.RemainingValidity(), eta.AbsoluteETA)
+			eta.RemainingValidity(), eta.AbsoluteETA, uint(eta.ArrivalOrder))
 	case dataobjects.RelativeExact:
 		return buildVehicleETAExactStruct(eta.Direction.ID, eta.Computed,
-			eta.RemainingValidity(), eta.LiveETA(), precise)
+			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder))
 	case dataobjects.RelativeMinimum:
 		return buildVehicleETAMoreThanStruct(eta.Direction.ID, eta.Computed,
-			eta.RemainingValidity(), eta.LiveETA(), precise)
+			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder))
 	case dataobjects.RelativeMaximum:
 		return buildVehicleETALessThanStruct(eta.Direction.ID, eta.Computed,
-			eta.RemainingValidity(), eta.LiveETA(), precise)
+			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder))
 	default:
 		return nil
 	}
@@ -271,13 +289,18 @@ func (g *MQTTGateway) SendVehicleETAForStationToClient(client *gmqtt.Client, top
 		return errors.New("Mismatch between expected network ID and station ID")
 	}
 
-	structs, err := g.buildStructsForStation(tx, station)
+	numVehicles := 1
+	if strings.HasSuffix(topicID, "/all") {
+		numVehicles = 3
+	}
+
+	structs, err := g.buildStructsForStation(tx, station, numVehicles)
 	if err != nil || len(structs) == 0 {
 		return err
 	}
 
 	var payload []byte
-	if strings.HasPrefix(topicID, "msgpack/") {
+	if strings.Contains(strings.Split(topicID, "/")[0], "msgpack") {
 		payload = buildVehicleETAPayload(structs...)
 	} else {
 		payload = buildVehicleETAJSONPayload(structs...)
