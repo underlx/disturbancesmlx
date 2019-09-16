@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	movingaverage "github.com/RobinUS2/golang-moving-average"
+
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
@@ -16,21 +18,22 @@ import (
 // ETAScraper is a scraper for Metro de Lisboa vehicle ETAs
 type ETAScraper struct {
 	running  bool
+	ticker   *time.Ticker
 	stopChan chan struct{}
 
-	stations     []*dataobjects.Station
-	stationsByID map[string]*dataobjects.Station
-	log          *log.Logger
-	locs         map[string]*time.Location
-	etaValidity  time.Duration
+	stations            []*dataobjects.Station
+	stationsByID        map[string]*dataobjects.Station
+	log                 *log.Logger
+	locs                map[string]*time.Location
+	etaValidity         time.Duration
+	clockDriftMovingAvg *movingaverage.MovingAverage
 
-	RequestURL            string
-	BearerToken           string
-	Network               *dataobjects.Network
-	HTTPClient            *http.Client
-	WaitPeriodBetweenEach time.Duration
-	WaitPeriodBetweenAll  time.Duration
-	NewETACallback        func(eta *dataobjects.VehicleETA)
+	RequestURL     string
+	BearerToken    string
+	Network        *dataobjects.Network
+	HTTPClient     *http.Client
+	Period         time.Duration
+	NewETACallback func(eta *dataobjects.VehicleETA)
 }
 
 // ID returns the ID of this scraper
@@ -40,6 +43,7 @@ func (sc *ETAScraper) ID() string {
 
 // Init initializes the scraper
 func (sc *ETAScraper) Init(node sqalx.Node, log *log.Logger) error {
+	sc.clockDriftMovingAvg = movingaverage.New(100)
 	sc.log = log
 	sc.locs = make(map[string]*time.Location)
 
@@ -77,12 +81,14 @@ func (sc *ETAScraper) Init(node sqalx.Node, log *log.Logger) error {
 // Begin starts the scraper
 func (sc *ETAScraper) Begin() {
 	sc.stopChan = make(chan struct{}, 1)
+	sc.ticker = time.NewTicker(sc.Period)
 	sc.running = true
 	go sc.mainLoop()
 }
 
 // End stops the scraper
 func (sc *ETAScraper) End() {
+	sc.ticker.Stop()
 	close(sc.stopChan)
 	sc.running = false
 }
@@ -94,28 +100,28 @@ func (sc *ETAScraper) Running() bool {
 
 func (sc *ETAScraper) estimateValidity() {
 	// assume each request takes 2 seconds to complete
-	// add 30 seconds as error margin (don't want the ETAs to be evicted too soon)
-	sc.etaValidity = sc.WaitPeriodBetweenAll +
-		(sc.WaitPeriodBetweenEach+2*time.Second)*time.Duration(len(sc.stations)) +
-		30*time.Second
+	// add 15 seconds as error margin (don't want the ETAs to be evicted too soon)
+	sc.etaValidity = sc.Period + 15*time.Second
 }
 
 func (sc *ETAScraper) mainLoop() {
 	for {
-		startTime := time.Now()
-		err := sc.fetchStations()
-		if err != nil {
-			sc.log.Printf("Error fetching ETAs: %v\n", err)
-		}
 
 		select {
 		case <-sc.stopChan:
 			return
-		case <-time.After(sc.WaitPeriodBetweenAll):
+		case <-sc.ticker.C:
+			startTime := time.Now()
+			clockDiff, err := sc.fetchStations()
+			if err != nil {
+				sc.log.Printf("Error fetching ETAs: %v\n", err)
+			}
+			sc.log.Println("ETA Scraper fetch complete, clock drift", clockDiff)
+			// add 15 seconds as error margin
+			// (don't want the ETAs to be evicted too soon)
+			sc.etaValidity = sc.Period + time.Since(startTime) + 15*time.Second
 		}
-		// add 20 seconds as error margin
-		// (don't want the ETAs to be evicted too soon)
-		sc.etaValidity = time.Since(startTime) + 20*time.Second
+
 	}
 }
 
@@ -138,39 +144,64 @@ type directionETAs struct {
 	SairServico   string `json:"sairServico"`
 }
 
-func (sc *ETAScraper) fetchStations() error {
+func (sc *ETAScraper) fetchStations() (time.Duration, error) {
 	req, err := http.NewRequest(http.MethodGet, sc.RequestURL, nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	req.Header.Set("Authorization", sc.headerToken())
 	requestStart := time.Now()
 	response, err := sc.HTTPClient.Do(req)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer response.Body.Close()
 	requestDuration := time.Since(requestStart)
 
 	if response.ContentLength > 1024*1024 || response.StatusCode != http.StatusOK {
-		return fmt.Errorf("non-200 status code (%d) in response, or response body unexpectedly big", response.StatusCode)
+		return 0, fmt.Errorf("non-200 status code (%d) in response, or response body unexpectedly big", response.StatusCode)
 	}
 
 	var data responseStruct
 	err = json.NewDecoder(response.Body).Decode(&data)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if len(data.Resposta) == 0 {
 		sc.log.Println("Warning: response to ETA request contained no ETAs")
 	}
 
+	clockDiff := sc.measureClockDrift(response, requestStart, requestDuration)
+
 	if sc.NewETACallback != nil {
-		return sc.processETAdata(data.Resposta, requestDuration)
+		return clockDiff, sc.processETAdata(data.Resposta, clockDiff)
 	}
-	return nil
+	return clockDiff, nil
+}
+
+func (sc *ETAScraper) measureClockDrift(response *http.Response, requestStart time.Time, requestDuration time.Duration) time.Duration {
+	thisSample := requestStart.
+		Add(requestDuration / time.Duration(2)).
+		Sub(sc.decodeResponseDate(response))
+
+	sc.clockDriftMovingAvg.Add(float64(thisSample.Nanoseconds()))
+
+	// add 500 ms because our local time (from requestStart, etc. has "nanosecond" precision)
+	// while the HTTP header date only has second precision
+	// so in average, if the clocks were perfectly synched,
+	// we would have -500 ms drift, assuming the sampling time follows a normal distribution
+	return time.Duration(sc.clockDriftMovingAvg.Avg())*time.Nanosecond + 500000000*time.Nanosecond
+}
+
+func (sc *ETAScraper) decodeResponseDate(response *http.Response) time.Time {
+	t, err := http.ParseTime(response.Header.Get("Date"))
+	if err != nil {
+		sc.log.Println("Warning: error parsing HTTP response date")
+		return time.Now()
+	}
+	return t
 }
 
 func (sc *ETAScraper) headerToken() string {
@@ -190,7 +221,7 @@ func (sc *ETAScraper) stopIDtoStationID(stopID string) string {
 	}
 }
 
-func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, requestTime time.Duration) error {
+func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Duration) error {
 	for _, dirETA := range dirETAs {
 		station, ok := sc.stationsByID[sc.stopIDtoStationID(dirETA.StopID)]
 		if !ok {
@@ -198,22 +229,18 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, requestTime time.D
 			continue
 		}
 
-		// Using the remote system's time here is a bad idea, assuming it's just the time at which the request's response was created
-		// If it turns out that this time is their own analogous to our "Computed" field (i.e. the ETAs may already be a bit old when we receive them),
-		// then we'll have to figure out a way to compute the drift between our clock and their clock as much as possible,
-		// use this "Hora" field in the response, and adjust it for the drift
-		// (so our Computed is as close as possible to the true time of computation of the ETA, by their system, relative to our clock)
-		/*creation, err := time.ParseInLocation("20060102150405", dirETA.Hora, sc.getLocation(station.Network.Timezone))
+		creation, err := time.ParseInLocation("20060102150405", dirETA.Hora, sc.getLocation(station.Network.Timezone))
 		if err != nil {
 			return err
-		}*/
+		}
+		creation = creation.Add(timeOffset)
 
 		commonETA := dataobjects.VehicleETA{
 			Station:   station,
 			Direction: sc.getDirection(dirETA),
 			//Computed:  creation,
 			// this assumes their ETAs were computed while producing the response to our request
-			Computed:  time.Now().Add(-requestTime / time.Duration(2)),
+			Computed:  creation,
 			ValidFor:  sc.etaValidity,
 			Precision: 1 * time.Second,
 			Type:      dataobjects.RelativeExact,

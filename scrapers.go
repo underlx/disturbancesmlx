@@ -76,11 +76,11 @@ func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 
 	if mlAccessToken != "" {
 		mlxETAscr = &mlxscraper.ETAScraper{
-			NewETACallback:       vehicleETAHandler.RegisterVehicleETA,
-			BearerToken:          mlAccessToken,
-			RequestURL:           "https://api.metrolisboa.pt:8243/estadoServicoML/1.0.0/tempoEspera/Estacao/todos",
-			Network:              network,
-			WaitPeriodBetweenAll: 10 * time.Second,
+			NewETACallback: vehicleETAHandler.RegisterVehicleETA,
+			BearerToken:    mlAccessToken,
+			RequestURL:     "https://api.metrolisboa.pt:8243/estadoServicoML/1.0.0/tempoEspera/Estacao/todos",
+			Network:        network,
+			Period:         10 * time.Second,
 		}
 		err = mlxETAscr.Init(rootSqalxNode,
 			log.New(os.Stdout, "mlxETAscraper", log.Ldate|log.Ltime))
