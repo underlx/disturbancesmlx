@@ -3,6 +3,7 @@ package mlxscraper
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -170,11 +171,17 @@ func (sc *ETAScraper) fetchStations() (time.Duration, error) {
 
 	clockDiff := sc.measureClockDrift(response, requestStart, requestDuration)
 
+	responseBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return 0, err
+	}
+	response.Body.Close()
+
 	var data responseStruct
-	err = json.NewDecoder(response.Body).Decode(&data)
+	err = json.Unmarshal(responseBytes, &data)
 	if err != nil {
 		var altData responseStructAlternative
-		err = json.NewDecoder(response.Body).Decode(&data)
+		err := json.Unmarshal(responseBytes, &altData)
 		if err != nil {
 			return 0, err
 		}
