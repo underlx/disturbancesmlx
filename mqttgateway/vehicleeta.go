@@ -49,6 +49,17 @@ type vehicleETAInterval struct {
 	Upper      uint `msgpack:"upper" json:"upper"`
 }
 
+func buildVehicleETANotAvailableStruct(direction string, made time.Time, validFor time.Duration, order uint) vehicleETA {
+	return vehicleETA{
+		Direction: direction,
+		Made:      made.Unix(),
+		ValidFor:  uint(validFor.Seconds()),
+		Type:      vehicleETATypeNotAvailable,
+		Order:     order,
+		Units:     vehicleETAUnitSeconds,
+	}
+}
+
 func buildVehicleETATimestampStruct(direction string, made time.Time, validFor time.Duration, eta time.Time, order uint) vehicleETASingleValue {
 	return vehicleETASingleValue{
 		vehicleETA: vehicleETA{
@@ -253,6 +264,10 @@ func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *dataobjects
 }
 
 func (g *MQTTGateway) vehicleETAtoStruct(eta *dataobjects.VehicleETA) interface{} {
+	if time.Since(eta.Computed) > 2*time.Minute {
+		return buildVehicleETANotAvailableStruct(eta.Direction.ID, time.Now(),
+			2*time.Minute, uint(eta.ArrivalOrder))
+	}
 	precise := eta.Precision < 30*time.Second
 	switch eta.Type {
 	case dataobjects.Absolute:

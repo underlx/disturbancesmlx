@@ -125,6 +125,11 @@ func (sc *ETAScraper) mainLoop() {
 	}
 }
 
+type responseStructAlternative struct {
+	Resposta string `json:"resposta"`
+	Codigo   string `json:"codigo"`
+}
+
 type responseStruct struct {
 	Resposta []directionETAs `json:"resposta"`
 	Codigo   string          `json:"codigo"`
@@ -163,17 +168,26 @@ func (sc *ETAScraper) fetchStations() (time.Duration, error) {
 		return 0, fmt.Errorf("non-200 status code (%d) in response, or response body unexpectedly big", response.StatusCode)
 	}
 
+	clockDiff := sc.measureClockDrift(response, requestStart, requestDuration)
+
 	var data responseStruct
 	err = json.NewDecoder(response.Body).Decode(&data)
 	if err != nil {
+		var altData responseStructAlternative
+		err = json.NewDecoder(response.Body).Decode(&data)
+		if err != nil {
+			return 0, err
+		}
+
+		if altData.Codigo == "500" && altData.Resposta == "Circulação encerrada" {
+			return 0, nil
+		}
 		return 0, err
 	}
 
 	if len(data.Resposta) == 0 {
 		sc.log.Println("Warning: response to ETA request contained no ETAs")
 	}
-
-	clockDiff := sc.measureClockDrift(response, requestStart, requestDuration)
 
 	if sc.NewETACallback != nil {
 		return clockDiff, sc.processETAdata(data.Resposta, clockDiff)
