@@ -183,13 +183,13 @@ func (sc *ETAScraper) fetchStations() (time.Duration, error) {
 		var altData responseStructAlternative
 		err := json.Unmarshal(responseBytes, &altData)
 		if err != nil {
-			return 0, err
+			return clockDiff, err
 		}
 
 		if altData.Codigo == "500" && altData.Resposta == "Circulação encerrada" {
-			return 0, nil
+			return clockDiff, nil
 		}
-		return 0, err
+		return clockDiff, err
 	}
 
 	if len(data.Resposta) == 0 {
