@@ -18,6 +18,14 @@
   version = "v1.5.0"
 
 [[projects]]
+  digest = "1:656b45e674635c2a98f193aaf77c15c819c929f613fb7132a4c968ae413c8d8a"
+  name = "github.com/RobinUS2/golang-moving-average"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "820e3495e36dac8188127c03a9c34d4f7dbcf37a"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   digest = "1:98141de7f3adeeef642739dd7798a3b3a3aaa2b49089239a4c0b3d9212d84098"
   name = "github.com/SaidinWoT/timespan"
@@ -131,6 +139,14 @@
   pruneopts = "UT"
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
   version = "v1.2.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:a01f88d2f7a580d96c10ec379940ad4560757b4380da629d572921c4f84822cb"
+  name = "github.com/goodsign/monday"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9bcb46af85466cfa7fdcf7964c57f4dfdefee352"
 
 [[projects]]
   digest = "1:c79fb010be38a59d657c48c6ba1d003a8aa651fa56b579d959d74573b7dff8e1"
@@ -511,6 +527,7 @@
   input-imports = [
     "github.com/NaySoftware/go-fcm",
     "github.com/PuerkitoBio/goquery",
+    "github.com/RobinUS2/golang-moving-average",
     "github.com/SaidinWoT/timespan",
     "github.com/bwmarrin/discordgo",
     "github.com/dchest/uniuri",
@@ -524,6 +541,7 @@
     "github.com/gbl08ma/sqalx",
     "github.com/gbl08ma/squirrel",
     "github.com/gbl08ma/ssoclient",
+    "github.com/goodsign/monday",
     "github.com/gorilla/csrf",
     "github.com/gorilla/feeds",
     "github.com/gorilla/mux",

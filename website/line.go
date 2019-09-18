@@ -48,6 +48,9 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	p.Description = fmt.Sprintf("Estações, perturbações e estatísticas da linha %s do %s",
+		p.Line.Name, p.Line.Network.Name)
+
 	p.Stations, err = p.Line.Stations(tx)
 	if err != nil {
 		webLog.Println(err)

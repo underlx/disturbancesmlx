@@ -44,9 +44,10 @@ var csrfMiddleware mux.MiddlewareFunc
 
 // PageCommons contains information that is required by most page templates
 type PageCommons struct {
-	CSRFfield string
-	PageTitle string
-	Lines     []struct {
+	CSRFfield   string
+	PageTitle   string
+	Description string
+	Lines       []struct {
 		*dataobjects.Line
 		Down     bool
 		Official bool
@@ -448,6 +449,7 @@ func ReloadTemplates() {
 		},
 		"formatPortugueseMonth":        utils.FormatPortugueseMonth,
 		"formatPortugueseDurationLong": utils.FormatPortugueseDurationLong,
+		"disturbanceReasonString":      utils.DisturbanceReasonString,
 	}
 
 	webtemplate = template.Must(template.New("index.html").Funcs(funcMap).ParseGlob("templates/*.html"))

@@ -1,11 +1,15 @@
 package website
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/underlx/disturbancesmlx/utils"
+
+	"github.com/goodsign/monday"
 	"github.com/gorilla/mux"
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -48,6 +52,15 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusNotFound)
 		return
+	}
+
+	p.Description = fmt.Sprintf("Perturbação na linha %s do %s, em %s",
+		p.Disturbance.Line.Name, p.Disturbance.Line.Network.Name,
+		monday.Format(p.Disturbance.UStartTime, "2 de January de 2006", monday.LocalePtPT))
+
+	reason := utils.DisturbanceReasonString(p.Disturbance, false)
+	if reason != "" {
+		p.Description += ", " + reason
 	}
 
 	if hasSession && session.IsAdmin && r.Method == http.MethodPost {
@@ -99,13 +112,6 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		NextPageTime time.Time
 	}{}
 
-	p.PageCommons, err = InitPageCommons(tx, w, r, "Perturbações do Metro de Lisboa")
-	if err != nil {
-		webLog.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	var startDate time.Time
 	loc, _ := time.LoadLocation("Europe/Lisbon")
 	now := time.Now().In(loc)
@@ -129,11 +135,25 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		startDate = time.Date(year, time.Month(month), 1, 0, 0, 0, 0, loc)
 	}
 	endDate := startDate.AddDate(0, 1, 0)
+
+	p.PageCommons, err = InitPageCommons(tx, w, r,
+		fmt.Sprintf("Perturbações do Metro de Lisboa em %s",
+			monday.Format(startDate, "January de 2006", monday.LocalePtPT)))
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	p.CurPageTime = startDate
 	p.NextPageTime = endDate
 	p.PrevPageTime = startDate.AddDate(0, 0, -1)
 	p.HasPrevPage = p.PrevPageTime.After(time.Date(2017, 3, 1, 0, 0, 0, 0, loc))
 	p.HasNextPage = p.NextPageTime.Before(now)
+
+	p.Description = fmt.Sprintf("Perturbações do %s para %s: estatísticas e histórico completo",
+		"Metro de Lisboa", // TODO unhardcode this one day
+		monday.Format(startDate, "January de 2006", monday.LocalePtPT))
 
 	p.Disturbances, err = dataobjects.GetDisturbancesBetween(tx, startDate, endDate, p.OfficialOnly)
 	if err != nil {

@@ -265,6 +265,77 @@ func scheduleToString(schedule *dataobjects.LobbySchedule) string {
 	return text
 }
 
+// DisturbanceReasonString returns a short human-friendly string explaining why a disturbance happened/what it is related to
+func DisturbanceReasonString(disturbance *dataobjects.Disturbance, alwaysReturn bool) string {
+	categories := disturbance.Categories()
+	if len(categories) == 0 {
+		if alwaysReturn {
+			return "sem causa identificada"
+		} else {
+			return ""
+		}
+	}
+
+	result := ""
+	hadReason := false
+	count := len(categories)
+	addReason := func() {
+		if !hadReason {
+			result += " relacionada com"
+			hadReason = true
+		}
+	}
+	for index, category := range categories {
+		isLast := index == count-1
+		switch category {
+		case dataobjects.SignalFailureCategory:
+			addReason()
+			result += " avaria na sinalização"
+			if !isLast {
+				result += ","
+			}
+		case dataobjects.TrainFailureCategory:
+			addReason()
+			result += " avaria de comboio"
+			if !isLast {
+				result += ","
+			}
+		case dataobjects.PowerOutageCategory:
+			addReason()
+			result += " falha de energia"
+			if !isLast {
+				result += ","
+			}
+		case dataobjects.ThirdPartyFaultCategory:
+			addReason()
+			result += " causa alheia"
+			if !isLast {
+				result += ","
+			}
+		case dataobjects.PassengerIncidentCategory:
+			addReason()
+			result += " incidente com passageiro"
+			if !isLast {
+				result += ","
+			}
+		case dataobjects.StationAnomalyCategory:
+			addReason()
+			result += " anomalia na estação"
+			if !isLast {
+				result += ","
+			}
+		case dataobjects.CommunityReportedCategory:
+			// do not add reason
+			result += " comunicada pela comunidade de utilizadores"
+			if !isLast {
+				result += ","
+			}
+		}
+	}
+
+	return strings.TrimSpace(result)
+}
+
 // Int64Abs is math.Abs for int64
 func Int64Abs(n int64) int64 {
 	y := n >> 63

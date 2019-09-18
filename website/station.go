@@ -1,6 +1,7 @@
 package website
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -146,6 +147,9 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	p.Description = fmt.Sprintf("Tudo sobre a estação %s: tempos de espera, mapa de área local, átrios, saídas, correspondências e mais",
+		p.Station.Name)
 
 	p.Dependencies.Leaflet = true
 	p.Dependencies.MQTT = true

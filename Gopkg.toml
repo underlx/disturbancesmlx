@@ -145,3 +145,6 @@
 [[constraint]]
   branch = "master"
   name = "github.com/gbl08ma/gmqtt"
+[[constraint]]
+  branch = "master"
+  name = "github.com/goodsign/monday"
