@@ -4,7 +4,14 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ .PageTitle }}</title>
+  <meta name="og:title" content="{{ .PageTitle }}" />
   <meta name="description" content="{{ if .Description }}{{ .Description }}{{else}}Tudo sobre o Metro de Lisboa: estado das linhas, tempos de espera, estações, correspondências, e muito mais{{end}}"/>
+  {{ if .Description }}
+  <meta name="og:description" content="{{ .Description }}"/>
+  {{end}}
+  {{ if .ImageURL }}
+  <meta property="og:image" content="{{ .ImageURL }}">
+  {{end}}
   <meta name="keywords" content="ML, metro, lisboa, perturbações, linhas, estado"/>
   <meta name="author" content="Segvault"/>
 

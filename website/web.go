@@ -47,6 +47,7 @@ type PageCommons struct {
 	CSRFfield   string
 	PageTitle   string
 	Description string
+	ImageURL    string
 	Lines       []struct {
 		*dataobjects.Line
 		Down     bool

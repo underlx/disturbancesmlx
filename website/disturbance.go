@@ -74,6 +74,21 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	latestStatus := p.Disturbance.LatestStatus()
+	if latestStatus != nil {
+		imageType := ""
+		switch {
+		case latestStatus.MsgType == dataobjects.MLSolvedMessage:
+			imageType = "solved"
+		case strings.Contains(string(latestStatus.MsgType), "HALTED"):
+			imageType = "halted"
+		default:
+			imageType = "generic"
+		}
+
+		p.ImageURL = fmt.Sprintf("%s/static/img/dbanners/%s-%s.png", websiteURL, p.Disturbance.Line.ID, imageType)
+	}
+
 	err = webtemplate.ExecuteTemplate(w, "disturbance.html", p)
 	if err != nil {
 		webLog.Println(err)
