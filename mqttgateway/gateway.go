@@ -41,6 +41,16 @@ type MQTTGateway struct {
 	stopChan chan interface{}
 }
 
+// MQTTGatewayStats contains stats about the
+type MQTTGatewayStats struct {
+	CurrentClients       int
+	CurrentSubscriptions int
+	TotalConnects        int
+	TotalDisconnects     int
+}
+
+var stats MQTTGatewayStats
+
 // Config contains runtime gateway configuration
 type Config struct {
 	Keybox            *keybox.Keybox
@@ -102,6 +112,18 @@ func New(c Config) (*MQTTGateway, error) {
 	}
 
 	return g, nil
+}
+
+// Stats returns stats about the MQTT gateway
+func (g *MQTTGateway) Stats() *MQTTGatewayStats {
+	stats.CurrentClients = len(g.server.Monitor.Clients())
+	stats.CurrentSubscriptions = len(g.server.Monitor.Subscriptions())
+	return &MQTTGatewayStats{
+		CurrentClients:       stats.CurrentClients,
+		CurrentSubscriptions: stats.CurrentSubscriptions,
+		TotalConnects:        stats.TotalConnects,
+		TotalDisconnects:     stats.TotalDisconnects,
+	}
 }
 
 // Start starts the MQTT gateway
@@ -231,10 +253,12 @@ func (g *MQTTGateway) handleOnConnect(client *gmqtt.Client) (code uint8) {
 		Pair:        pair,
 		ConnectedAt: time.Now(),
 	})
+	stats.TotalConnects++
 	return packets.CodeAccepted
 }
 
 func (g *MQTTGateway) handleOnClose(client *gmqtt.Client, err error) {
+	stats.TotalDisconnects++
 	if client.UserData() == nil {
 		g.Log.Println("Unauthenticated client disconnected from the MQTT gateway")
 		return

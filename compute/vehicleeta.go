@@ -2,9 +2,7 @@ package compute
 
 import (
 	"fmt"
-	"sort"
 	"time"
-	"unicode"
 
 	cache "github.com/patrickmn/go-cache"
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -49,7 +47,9 @@ func (h *VehicleETAHandler) cacheKey(station, direction *dataobjects.Station, ar
 	return fmt.Sprintf("%s#%s#%d", station.ID, direction.ID, arrivalOrder)
 }
 
-func (h *VehicleETAHandler) TrainPositions() []*dataobjects.VehicleETA {
+// TrainPositions returns VehicleETAs containing the closest position for each train in the network.
+// The map is indexed by VehicleServiceID
+func (h *VehicleETAHandler) TrainPositions() map[string]*dataobjects.VehicleETA {
 	// m maps VehicleServiceID to VehicleETAs
 	m := make(map[string]*dataobjects.VehicleETA)
 	for _, itemIface := range h.etas.Items() {
@@ -59,31 +59,5 @@ func (h *VehicleETAHandler) TrainPositions() []*dataobjects.VehicleETA {
 			m[item.VehicleServiceID] = item
 		}
 	}
-	result := []*dataobjects.VehicleETA{}
-	for _, eta := range m {
-		result = append(result, eta)
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		name1 := result[i].VehicleServiceID
-		name2 := result[j].VehicleServiceID
-
-		if unicode.IsLetter(rune(name1[len(name1)-1])) && !unicode.IsLetter(rune(name2[len(name2)-1])) {
-			return true
-		}
-
-		if unicode.IsLetter(rune(name1[len(name1)-1])) {
-			name1 = string(name1[len(name1)-1]) + name1[0:len(name1)-2]
-		}
-		if unicode.IsLetter(rune(name2[0])) {
-			name2 = string(name2[len(name2)-1]) + name2[0:len(name2)-2]
-		}
-		return name1 < name2
-	})
-
-	for _, eta := range result {
-		fmt.Println("Vehicle", eta.VehicleServiceID, "will be at", eta.Station.Name, "in", int(eta.LiveETA().Seconds()), "seconds")
-	}
-
-	return result
+	return m
 }

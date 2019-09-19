@@ -54,6 +54,13 @@ func StatsSender() {
 				return true
 			})
 
+			mqttStats := mqttGateway.Stats()
+
+			c.Gauge("mqtt.current_clients", mqttStats.CurrentClients)
+			c.Gauge("mqtt.current_subscriptions", mqttStats.CurrentSubscriptions)
+			c.Gauge("mqtt.total_connects", mqttStats.TotalConnects)
+			c.Gauge("mqtt.total_disconnects", mqttStats.TotalDisconnects)
+
 			var m runtime.MemStats
 			runtime.ReadMemStats(&m)
 
