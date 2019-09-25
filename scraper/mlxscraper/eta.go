@@ -266,6 +266,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 			ValidFor:  time.Now().Sub(creation) + sc.etaValidity,
 			Precision: 1 * time.Second,
 			Type:      dataobjects.RelativeExact,
+			Platform:  dirETA.Cais,
 		}
 
 		if commonETA.Direction == nil {

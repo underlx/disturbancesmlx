@@ -4,65 +4,175 @@
       <div class="pure-u-1">
         <h1>Observatório</h1>
       </div>
-      <div class="pure-u-1-1 pure-u-lg-1-2">
-        <h2>Perturbações por hora</h2>
-        <a href="#" id="prev-link" style="color: #777; font-size: 150%; margin-left: 28px;"><i class="fa fa-arrow-up" aria-hidden="true"></i></a>
-        <div id="cal-heatmap"></div>
-        <a href="#" id="next-link" style="color: #777; font-size: 150%; margin-left: 28px;"><i class="fa fa-arrow-down" aria-hidden="true"></i></a>
-        <script type="text/javascript">
-          var minDate = new Date(2017, 3-1, 16, 0, 0, 0);
-          var start = new Date() - 1000*60*60*24*20;
-          var cal = new CalHeatMap();
-          cal.init({
-            data: "/lookingglass/heatmap?start={{"{{"}}d:start{{"}}"}}&stop={{"{{"}}d:end{{"}}"}}",
-            minDate: minDate,
-            maxDate: new Date(),
-            start: start,
-            range: 21,
-            domain: "day",
-            subDomain: "hour",
-            legend: [1, 2, 3, 4],
-            displayLegend: false,
-            rowLimit: 1,
-            cellSize: 16,
-            domainLabelFormat: "%d-%m-%Y",
-            label: {
-              width: 75,
-              position: "left",
-              offset: {
-                x: 10,
-                y: 10,
-              }
-            },
-            verticalOrientation: true,
-            itemName: ["perturbação", "perturbações"],
-            onMinDomainReached: function(hit) {
-              if (hit) {
-                document.getElementById("prev-link").style.color = "#ccc";
-              } else {
-                document.getElementById("prev-link").style.color = "#777";
-              }
-            },
-            onMaxDomainReached: function(hit) {
-              if (hit) {
-                document.getElementById("next-link").style.color = "#ccc";
-              } else {
-                document.getElementById("next-link").style.color = "#777";
-              }
-            }
-          });
-
-          document.getElementById("next-link").addEventListener('click', function(event) {
-            cal.next(7);
-            event.preventDefault();
-          }, false);
-          document.getElementById("prev-link").addEventListener('click', function(event) {
-            cal.previous(7);
-            event.preventDefault();
-          }, false);
-        </script>
-        <p style="color: #777;"><small>As perturbações são contabilizadas em cada hora que afectem.</small></p>
+      <div class="pure-u-1-1">
+        <h2>Localização dos comboios</h2>
+        <table class="pure-table">
+          <thead><tr><td>Comboio</td><td>Destino</td><td>Próxima estação</td><td>Daqui a</td></tr></thead>
+          <tbody>
+          {{ range $eta := .Vehicles }}
+            <tr>
+              <td style="color: #{{ (index $.VehicleLines $eta.VehicleServiceID).Color }}">{{ $eta.VehicleServiceID }}</td>
+              <td>{{ $eta.Direction.Name }}</td>
+              <td>{{ $eta.Station.Name }}</td>
+              <td>{{ $dur := $eta.LiveETA }}
+              {{if $dur }}{{ formatPortugueseDurationLong $dur }}
+              {{else}}No cais{{end}}</td>
+            </tr>
+          {{end}}
+          </tbody>
+        </table>
+        <h2>Em direto</h2>
+        <table class="pure-table" style="width: 100%">
+          <thead><tr><td>Comboio</td><td>Destino</td><td>Troço</td><td>%</td></tr></thead>
+          <tbody id="vehList">
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
+  <script>
+    var mqttClient = mqtt.connect("{{ .MQTTaddress }}", {"username": "ws", "keepalive": 30});
+
+    var stationInfo = {};
+    var stationInfoReqInProgress = {};
+    function getOrFetchStationInfo(id) {
+      if (stationInfoReqInProgress[id] === true) {
+        return stationInfo[id];
+      }
+      stationInfoReqInProgress[id] = true;
+      let oReq = new XMLHttpRequest();
+      oReq.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          stationInfo[id] = JSON.parse(this.responseText);
+          updateVehiclesTable();
+        }
+      };
+      oReq.open("GET", "https://api.perturbacoes.tny.im/v1/stations/" + id);
+      oReq.setRequestHeader("Accept", "application/json");
+      oReq.send();
+      return stationInfo[id];
+    }
+
+    var positionData = [];
+    function updateVehiclesTable() {
+      let etasList = document.getElementById("vehList");
+      let tableRows = etasList.getElementsByTagName("tr");
+      while (tableRows[0]) {
+        etasList.removeChild(tableRows[0]);
+      }
+      let isSpecial = function(v) {
+        return v.length < 1 || (v[0] < '0' && v[0] > '9')
+      }
+      let extractLine = function(v) {
+        if (v.length == 0) {
+          return '';
+        }
+        if (isSpecial(v)) {
+          return v.substring(0, 1)
+        }
+        return v.substring(v.length - 1, v.length)
+      }
+      let extractNumber = function(v) {
+        if (v.length == 0) {
+          return 0;
+        }
+        if (isSpecial(v)) {
+          return +v.substring(1, v.length)
+        }
+        return +v.substring(0, v.length - 1)
+      }
+      positionData = positionData.sort((a, b) => {
+        let av = a.vehicle;
+        let bv = b.vehicle;
+        if (isSpecial(av) && !isSpecial(bv)) {
+          return -1;
+        }
+        if (!isSpecial(av) && isSpecial(bv)) {
+          return 1;
+        }
+        if (extractLine(av) !== extractLine(bv)) {
+          return extractLine(av).localeCompare(extractLine(bv));
+        }
+        return extractNumber(av) - extractNumber(bv);
+      });
+      for (eta of positionData) {
+        let tr = document.createElement("tr");
+        let vehtd = document.createElement("td");
+        vehtd.innerHTML = eta.vehicle;
+        tr.appendChild(vehtd);
+
+        let dirtd = document.createElement("td");
+        let dirInfo = getOrFetchStationInfo(eta.direction);
+        let dirName = "<code>" + eta.direction + "</code>";
+        if (dirInfo !== undefined) {
+          dirName = dirInfo.name;
+        }
+        dirtd.innerHTML = dirName;
+        tr.appendChild(dirtd);
+
+        let conntd = document.createElement("td");
+        let prevInfo = getOrFetchStationInfo(eta.prevStation);
+        let prevStationName = "<code>" + eta.prevStation + "</code>";
+        if (prevInfo !== undefined) {
+          prevStationName = prevInfo.name;
+        }
+        let nextInfo = getOrFetchStationInfo(eta.nextStation);
+        let nextStationName = "<code>" + eta.nextStation + "</code>";
+        if (nextInfo !== undefined) {
+          nextStationName = nextInfo.name;
+        }
+        if (eta.percent == 100) {
+          conntd.innerHTML = nextStationName + " (cais <code>" + eta.platform + "</code>)";
+        } else {
+          conntd.innerHTML = prevStationName + " - " + nextStationName;
+        }
+        tr.appendChild(conntd);
+
+        let pcttd = document.createElement("td");
+        pcttd.innerHTML = eta.percent;
+        tr.appendChild(pcttd);
+
+        etasList.appendChild(tr);
+      }
+      /*for (var direction in perDirection) {
+        let tr = document.createElement("tr");
+        let dirtd = document.createElement("td");
+        let color = getColorForStation(direction);
+        dirtd.innerHTML = "<a href='/s/" + direction + "' style='color: " + color + "'>" + stationNames[direction] + "</a>";
+        tr.appendChild(dirtd);
+
+        for (var order = 1; order < 4; order++) {
+          let eta = perDirection[direction][order];
+
+          let td = document.createElement("td");
+          if (eta !== undefined) {
+            if (eta.value == 0) {
+              td.innerHTML = "No cais";
+            } else {
+              var minutes = Math.floor(eta.value / 60);
+              var seconds = eta.value - (minutes * 60);
+              if (minutes < 10) {minutes = "0"+minutes;}
+              if (seconds < 10) {seconds = "0"+seconds;}
+              td.innerHTML = minutes+'m '+seconds + "s";
+            }
+          } else {
+            td.innerHTML = "Sem dados";
+          }
+          tr.appendChild(td);
+        }
+        etasList.appendChild(tr);
+      }*/
+    }
+
+    mqttClient.on('message', function (topic, message) {
+      // message is Buffer
+      positionData = JSON.parse(message.toString());
+      updateVehiclesTable();
+    });
+
+    mqttClient.on('connect', function () {
+      mqttClient.subscribe("json/vehiclepos");
+    });
+
+  </script>
 {{template "footer.html" . }}

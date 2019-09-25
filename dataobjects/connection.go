@@ -103,6 +103,21 @@ func GetConnection(node sqalx.Node, from string, to string) (*Connection, error)
 	return connections[0], nil
 }
 
+// GetConnectionsTo returns the Connections that point to the given ID
+func GetConnectionsTo(node sqalx.Node, to string) ([]*Connection, error) {
+	if value, present := node.Load(getCacheKey("connections-to", to)); present {
+		return value.([]*Connection), nil
+	}
+	s := sdb.Select().
+		Where(sq.Eq{"to_station": to})
+	connections, err := getConnectionsWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	node.Store(getCacheKey("connections-to", to), connections)
+	return connections, nil
+}
+
 // Update adds or updates the connection
 func (connection *Connection) Update(node sqalx.Node) error {
 	tx, err := node.Beginx()

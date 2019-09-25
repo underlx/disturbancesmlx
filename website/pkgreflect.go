@@ -21,7 +21,6 @@ var Functions = map[string]reflect.Value{
 	"DisturbanceListPage":    reflect.ValueOf(DisturbanceListPage),
 	"DisturbancePage":        reflect.ValueOf(DisturbancePage),
 	"DonatePage":             reflect.ValueOf(DonatePage),
-	"Heatmap":                reflect.ValueOf(Heatmap),
 	"HomePage":               reflect.ValueOf(HomePage),
 	"InitPageCommons":        reflect.ValueOf(InitPageCommons),
 	"Initialize":             reflect.ValueOf(Initialize),

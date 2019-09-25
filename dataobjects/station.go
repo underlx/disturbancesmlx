@@ -99,9 +99,17 @@ func GetStation(node sqalx.Node, id string) (*Station, error) {
 
 // Lines returns the lines that serve this station
 func (station *Station) Lines(node sqalx.Node) ([]*Line, error) {
+	if value, present := node.Load(getCacheKey("station-lines", station.ID)); present {
+		return value.([]*Line), nil
+	}
 	s := sdb.Select().
 		Join("line_has_station ON station_id = ? AND line_id = id", station.ID)
-	return getLinesWithSelect(node, s)
+	lines, err := getLinesWithSelect(node, s)
+	if err != nil {
+		return lines, err
+	}
+	node.Store(getCacheKey("station-lines", station.ID), lines)
+	return lines, err
 }
 
 // WiFiAPs returns the WiFi APs that are available in this station

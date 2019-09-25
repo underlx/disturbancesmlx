@@ -5,11 +5,13 @@ import (
 	"log"
 	"net/http"
 	"net/http/pprof"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
+	"github.com/thoas/go-funk"
 	"github.com/underlx/disturbancesmlx/ankiddie"
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/utils"
@@ -19,8 +21,6 @@ import (
 	"github.com/gbl08ma/ssoclient"
 	"github.com/medicalwei/recaptcha"
 	"github.com/underlx/disturbancesmlx/dataobjects"
-
-	"encoding/json"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/feeds"
@@ -37,6 +37,7 @@ var wsmqttURL string
 var webLog *log.Logger
 var rootSqalxNode sqalx.Node
 var vehicleHandler *compute.VehicleHandler
+var vehicleETAHandler *compute.VehicleETAHandler
 var reportHandler *compute.ReportHandler
 var statsHandler *compute.StatsHandler
 var parentAnkiddie *ankiddie.Ankiddie
@@ -80,7 +81,6 @@ func ConfigureRouter(router *mux.Router) {
 	router.HandleFunc("/", HomePage)
 	router.HandleFunc("/report", ReportPage)
 	router.HandleFunc("/lookingglass", LookingGlass)
-	router.HandleFunc("/lookingglass/heatmap", Heatmap)
 	router.HandleFunc("/internal", InternalPage)
 	router.HandleFunc("/d/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", DisturbancePage)
 	router.HandleFunc("/disturbances/{id:[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-4[0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}}", DisturbancePage)
@@ -124,12 +124,14 @@ func ConfigureRouter(router *mux.Router) {
 
 // Initialize initializes the package
 func Initialize(snode sqalx.Node, webKeybox *keybox.Keybox, log *log.Logger,
-	rh *compute.ReportHandler, vh *compute.VehicleHandler, sh *compute.StatsHandler,
+	rh *compute.ReportHandler, vh *compute.VehicleHandler,
+	veh *compute.VehicleETAHandler, sh *compute.StatsHandler,
 	a *ankiddie.Ankiddie) {
 	webLog = log
 	rootSqalxNode = snode
 	reportHandler = rh
 	vehicleHandler = vh
+	vehicleETAHandler = veh
 	statsHandler = sh
 	parentAnkiddie = a
 
@@ -270,71 +272,99 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
-	p, err := InitPageCommons(tx, w, r, "Perturbações do Metro de Lisboa")
+	p := struct {
+		PageCommons
+		Vehicles     []*dataobjects.VehicleETA
+		VehicleLines map[string]*dataobjects.Line
+	}{
+		VehicleLines: make(map[string]*dataobjects.Line),
+	}
+
+	p.PageCommons, err = InitPageCommons(tx, w, r, "Observatório")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	p.Dependencies.Charts = true
+	lineLetterToID := map[string]string{
+		"A": "pt-ml-azul",
+		"B": "pt-ml-amarela",
+		"C": "pt-ml-verde",
+		"D": "pt-ml-vermelha",
+	}
+
+	lineLetterToLine := map[string]*dataobjects.Line{}
+	for letter, id := range lineLetterToID {
+		lineLetterToLine[letter], err = dataobjects.GetLine(tx, id)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	vehicleMap := vehicleETAHandler.TrainPositions()
+
+	p.Vehicles = funk.Values(vehicleMap).([]*dataobjects.VehicleETA)
+
+	isSpecial := func(v string) bool {
+		return len(v) < 1 || (v[0] < '0' && v[0] > '9')
+	}
+
+	extractLine := func(v string) string {
+		if len(v) == 0 {
+			return ""
+		}
+		if isSpecial(v) {
+			return v[0:1]
+		}
+		return v[len(v)-1 : len(v)]
+	}
+
+	extractNumber := func(v string) int {
+		if len(v) == 0 {
+			return 0
+		}
+		if isSpecial(v) {
+			n, _ := strconv.Atoi(v[1:len(v)])
+			return n
+		}
+		n, _ := strconv.Atoi(v[0 : len(v)-1])
+		return n
+	}
+
+	sort.Slice(p.Vehicles, func(i, j int) bool {
+		id := p.Vehicles[i].VehicleServiceID
+		jd := p.Vehicles[j].VehicleServiceID
+		if isSpecial(id) && !isSpecial(jd) {
+			return true
+		}
+		if !isSpecial(id) && isSpecial(jd) {
+			return false
+		}
+		if extractLine(id) < extractLine(jd) {
+			return true
+		}
+		if extractLine(id) > extractLine(jd) {
+			return false
+		}
+		return extractNumber(id) < extractNumber(jd)
+	})
+
+	for _, vehicle := range p.Vehicles {
+		line, ok := lineLetterToLine[extractLine(vehicle.VehicleServiceID)]
+		if ok {
+			p.VehicleLines[vehicle.VehicleServiceID] = line
+		}
+	}
+
+	p.Dependencies.MQTT = true
 	err = webtemplate.ExecuteTemplate(w, "lg.html", p)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-}
-
-// Heatmap serves data for the disturbance heatmap
-func Heatmap(w http.ResponseWriter, r *http.Request) {
-	startTime, err := time.Parse(time.RFC3339Nano, r.URL.Query().Get("start"))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	endTime, err := time.Parse(time.RFC3339Nano, r.URL.Query().Get("stop"))
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	tx, err := rootSqalxNode.Beginx()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		webLog.Println(err)
-		return
-	}
-	defer tx.Commit()
-
-	network, err := dataobjects.GetNetwork(tx, MLnetworkID)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		webLog.Println(err)
-		return
-	}
-
-	dayCounts, err := network.CountDisturbancesByHour(tx, startTime, endTime)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		webLog.Println(err)
-		return
-	}
-
-	data := make(map[int64]int)
-
-	for _, count := range dayCounts {
-		data[startTime.Unix()] = count
-		startTime = startTime.Add(1 * time.Hour)
-	}
-
-	json, err := json.Marshal(data)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		webLog.Println(err)
-		return
-	}
-	w.Write(json)
 }
 
 // MapPage serves the network map page

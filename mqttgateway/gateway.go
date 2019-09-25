@@ -163,8 +163,14 @@ func (g *MQTTGateway) Start() error {
 
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
+		fastTicker := time.NewTicker(2 * time.Second)
 		for {
 			select {
+			case <-fastTicker.C:
+				err := g.SendVehiclePositions()
+				if err != nil {
+					g.Log.Println(err)
+				}
 			case <-ticker.C:
 				err := g.SendVehicleETAs()
 				if err != nil {
@@ -288,6 +294,10 @@ func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topi
 			g.Log.Println("  " + sub.Name)
 		}
 		g.Log.Println("  " + topic.Name)
+
+		if topic.Name == "json/vehiclepos" || topic.Name == "msgpack/vehiclepos" {
+			return topic.Qos
+		}
 
 		switch g.etaAvailability {
 		case "all":

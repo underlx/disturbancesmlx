@@ -30,6 +30,7 @@ type VehicleETA struct {
 	Direction        *Station
 	ArrivalOrder     int // 0 is N/A, 1 is the next vehicle, 2 is the vehicle after the next one, etc.
 	VehicleServiceID string
+	Platform         string
 	Computed         time.Time
 	ValidFor         time.Duration
 	Type             VehicleETAType
