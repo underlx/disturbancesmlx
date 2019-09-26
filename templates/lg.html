@@ -11,7 +11,7 @@
           <tbody>
           {{ range $eta := .Vehicles }}
             <tr>
-              <td style="color: #{{ (index $.VehicleLines $eta.VehicleServiceID).Color }}">{{ $eta.VehicleServiceID }}</td>
+              <td {{ if (index $.VehicleLines $eta.VehicleServiceID) }}style="color: #{{ (index $.VehicleLines $eta.VehicleServiceID).Color }}"{{end}}>{{ $eta.VehicleServiceID }}</td>
               <td>{{ $eta.Direction.Name }}</td>
               <td>{{ $eta.Station.Name }}</td>
               <td>{{ $dur := $eta.LiveETA }}
