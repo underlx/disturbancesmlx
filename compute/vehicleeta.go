@@ -54,6 +54,9 @@ func (h *VehicleETAHandler) TrainPositions() map[string]*dataobjects.VehicleETA 
 	m := make(map[string]*dataobjects.VehicleETA)
 	for _, itemIface := range h.etas.Items() {
 		item := itemIface.Object.(*dataobjects.VehicleETA)
+		if time.Since(item.Computed) > 2*time.Minute {
+			continue
+		}
 		min, ok := m[item.VehicleServiceID]
 		if !ok || item.LiveETA() < min.LiveETA() {
 			m[item.VehicleServiceID] = item
