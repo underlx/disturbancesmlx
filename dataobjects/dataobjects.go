@@ -149,6 +149,10 @@ func (d Duration) Value() (driver.Value, error) {
 	return time.Duration(d).String(), nil
 }
 
-func getCacheKey(objtype, id string, other ...string) string {
-	return strings.Join(append([]string{"do", objtype, id}, other...), "-")
+func getCacheKey(objtype string, other ...interface{}) string {
+	elem := make([]string, len(other))
+	for i, e := range other {
+		elem[i] = fmt.Sprint(e)
+	}
+	return strings.Join(append([]string{"do", objtype}, elem...), "-")
 }

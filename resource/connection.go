@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
+	"github.com/ulule/deepcopier"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 )
@@ -40,27 +41,33 @@ func (r *Connection) Get(c *yarf.Context) error {
 	}
 	defer tx.Commit() // read-only tx
 
+	compat := c.Request.URL.Query().Get("closedcompat") != "false"
+
 	if c.Param("from") != "" && c.Param("to") != "" {
-		connection, err := dataobjects.GetConnection(tx, c.Param("from"), c.Param("to"))
+		connection, err := dataobjects.GetConnection(tx, c.Param("from"), c.Param("to"), compat)
 		if err != nil {
 			return err
 		}
+		ac := &apiConnection{}
+		deepcopier.Copy(*connection).To(ac)
 		data := apiConnectionWrapper{
-			apiConnection: apiConnection(*connection),
+			apiConnection: *ac,
 			FromID:        connection.From.ID,
 			ToID:          connection.To.ID,
 		}
 
 		RenderData(c, data, "s-maxage=10")
 	} else {
-		connections, err := dataobjects.GetConnections(tx)
+		connections, err := dataobjects.GetConnections(tx, compat)
 		if err != nil {
 			return err
 		}
 		apiconnections := make([]apiConnectionWrapper, len(connections))
 		for i := range connections {
+			ac := &apiConnection{}
+			deepcopier.Copy(*connections[i]).To(ac)
 			apiconnections[i] = apiConnectionWrapper{
-				apiConnection: apiConnection(*connections[i]),
+				apiConnection: *ac,
 				FromID:        connections[i].From.ID,
 				ToID:          connections[i].To.ID,
 			}

@@ -376,6 +376,14 @@
   version = "0.4"
 
 [[projects]]
+  branch = "master"
+  digest = "1:8fa03cb74ac5c89555750948a9f225a73bf34c9aa87ee9202b8e88c9f3b5d6fb"
+  name = "github.com/ulule/deepcopier"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ca99b135e50f526fde9cd88705f0ff2f3f95b77c"
+
+[[projects]]
   digest = "1:01d5dc3bfb14cf8fb2c924dcf026231218604b8ed15daaa028875d49e7f09071"
   name = "github.com/vmihailenco/msgpack"
   packages = [
@@ -559,6 +567,7 @@
     "github.com/rickb777/date",
     "github.com/satori/go.uuid",
     "github.com/thoas/go-funk",
+    "github.com/ulule/deepcopier",
     "github.com/vmihailenco/msgpack",
     "github.com/yarf-framework/yarf",
     "go.tianon.xyz/progress",

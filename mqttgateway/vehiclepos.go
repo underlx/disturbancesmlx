@@ -48,7 +48,7 @@ func getPrevVehicleStation(tx sqalx.Node, eta *dataobjects.VehicleETA) (prev *da
 		}
 	}()
 
-	connections, err := dataobjects.GetConnectionsTo(tx, eta.Station.ID)
+	connections, err := dataobjects.GetConnectionsTo(tx, eta.Station.ID, false)
 	if err != nil {
 		return nil, 0
 	}

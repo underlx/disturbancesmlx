@@ -110,7 +110,7 @@ func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Stat
 		if s, present := h.connectionDurationCache[from+"#"+to]; present {
 			return s
 		}
-		connection, err := dataobjects.GetConnection(tx, from, to)
+		connection, err := dataobjects.GetConnection(tx, from, to, true)
 		if err != nil {
 			return 0
 		}

@@ -71,7 +71,7 @@ func SimulateRealtime(node sqalx.Node, fromTime time.Time, toTime time.Time, wri
 					continue
 				}
 
-				connection, err := dataobjects.GetConnection(tx, prevUse.Station.ID, curUse.Station.ID)
+				connection, err := dataobjects.GetConnection(tx, prevUse.Station.ID, curUse.Station.ID, true)
 				if err != nil {
 					// connection might no longer exist (closed stations, etc.)
 					// or it might be a transfer, or we messed up reading the station uses

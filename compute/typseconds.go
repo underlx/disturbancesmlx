@@ -116,7 +116,7 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 				continue
 			}
 
-			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID)
+			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID, true)
 			if err != nil {
 				// connection might no longer exist (closed stations, etc.)
 				// move on
@@ -396,7 +396,7 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 				continue
 			}
 
-			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID)
+			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID, true)
 			if err != nil {
 				// connection might no longer exist (closed stations, etc.)
 				// move on

@@ -260,7 +260,7 @@ func (trip *Trip) AverageSpeed(node sqalx.Node) (speed float64, totalDistance in
 			continue
 		}
 
-		connection, err := GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID)
+		connection, err := GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID, true)
 		if err != nil {
 			// connection might no longer exist (closed stations, etc.)
 			// move on

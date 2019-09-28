@@ -148,3 +148,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/goodsign/monday"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/ulule/deepcopier"
