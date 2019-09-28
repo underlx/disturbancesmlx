@@ -13,12 +13,14 @@ type Connection struct {
 }
 
 type apiConnection struct {
-	From                  *dataobjects.Station `msgpack:"-" json:"-"`
-	To                    *dataobjects.Station `msgpack:"-" json:"-"`
-	TypicalWaitingSeconds int                  `msgpack:"typWaitS" json:"typWaitS"`
-	TypicalStopSeconds    int                  `msgpack:"typStopS" json:"typStopS"`
-	TypicalSeconds        int                  `msgpack:"typS" json:"typS"`
-	WorldLength           int                  `msgpack:"worldLength" json:"worldLength"`
+	From *dataobjects.Station `msgpack:"-" json:"-"`
+	To   *dataobjects.Station `msgpack:"-" json:"-"`
+	//FromPlatform          string               `msgpack:"from_platform" json:"from_platform"`
+	//ToPlatform            string               `msgpack:"to_platform" json:"to_platform"`
+	TypicalWaitingSeconds int `msgpack:"typWaitS" json:"typWaitS"`
+	TypicalStopSeconds    int `msgpack:"typStopS" json:"typStopS"`
+	TypicalSeconds        int `msgpack:"typS" json:"typS"`
+	WorldLength           int `msgpack:"worldLength" json:"worldLength"`
 }
 
 type apiConnectionWrapper struct {

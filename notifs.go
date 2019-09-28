@@ -55,6 +55,7 @@ func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.S
 		fcmcl.NewFcmMsgTo("/topics/disturbances", data)
 	}
 
+	fcmcl.SetCollapseKey(d.ID)
 	fcmcl.SetPriority(fcm.Priority_HIGH)
 	_, err := fcmcl.Send()
 	if err != nil {

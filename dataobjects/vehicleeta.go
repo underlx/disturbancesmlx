@@ -1,7 +1,11 @@
 package dataobjects
 
 import (
+	"errors"
+	"strconv"
 	"time"
+
+	"github.com/gbl08ma/sqalx"
 )
 
 // VehicleETAType is a type of VehicleETA
@@ -81,6 +85,79 @@ func (eta *VehicleETA) SetETAUpperBound(d time.Duration) {
 func (eta *VehicleETA) LiveETAupperBound() time.Duration {
 	// for this to work correctly, eta.Computed must be based in our system's clock
 	return durationMax(0, eta.etaUpperBound-time.Since(eta.Computed))
+}
+
+// VehicleIDisSpecial returns whether the vehicle ID of this ETA corresponds to a special service
+func (eta *VehicleETA) VehicleIDisSpecial() bool {
+	v := eta.VehicleServiceID
+	return len(v) < 1 || (v[0] < '0' && v[0] > '9')
+}
+
+// VehicleIDgetLine returns the service line of the vehicle for this ETA
+func (eta *VehicleETA) VehicleIDgetLine(node sqalx.Node) (*Line, error) {
+	id, err := eta.VehicleIDgetLineString()
+	if err != nil {
+		return nil, err
+	}
+	return GetLineWithExternalID(node, id)
+}
+
+// VehicleIDgetLineString returns the service line of the vehicle for this ETA
+func (eta *VehicleETA) VehicleIDgetLineString() (string, error) {
+	v := eta.VehicleServiceID
+	if len(v) == 0 {
+		return "", errors.New("Empty vehicle ID")
+	}
+	id := ""
+	if eta.VehicleIDisSpecial() {
+		id = v[0:1]
+	} else {
+		id = v[len(v)-1 : len(v)]
+	}
+	return id, nil
+}
+
+// VehicleIDgetNumber returns the service number of the vehicle for this ETA
+func (eta *VehicleETA) VehicleIDgetNumber() int {
+	v := eta.VehicleServiceID
+	if len(v) == 0 {
+		return 0
+	}
+	if eta.VehicleIDisSpecial() {
+		n, _ := strconv.Atoi(v[1:len(v)])
+		return n
+	}
+	n, _ := strconv.Atoi(v[0 : len(v)-1])
+	return n
+}
+
+// VehicleIDLessFunc is a function for comparing vehicle ETAs when sorting by vehicle ID
+func VehicleIDLessFunc(vi, vj *VehicleETA) bool {
+	if vi.VehicleIDisSpecial() && !vj.VehicleIDisSpecial() {
+		return true
+	}
+	if !vi.VehicleIDisSpecial() && vj.VehicleIDisSpecial() {
+		return false
+	}
+	li, _ := vi.VehicleIDgetLineString()
+	lj, _ := vj.VehicleIDgetLineString()
+	if li < lj {
+		return true
+	}
+	if li > lj {
+		return false
+	}
+	return vi.VehicleIDgetNumber() < vj.VehicleIDgetNumber()
+}
+
+// VehicleIDLessFuncString is a function for comparing vehicle IDs when sorting
+func VehicleIDLessFuncString(vi, vj string) bool {
+	return VehicleIDLessFunc(&VehicleETA{
+		VehicleServiceID: vi,
+	},
+		&VehicleETA{
+			VehicleServiceID: vj,
+		})
 }
 
 // durationMax is math.Max for time.Duration

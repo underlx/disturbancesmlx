@@ -88,7 +88,7 @@ func main() {
 
 	statsHandler = compute.NewStatsHandler()
 	vehicleHandler = compute.NewVehicleHandler()
-	vehicleETAHandler = compute.NewVehicleETAHandler()
+	vehicleETAHandler = compute.NewVehicleETAHandler(rootSqalxNode)
 	// done like this to ensure rootSqalxNode is not nil at this point
 	reportHandler = compute.NewReportHandler(statsHandler, rootSqalxNode, handleNewStatus)
 

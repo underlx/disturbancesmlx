@@ -33,6 +33,7 @@ type Line struct {
 	TypicalCars int
 	Order       int
 	Network     *Network
+	ExternalID  string
 }
 
 // GetLines returns a slice with all registered lines
@@ -50,7 +51,7 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 	}
 	defer tx.Commit() // read-only tx
 
-	rows, err := sbuilder.Columns("mline.id", "mline.name", "mline.color", "mline.network", "mline.typ_cars", "mline.order").
+	rows, err := sbuilder.Columns("mline.id", "mline.name", "mline.color", "mline.network", "mline.typ_cars", "mline.order", "mline.external_id").
 		From("mline").
 		RunWith(tx).Query()
 	if err != nil {
@@ -68,7 +69,8 @@ func getLinesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Line, er
 			&line.Color,
 			&networkID,
 			&line.TypicalCars,
-			&line.Order)
+			&line.Order,
+			&line.ExternalID)
 		if err != nil {
 			return lines, fmt.Errorf("getLinesWithSelect: %s", err)
 		}
@@ -155,6 +157,24 @@ func GetLine(node sqalx.Node, id string) (*Line, error) {
 		return nil, errors.New("Line not found")
 	}
 	node.Store(getCacheKey("line", id), lines[0])
+	return lines[0], nil
+}
+
+// GetLineWithExternalID returns the Line with the given external ID
+func GetLineWithExternalID(node sqalx.Node, id string) (*Line, error) {
+	if value, present := node.Load(getCacheKey("line-ext", id)); present {
+		return value.(*Line), nil
+	}
+	s := sdb.Select().
+		Where(sq.Eq{"mline.external_id": id})
+	lines, err := getLinesWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	if len(lines) == 0 {
+		return nil, errors.New("Line not found")
+	}
+	node.Store(getCacheKey("line-ext", id), lines[0])
 	return lines[0], nil
 }
 
@@ -723,10 +743,10 @@ func (line *Line) Update(node sqalx.Node) error {
 	}
 
 	_, err = sdb.Insert("mline").
-		Columns("id", "name", "color", "network", "typ_cars", "\"order\"").
-		Values(line.ID, line.Name, line.Color, line.Network.ID, line.TypicalCars, line.Order).
-		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, color = ?, network = ?, typ_cars = ?, \"order\" = ?",
-			line.Name, line.Color, line.Network.ID, line.TypicalCars, line.Order).
+		Columns("id", "name", "color", "network", "typ_cars", "\"order\"", "external_id").
+		Values(line.ID, line.Name, line.Color, line.Network.ID, line.TypicalCars, line.Order, line.ExternalID).
+		Suffix("ON CONFLICT (id) DO UPDATE SET name = ?, color = ?, network = ?, typ_cars = ?, \"order\" = ?, external_id = ?",
+			line.Name, line.Color, line.Network.ID, line.TypicalCars, line.Order, line.ExternalID).
 		RunWith(tx).Exec()
 
 	if err != nil {

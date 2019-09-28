@@ -20,6 +20,7 @@ type apiLine struct {
 	TypicalCars int                  `msgpack:"typCars" json:"typCars"`
 	Order       int                  `msgpack:"order" json:"order"`
 	Network     *dataobjects.Network `msgpack:"-" json:"-"`
+	ExternalID  string               `msgpack:"externalID" json:"externalID"`
 }
 
 type apiLineSchedule struct {

@@ -21,6 +21,9 @@ type Connection struct {
 	// WorldLength: the physical length of this connection in meters
 	WorldLength int
 
+	FromPlatform string
+	ToPlatform   string
+
 	isCompatFake     bool
 	compatOrigFirst  *Connection
 	compatOrigSecond *Connection
@@ -49,7 +52,8 @@ func getConnectionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder, closed
 	defer tx.Commit() // read-only tx
 
 	rows, err := sbuilder.Columns("from_station", "to_station", "typ_wait_time",
-		"typ_stop_time", "typ_time", "world_length").
+		"typ_stop_time", "typ_time", "world_length",
+		"from_platform", "to_platform").
 		From("connection").
 		RunWith(tx).Query()
 	if err != nil {
@@ -69,7 +73,9 @@ func getConnectionsWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder, closed
 			&connection.TypicalWaitingSeconds,
 			&connection.TypicalStopSeconds,
 			&connection.TypicalSeconds,
-			&connection.WorldLength)
+			&connection.WorldLength,
+			&connection.FromPlatform,
+			&connection.ToPlatform)
 		if err != nil {
 			return connections, fmt.Errorf("getConnectionsWithSelect: %s", err)
 		}
@@ -248,6 +254,8 @@ func provideClosedCompat(node sqalx.Node, origConnections []*Connection) ([]*Con
 					TypicalStopSeconds:    connection.TypicalStopSeconds,
 					TypicalSeconds:        connection.TypicalSeconds + c.TypicalSeconds,
 					WorldLength:           connection.WorldLength + c.WorldLength,
+					FromPlatform:          connection.FromPlatform,
+					ToPlatform:            connection.ToPlatform,
 					isCompatFake:          true,
 					compatOrigFirst:       connection,
 					compatOrigSecond:      c,
@@ -257,6 +265,38 @@ func provideClosedCompat(node sqalx.Node, origConnections []*Connection) ([]*Con
 			connections = append(connections, connection)
 		}
 	}
+	return connections, nil
+}
+
+// GetConnectionsToPlatform returns the Connections that end on the given platform ID
+func GetConnectionsToPlatform(node sqalx.Node, toPlatform string) ([]*Connection, error) {
+	if value, present := node.Load(getCacheKey("connections-toplatform", toPlatform)); present {
+		return value.([]*Connection), nil
+	}
+
+	s := sdb.Select().
+		Where(sq.Eq{"to_platform": toPlatform})
+	connections, err := getConnectionsWithSelect(node, s, false)
+	if err != nil {
+		return nil, err
+	}
+	node.Store(getCacheKey("connections-toplatform", toPlatform), connections)
+	return connections, nil
+}
+
+// GetConnectionsFromPlatform returns the Connections that start on the given platform ID
+func GetConnectionsFromPlatform(node sqalx.Node, fromPlatform string) ([]*Connection, error) {
+	if value, present := node.Load(getCacheKey("connections-fromplatform", fromPlatform)); present {
+		return value.([]*Connection), nil
+	}
+
+	s := sdb.Select().
+		Where(sq.Eq{"from_platform": fromPlatform})
+	connections, err := getConnectionsWithSelect(node, s, false)
+	if err != nil {
+		return nil, err
+	}
+	node.Store(getCacheKey("connections-fromplatform", fromPlatform), connections)
 	return connections, nil
 }
 
@@ -289,11 +329,13 @@ func (connection *Connection) Update(node sqalx.Node) error {
 
 	_, err = sdb.Insert("connection").
 		Columns("from_station", "to_station", "typ_wait_time",
-			"typ_stop_time", "typ_time", "world_length").
+			"typ_stop_time", "typ_time", "world_length",
+			"from_platform", "to_platform").
 		Values(connection.From.ID, connection.To.ID, connection.TypicalWaitingSeconds,
-			connection.TypicalStopSeconds, connection.TypicalSeconds, connection.WorldLength).
-		Suffix("ON CONFLICT (from_station, to_station) DO UPDATE SET typ_wait_time = ?, typ_stop_time = ?, typ_time = ?, world_length = ?",
-			connection.TypicalWaitingSeconds, connection.TypicalStopSeconds, connection.TypicalSeconds, connection.WorldLength).
+			connection.TypicalStopSeconds, connection.TypicalSeconds, connection.WorldLength,
+			connection.FromPlatform, connection.ToPlatform).
+		Suffix("ON CONFLICT (from_station, to_station) DO UPDATE SET typ_wait_time = ?, typ_stop_time = ?, typ_time = ?, world_length = ?, from_platform = ?, to_platform = ?",
+			connection.TypicalWaitingSeconds, connection.TypicalStopSeconds, connection.TypicalSeconds, connection.WorldLength, connection.FromPlatform, connection.ToPlatform).
 		RunWith(tx).Exec()
 
 	if err != nil {

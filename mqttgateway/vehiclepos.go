@@ -20,8 +20,8 @@ type vehiclePosition struct {
 	ValidFor    uint   `msgpack:"validFor" json:"validFor"` // always in seconds
 }
 
-func buildVehiclePositionStruct(tx sqalx.Node, eta *dataobjects.VehicleETA) vehiclePosition {
-	prevStation, pct := getPrevVehicleStation(tx, eta)
+func (g *MQTTGateway) buildVehiclePositionStruct(tx sqalx.Node, eta *dataobjects.VehicleETA) vehiclePosition {
+	prevStation, pct := g.vehicleETAhandler.VehiclePosition(tx, eta)
 	return vehiclePosition{
 		Vehicle:     eta.VehicleServiceID,
 		PrevStation: prevStation.ID,
@@ -32,59 +32,6 @@ func buildVehiclePositionStruct(tx sqalx.Node, eta *dataobjects.VehicleETA) vehi
 		Made:        eta.Computed.Unix(),
 		ValidFor:    uint(eta.RemainingValidity().Seconds()),
 	}
-}
-
-func getPrevVehicleStation(tx sqalx.Node, eta *dataobjects.VehicleETA) (prev *dataobjects.Station, percentage uint) {
-	defer func() {
-		if prev == nil {
-			prev = eta.Station
-			percentage = 0
-		}
-		if percentage > 100 {
-			percentage = 100
-		}
-		if percentage == 100 && eta.LiveETA() > 0 {
-			percentage = 99
-		}
-	}()
-
-	connections, err := dataobjects.GetConnectionsTo(tx, eta.Station.ID, false)
-	if err != nil {
-		return nil, 0
-	}
-
-	if len(connections) == 0 {
-		return nil, 0
-	}
-
-	lines, err := eta.Station.Lines(tx)
-	if err != nil {
-		return nil, 0
-	}
-
-	if len(lines) == 0 {
-		return nil, 0
-	}
-
-	for _, connection := range connections {
-		for _, line := range lines {
-			direction, err := line.GetDirectionForConnection(tx, connection)
-			if err != nil {
-				continue
-			}
-
-			if direction.ID == eta.Direction.ID {
-				prev = connection.From
-				p := 100 - (eta.LiveETA().Seconds()*100)/float64(connection.TypicalSeconds+connection.TypicalStopSeconds)
-				if p < 0 {
-					p = 0
-				}
-				percentage = uint(p)
-				return
-			}
-		}
-	}
-	return nil, 0
 }
 
 func buildVehiclePositionPayload(structs ...interface{}) []byte {
@@ -118,7 +65,7 @@ func (g *MQTTGateway) SendVehiclePositions() error {
 
 	structs := []interface{}{}
 	for _, eta := range vehicles {
-		structs = append(structs, buildVehiclePositionStruct(tx, eta))
+		structs = append(structs, g.buildVehiclePositionStruct(tx, eta))
 	}
 
 	if len(structs) != 0 {

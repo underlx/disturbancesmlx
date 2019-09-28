@@ -3,7 +3,10 @@ package website
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"time"
+
+	"github.com/thoas/go-funk"
 
 	"github.com/gorilla/mux"
 	"github.com/underlx/disturbancesmlx/dataobjects"
@@ -32,6 +35,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		MonthAvailability float64
 		MonthDuration     time.Duration
 		Disturbances      []*dataobjects.Disturbance
+		CurTrains         []string
 	}{}
 
 	p.Line, err = dataobjects.GetLine(tx, mux.Vars(r)["id"])
@@ -121,6 +125,12 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	trains := vehicleETAHandler.TrainsInLine(p.Line)
+	p.CurTrains = funk.Keys(trains).([]string)
+	sort.Slice(p.CurTrains, func(i, j int) bool {
+		return dataobjects.VehicleIDLessFuncString(p.CurTrains[i], p.CurTrains[j])
+	})
 
 	err = webtemplate.ExecuteTemplate(w, "line.html", p)
 	if err != nil {

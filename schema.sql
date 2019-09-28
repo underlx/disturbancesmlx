@@ -76,7 +76,8 @@ CREATE TABLE IF NOT EXISTS "mline" (
     color VARCHAR(6) NOT NULL,
     network VARCHAR(36) NOT NULL REFERENCES network (id),
     typ_cars INT NOT NULL,
-    order INT NOT NULL
+    order INT NOT NULL,
+    external_id VARCHAR(20) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "line_name" (
@@ -154,6 +155,8 @@ CREATE TABLE IF NOT EXISTS "connection" (
     typ_stop_time INT NOT NULL,
     typ_time INT NOT NULL,
     world_length INT NOT NULL,
+    from_platform VARCHAR(10) NOT NULL,
+    to_platform VARCHAR(10) NOT NULL,
     PRIMARY KEY (from_station, to_station)
 );
 

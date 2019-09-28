@@ -308,55 +308,26 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 
 	p.Vehicles = funk.Values(vehicleMap).([]*dataobjects.VehicleETA)
 
-	isSpecial := func(v string) bool {
-		return len(v) < 1 || (v[0] < '0' && v[0] > '9')
-	}
-
-	extractLine := func(v string) string {
-		if len(v) == 0 {
-			return ""
-		}
-		if isSpecial(v) {
-			return v[0:1]
-		}
-		return v[len(v)-1 : len(v)]
-	}
-
-	extractNumber := func(v string) int {
-		if len(v) == 0 {
-			return 0
-		}
-		if isSpecial(v) {
-			n, _ := strconv.Atoi(v[1:len(v)])
-			return n
-		}
-		n, _ := strconv.Atoi(v[0 : len(v)-1])
-		return n
-	}
-
 	sort.Slice(p.Vehicles, func(i, j int) bool {
-		id := p.Vehicles[i].VehicleServiceID
-		jd := p.Vehicles[j].VehicleServiceID
-		if isSpecial(id) && !isSpecial(jd) {
+		if p.Vehicles[i].VehicleIDisSpecial() && !p.Vehicles[j].VehicleIDisSpecial() {
 			return true
 		}
-		if !isSpecial(id) && isSpecial(jd) {
+		if !p.Vehicles[i].VehicleIDisSpecial() && p.Vehicles[j].VehicleIDisSpecial() {
 			return false
 		}
-		if extractLine(id) < extractLine(jd) {
+		li, _ := p.Vehicles[i].VehicleIDgetLineString()
+		lj, _ := p.Vehicles[j].VehicleIDgetLineString()
+		if li < lj {
 			return true
 		}
-		if extractLine(id) > extractLine(jd) {
+		if li > lj {
 			return false
 		}
-		return extractNumber(id) < extractNumber(jd)
+		return p.Vehicles[i].VehicleIDgetNumber() < p.Vehicles[j].VehicleIDgetNumber()
 	})
 
 	for _, vehicle := range p.Vehicles {
-		line, ok := lineLetterToLine[extractLine(vehicle.VehicleServiceID)]
-		if ok {
-			p.VehicleLines[vehicle.VehicleServiceID] = line
-		}
+		p.VehicleLines[vehicle.VehicleServiceID], _ = vehicle.VehicleIDgetLine(tx)
 	}
 
 	p.Dependencies.MQTT = true
