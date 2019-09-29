@@ -10,14 +10,14 @@ import (
 )
 
 type vehiclePosition struct {
-	Vehicle     string `msgpack:"vehicle" json:"vehicle"`
-	PrevStation string `msgpack:"prevStation" json:"prevStation"`
-	NextStation string `msgpack:"nextStation" json:"nextStation"`
-	Direction   string `msgpack:"direction" json:"direction"`
-	Platform    string `msgpack:"platform" json:"platform"`
-	Percent     uint   `msgpack:"percent" json:"percent"`
-	Made        int64  `msgpack:"made" json:"made"`         // always a unix timestamp (seconds)
-	ValidFor    uint   `msgpack:"validFor" json:"validFor"` // always in seconds
+	Vehicle     string `msgpack:"v" json:"vehicle"`
+	PrevStation string `msgpack:"p" json:"prevStation"`
+	NextStation string `msgpack:"n" json:"nextStation"`
+	Direction   string `msgpack:"d" json:"direction"`
+	Platform    string `msgpack:"t" json:"platform"`
+	Percent     uint   `msgpack:"c" json:"percent"`
+	Made        int64  `msgpack:"m" json:"made"`     // always a unix timestamp (seconds)
+	ValidFor    uint   `msgpack:"f" json:"validFor"` // always in seconds
 }
 
 func (g *MQTTGateway) buildVehiclePositionStruct(tx sqalx.Node, eta *dataobjects.VehicleETA) vehiclePosition {

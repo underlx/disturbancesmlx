@@ -295,7 +295,9 @@ func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topi
 		}
 		g.Log.Println("  " + topic.Name)
 
-		if topic.Name == "json/vehiclepos" || topic.Name == "msgpack/vehiclepos" {
+		if topic.Name == "json/vehiclepos" ||
+			topic.Name == "msgpack/vehiclepos" ||
+			topic.Name == "dev-msgpack/vehiclepos" {
 			return topic.Qos
 		}
 
