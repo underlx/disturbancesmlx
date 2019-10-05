@@ -4,16 +4,21 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ .PageTitle }}</title>
-  <meta name="og:title" content="{{ .PageTitle }}" />
+  <meta property='og:site_name' content='Perturbações.pt'>
+  <meta property="og:title" content="{{ .PageTitle }}" />
+  <meta name="twitter:title" content="{{ .PageTitle }}" />
+  <meta property='og:type' content='website'>
   <meta name="description" content="{{ if .Description }}{{ .Description }}{{else}}Tudo sobre o Metro de Lisboa: estado das linhas, tempos de espera, estações, correspondências, e muito mais{{end}}"/>
-  {{ if .Description }}
-  <meta name="og:description" content="{{ .Description }}"/>
-  {{end}}
+  <meta property="og:description" content="{{ if .Description }}{{ .Description }}{{else}}Tudo sobre o Metro de Lisboa: estado das linhas, tempos de espera, estações, correspondências, e muito mais{{end}}"/>
+  <meta name="twitter:description" content="{{ if .Description }}{{ .Description }}{{else}}Tudo sobre o Metro de Lisboa: estado das linhas, tempos de espera, estações, correspondências, e muito mais{{end}}"/>
   <meta name="twitter:card" content="summary_large_image">
+  <meta name='twitter:site' content='@UnderLX'>
   {{ if .ImageURL }}
   <meta property="og:image" content="{{ .ImageURL }}">
+  <meta name="twitter:image" content="{{ .ImageURL }}">
   {{else}}
   <meta property="og:image" content="https://perturbacoes.pt/static/img/banner-perturbacoes.png" />
+  <meta name="twitter:image" content="https://perturbacoes.pt/static/img/banner-perturbacoes.png">
   {{end}}
   <meta name="keywords" content="ML, metro, lisboa, perturbações, linhas, estado"/>
   <meta name="author" content="Segvault"/>
