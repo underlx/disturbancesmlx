@@ -9,11 +9,11 @@
   {{ if .Description }}
   <meta name="og:description" content="{{ .Description }}"/>
   {{end}}
+  <meta name="twitter:card" content="summary_large_image">
   {{ if .ImageURL }}
   <meta property="og:image" content="{{ .ImageURL }}">
-  <meta name="twitter:card" content="summary_large_image">
   {{else}}
-  <meta property="og:image" content="https://perturbacoes.pt/static/img/android-chrome-256x256.png" />
+  <meta property="og:image" content="https://perturbacoes.pt/static/img/banner-perturbacoes.png" />
   {{end}}
   <meta name="keywords" content="ML, metro, lisboa, perturbações, linhas, estado"/>
   <meta name="author" content="Segvault"/>
