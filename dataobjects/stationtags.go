@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gbl08ma/sqalx"
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 )
 
 // StationTags contains station tags

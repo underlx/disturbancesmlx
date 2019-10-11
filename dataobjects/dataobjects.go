@@ -11,7 +11,7 @@ import (
 
 	"strings"
 
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 )
 
 var sdb sq.StatementBuilderType

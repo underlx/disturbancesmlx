@@ -8,7 +8,7 @@ import (
 	"sort"
 
 	"github.com/gbl08ma/sqalx"
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 )
 

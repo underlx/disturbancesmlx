@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 )
 
 // LineSchedule is a Line schedule

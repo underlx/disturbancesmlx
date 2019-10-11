@@ -9,7 +9,7 @@ import (
 	"github.com/lib/pq"
 
 	"github.com/gbl08ma/sqalx"
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 )
 
 // PPPlayerAchievement contains data about a PosPlay achievement for one user

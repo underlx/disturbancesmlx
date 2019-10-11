@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 )
 
 // LineCondition represents the operational condition of a Line at a certain point in time

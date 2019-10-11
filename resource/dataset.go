@@ -5,7 +5,7 @@ import (
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/yarf-framework/yarf"
 
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 )
 

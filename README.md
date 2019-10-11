@@ -13,13 +13,11 @@ The website contains a heavily modified version of [cnanney's CSS flip counter](
 
 ## Installation
 
-We assume you already have a [Go](https://golang.org/) development environment set up. This project uses [dep](https://golang.github.io/dep/) for dependency management. Begin by [installing dep](https://golang.github.io/dep/docs/installation.html) (it's easy).
+We assume you already have a [Go](https://golang.org/) development environment set up. This project uses the Go modules support introduced in Go 1.11 for dependency management. To compile, just clone this repo anywhere and `go build`.
 
-You should then clone this repo with `go get -u github.com/underlx/disturbancesmlx`, then use `dep ensure` to download and install the right versions of the dependencies in the vendor directory.
+You should then create a new PostgreSQL database and use the `schema.sql` file to create its schema. Edit the database connection string in `secrets-debug.json`.
 
-Create a new PostgreSQL database and use the `schema.sql` file to create its schema. Edit the database connection string in `secrets-debug.json`.
-
-`go build`, run `disturbancesmlx` and wait for the "Scraper completed second fetch" log message to appear. The HTTP server should be available on localhost port 8089 by then.
+Run `disturbancesmlx` and wait for the "Scraper completed second fetch" log message to appear. The HTTP server should be available on localhost port 8089 by then (and the PosPlay HTTP server in port 8092).
 
 ## Contributing
 

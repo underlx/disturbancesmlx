@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gbl08ma/sqalx"
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 )
 
 // POI is a Point of Interest

@@ -21,7 +21,7 @@ import (
 	"github.com/gorilla/sessions"
 
 	"github.com/gbl08ma/keybox"
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 	"golang.org/x/oauth2"
 )
 

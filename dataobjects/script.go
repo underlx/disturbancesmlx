@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gbl08ma/sqalx"
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 )
 
 // Script contains dynamic behavior for the system to implement at run time

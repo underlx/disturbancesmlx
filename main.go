@@ -13,7 +13,7 @@ import (
 	"github.com/gbl08ma/sqalx"
 	"github.com/jmoiron/sqlx"
 
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 
 	"github.com/gbl08ma/keybox"
 	"github.com/underlx/disturbancesmlx/compute"

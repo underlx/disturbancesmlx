@@ -8,7 +8,7 @@ import (
 
 	"github.com/SaidinWoT/timespan"
 	"github.com/gbl08ma/sqalx"
-	sq "github.com/gbl08ma/squirrel"
+	sq "github.com/Masterminds/squirrel"
 	uuid "github.com/satori/go.uuid"
 )
 
