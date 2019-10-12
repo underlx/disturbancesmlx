@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/gbl08ma/ankiddie"
 	"github.com/gbl08ma/sqalx"
 	altmath "github.com/pkg/math"
-	"github.com/underlx/disturbancesmlx/ankiddie"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 
@@ -78,7 +79,8 @@ func (ssys *ScriptSystem) handleRunScript(s *discordgo.Session, m *discordgo.Mes
 		s.ChannelMessageSend(m.ChannelID, "🆖📜🆔")
 		return
 	}
-	env := cmdReceiver.GetAnkiddie().NewEnvWithScript(script, BuildAnkoOutFunction(m.ChannelID))
+	ascript := ankiddie.Script(*script)
+	env := cmdReceiver.GetAnkiddie().NewEnvWithScript(&ascript, BuildAnkoOutFunction(m.ChannelID))
 	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("▶💠 %d", env.EID()))
 	_, err = env.Start()
 	if err != nil {
@@ -394,18 +396,18 @@ func (ssys *ScriptSystem) handleAutorunScript(s *discordgo.Session, m *discordgo
 }
 
 // AnkoPackageConfigurator exports functions for use with the anko scripting system
-func AnkoPackageConfigurator(packages, packageTypes map[string]map[string]interface{}) {
+func AnkoPackageConfigurator(packages map[string]map[string]reflect.Value, packageTypes map[string]map[string]reflect.Type) {
 	if packages["underlx"] == nil {
-		packages["underlx"] = make(map[string]interface{})
+		packages["underlx"] = make(map[string]reflect.Value)
 	}
 	if packageTypes["underlx"] == nil {
-		packageTypes["underlx"] = make(map[string]interface{})
+		packageTypes["underlx"] = make(map[string]reflect.Type)
 	}
 
-	packages["underlx"]["DiscordSession"] = func() *discordgo.Session {
+	packages["underlx"]["DiscordSession"] = reflect.ValueOf(func() *discordgo.Session {
 		return session
-	}
-	packages["underlx"]["StartReactionEvent"] = ThePosPlayBridge.StartReactionEvent
-	packages["underlx"]["StartQuizEvent"] = ThePosPlayBridge.StartQuizEvent
-	packages["underlx"]["StopEvent"] = ThePosPlayBridge.StopEvent
+	})
+	packages["underlx"]["StartReactionEvent"] = reflect.ValueOf(ThePosPlayBridge.StartReactionEvent)
+	packages["underlx"]["StartQuizEvent"] = reflect.ValueOf(ThePosPlayBridge.StartQuizEvent)
+	packages["underlx"]["StopEvent"] = reflect.ValueOf(ThePosPlayBridge.StopEvent)
 }

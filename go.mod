@@ -11,10 +11,11 @@ require (
 	github.com/bwmarrin/discordgo v0.16.1-0.20181203210524-4abf4d7de66a
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/dchest/uniuri v0.0.0-20160212164326-8902c56451e9
-	github.com/gbl08ma/anko v0.0.7-0.20190310130111-029647b78f65
+	github.com/gbl08ma/ankiddie v0.1.0
+	github.com/gbl08ma/anko v100.1.2+incompatible
 	github.com/gbl08ma/gmqtt v0.0.0-20190507141315-dfa80c738f24
 	github.com/gbl08ma/keybox v0.0.0-20180718235424-285a9d753c87
-	github.com/gbl08ma/monkey v1.0.2-0.20190228161223-f5bc767339da
+	github.com/gbl08ma/monkey v1.1.0
 	github.com/gbl08ma/sqalx v0.5.3
 	github.com/gbl08ma/ssoclient v0.0.0-20180119211306-11586264f66c
 	github.com/go-errors/errors v1.0.1 // indirect
@@ -43,7 +44,6 @@ require (
 	github.com/rogpeppe/fastuuid v1.2.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b
 	github.com/shopspring/decimal v0.0.0-20191009025716-f1972eb1d1f5 // indirect
-	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/thoas/go-funk v0.4.0
 	github.com/ulule/deepcopier v0.0.0-20171107155558-ca99b135e50f
 	github.com/vmihailenco/msgpack v4.0.4+incompatible

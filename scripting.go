@@ -5,8 +5,8 @@ import (
 
 	"github.com/underlx/disturbancesmlx/scraper"
 
+	"github.com/gbl08ma/ankiddie"
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/ankiddie"
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 	"github.com/underlx/disturbancesmlx/discordbot"
@@ -15,9 +15,15 @@ import (
 	"github.com/underlx/disturbancesmlx/resource"
 	"github.com/underlx/disturbancesmlx/utils"
 	"github.com/underlx/disturbancesmlx/website"
+
+	_ "github.com/gbl08ma/anko/packages"
 )
 
-func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interface{}) {
+type ankoInterop struct {
+	node sqalx.Node
+}
+
+func (ai *ankoInterop) ConfigurePackages(packages map[string]map[string]reflect.Value, packageTypes map[string]map[string]reflect.Type) {
 	type pkgInfo struct {
 		Name      string
 		Types     map[string]reflect.Type
@@ -27,27 +33,18 @@ func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 	}
 
 	processPkg := func(pkg pkgInfo) {
-		packages[pkg.Name] = make(map[string]interface{})
+		packages[pkg.Name] = make(map[string]reflect.Value)
 		dopkg := packages[pkg.Name]
 		for name, function := range pkg.Functions {
-			if function.CanInterface() {
-				dopkg[name] = function.Interface()
-			}
+			dopkg[name] = function
 		}
 		for name, item := range pkg.Consts {
-			if item.CanInterface() {
-				dopkg[name] = item.Interface()
-			}
+			dopkg[name] = item
 		}
 		for name, item := range pkg.Variables {
-			if item.CanInterface() {
-				if item.Kind() == reflect.Ptr {
-					item = item.Elem()
-				}
-				dopkg[name] = item.Interface()
-			}
+			dopkg[name] = item
 		}
-		packageTypes[pkg.Name] = make(map[string]interface{})
+		packageTypes[pkg.Name] = make(map[string]reflect.Type)
 		dotypes := packageTypes[pkg.Name]
 		for name, item := range pkg.Types {
 			dotypes[name] = item
@@ -66,29 +63,67 @@ func ankoPackageConfigurator(packages, packageTypes map[string]map[string]interf
 	processPkg(pkgInfo{"discordgo", extpkgDiscordGoTypes, extpkgDiscordGoFunctions, extpkgDiscordGoConsts, extpkgDiscordGoVariables})
 	processPkg(pkgInfo{"uuid", extpkgUUIDTypes, extpkgUUIDFunctions, extpkgUUIDConsts, extpkgUUIDVariables})
 
-	packages["underlx"]["RootSqalxNode"] = func() sqalx.Node {
+	packages["underlx"]["RootSqalxNode"] = reflect.ValueOf(func() sqalx.Node {
 		return rootSqalxNode
-	}
-	packages["underlx"]["VehicleHandler"] = func() *compute.VehicleHandler {
+	})
+	packages["underlx"]["VehicleHandler"] = reflect.ValueOf(func() *compute.VehicleHandler {
 		return vehicleHandler
-	}
-	packages["underlx"]["VehicleETAHandler"] = func() *compute.VehicleETAHandler {
+	})
+	packages["underlx"]["VehicleETAHandler"] = reflect.ValueOf(func() *compute.VehicleETAHandler {
 		return vehicleETAHandler
-	}
-	packages["underlx"]["StatsHandler"] = func() *compute.StatsHandler {
+	})
+	packages["underlx"]["StatsHandler"] = reflect.ValueOf(func() *compute.StatsHandler {
 		return statsHandler
-	}
-	packages["underlx"]["ReportHandler"] = func() *compute.ReportHandler {
+	})
+	packages["underlx"]["ReportHandler"] = reflect.ValueOf(func() *compute.ReportHandler {
 		return reportHandler
-	}
-	packages["underlx"]["MQTTGateway"] = func() *mqttgateway.MQTTGateway {
+	})
+	packages["underlx"]["MQTTGateway"] = reflect.ValueOf(func() *mqttgateway.MQTTGateway {
 		return mqttGateway
-	}
-	packages["underlx"]["ContestScraper"] = func() scraper.AnnouncementScraper {
+	})
+	packages["underlx"]["ContestScraper"] = reflect.ValueOf(func() scraper.AnnouncementScraper {
 		return contestscr
-	}
+	})
 
 	discordbot.AnkoPackageConfigurator(packages, packageTypes)
+}
+
+func (ai *ankoInterop) GetScript(id string) (*ankiddie.Script, error) {
+	script, err := dataobjects.GetScript(ai.node, id)
+	if err != nil {
+		return nil, err
+	}
+	s := ankiddie.Script(*script)
+	return &s, nil
+}
+
+func (ai *ankoInterop) GetAutorunScripts(autorunLevel int) ([]*ankiddie.Script, error) {
+	scripts, err := dataobjects.GetAutorunScriptsWithType(ai.node, "anko", autorunLevel)
+	if err != nil {
+		return []*ankiddie.Script{}, err
+	}
+	as := make([]*ankiddie.Script, len(scripts))
+	for i, s := range scripts {
+		t := ankiddie.Script(*s)
+		as[i] = &t
+	}
+	return as, nil
+}
+
+func (ai *ankoInterop) StoreScript(script *ankiddie.Script) error {
+	tx, err := ai.node.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	s := dataobjects.Script(*script)
+	err = s.Update(tx)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func defaultAnkoOut(env *ankiddie.Environment, msg string) error {

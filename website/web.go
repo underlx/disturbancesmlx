@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/thoas/go-funk"
-	"github.com/underlx/disturbancesmlx/ankiddie"
+	"github.com/gbl08ma/ankiddie"
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/utils"
 

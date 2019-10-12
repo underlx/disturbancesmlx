@@ -7,7 +7,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/underlx/disturbancesmlx/ankiddie"
+	"github.com/gbl08ma/ankiddie"
 	"github.com/underlx/disturbancesmlx/resource"
 
 	uuid "github.com/satori/go.uuid"

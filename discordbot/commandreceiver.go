@@ -1,7 +1,7 @@
 package discordbot
 
 import (
-	"github.com/underlx/disturbancesmlx/ankiddie"
+	"github.com/gbl08ma/ankiddie"
 	"github.com/underlx/disturbancesmlx/dataobjects"
 )
 

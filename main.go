@@ -7,7 +7,7 @@ import (
 
 	"github.com/underlx/disturbancesmlx/mqttgateway"
 
-	"github.com/underlx/disturbancesmlx/ankiddie"
+	"github.com/gbl08ma/ankiddie"
 
 	fcm "github.com/NaySoftware/go-fcm"
 	"github.com/gbl08ma/sqalx"
@@ -80,7 +80,8 @@ func main() {
 	}
 	mainLog.Println("Database opened")
 
-	kiddie = ankiddie.New(rootSqalxNode, ankoPackageConfigurator)
+	aInterop := &ankoInterop{rootSqalxNode}
+	kiddie = ankiddie.New(aInterop, aInterop)
 	err = kiddie.StartAutorun(0, false, defaultAnkoOut)
 	if err != nil {
 		mainLog.Fatalln(err)
