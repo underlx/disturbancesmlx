@@ -1,0 +1,456 @@
+swagger: "2.0"
+info:
+  description: "UnderLX API docs"
+  version: "1.0.0"
+  title: "UnderLX"
+  termsOfService: "https://underlx.com/terms"
+  contact:
+    email: "underlx@tny.im"
+  license:
+    name: "Apache 2.0"
+    url: "http://www.apache.org/licenses/LICENSE-2.0.html"
+host: "api.underlx.com"
+basePath: "/v1"
+tags:
+- name: "announcements"
+  description: "Official news and social media posts"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/announcement.go"
+- name: "connections"
+  description: "Directional line segments between stations"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/connection.go"
+- name: "datasets"
+  description: "Meta-information used for data versioning"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/dataset.go"
+- name: "disturbances"
+  description: "Service disruption and degradation events"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/disturbance.go"
+- name: "gateways"
+  description: "Forms of real-time communication between server and clients"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/gateway.go"
+- name: "lines"
+  description: "Passenger service lines"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/line.go"
+- name: "line_conditions"
+  description: "Supposed service conditions (number of cars per train, etc.)"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/linecondition.go"
+- name: "lobbies"
+  description: "Station lobbies, with one or more exits"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/lobby.go"
+- name: "maps"
+  description: "Pointers to network maps for human consumption"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/map.go"
+- name: "meta"
+  description: "Meta-information about the API and its state"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/meta.go"
+- name: "networks"
+  description: "Transit networks"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/network.go"
+- name: "pairs"
+  description: "Authentication credentials"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/pair.go"
+- name: "pair_connections"
+  description: "Connections with external services"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/pairconnection.go"
+- name: "poi"
+  description: "Points of Interest - notable world locations"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/poi.go"
+- name: "stations"
+  description: "Transit stations"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/station.go"
+- name: "stats"
+  description: "Transit network statistics"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/stats.go"
+- name: "transfers"
+  description: "Directional connections between passenger service lines"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/transfer.go"
+- name: "trips"
+  description: "Journey in public transit"
+  externalDocs:
+    description: "Source code"
+    url: "https://github.com/underlx/disturbancesmlx/blob/master/resource/trip.go"
+schemes:
+- "https"
+paths:
+  /announcements:
+    get:
+      tags:
+      - "announcements"
+      summary: "List announcements"
+      operationId: "listAnnouncements"
+      produces:
+      - "application/json"
+      - "application/msgpack"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Announcement"
+  /announcements/{sourceID}:
+    get:
+      tags:
+      - "announcements"
+      summary: "List announcements of source"
+      operationId: "listAnnouncementsOfSource"
+      produces:
+      - "application/json"
+      - "application/msgpack"
+      parameters:
+      - in: path
+        name: "sourceID"
+        required: true
+        type: string
+        description: "The ID of the source for which to retrieve announcements"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Announcement"
+  
+  /connections:
+    get:
+      tags:
+      - "connections"
+      summary: "List connections"
+      operationId: "listConnections"
+      produces:
+      - "application/json"
+      - "application/msgpack"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Connection"
+  /connections/{from}/{to}:
+    get:
+      tags:
+      - "connections"
+      summary: "Get specific connection"
+      operationId: "getConnection"
+      produces:
+      - "application/json"
+      - "application/msgpack"
+      parameters:
+      - in: path
+        name: "from"
+        required: true
+        type: string
+        description: "The ID of origin station for the connection to retrieve"
+      - in: path
+        name: "to"
+        required: true
+        type: string
+        description: "The ID of target station for the connection to retrieve"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Connection"
+
+  /datasets:
+    get:
+      tags:
+      - "datasets"
+      summary: "List available datasets"
+      operationId: "listDatasets"
+      produces:
+      - "application/json"
+      - "application/msgpack"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Dataset"
+  /datasets/{id}:
+    get:
+      tags:
+      - "datasets"
+      summary: "Get information about a dataset"
+      operationId: "getDataset"
+      produces:
+      - "application/json"
+      - "application/msgpack"
+      parameters:
+      - in: path
+        name: "id"
+        required: true
+        type: string
+        description: "The network ID of the dataset to retrieve"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Dataset"
+
+  /disturbances:
+    get:
+      tags:
+      - "disturbances"
+      summary: "List past and/or ongoing disturbances"
+      operationId: "listDisturbances"
+      produces:
+      - "application/json"
+      - "application/msgpack"
+      parameters:
+      - in: query
+        name: "omitduplicatestatus"
+        description: "Whether duplicate line status should be omitted. Duplicate line status are present mainly on earlier disturbances. Should always be true."
+        required: false
+        type: boolean
+      - in: query
+        name: "start"
+        required: false
+        type: string
+        format: date-time
+        description: "Limit returned disturbances to those after this date-time. Incompatible with `filter=ongoing`"
+      - in: query
+        name: "end"
+        required: false
+        type: string
+        format: date-time
+        description: "Limit returned disturbances to those before this date-time. Incompatible with `filter=ongoing`"
+      - in: query
+        name: "filter"
+        required: false
+        type: string
+        enum: [all, ongoing]
+        description: "If `ongoing`, will limit returned disturbances to ongoing ones. Incompatible with `start` and `end`"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Disturbance"
+  /disturbances/{id}:
+    get:
+      tags:
+      - "disturbances"
+      summary: "Get specific disturbance"
+      operationId: "getDisturbance"
+      produces:
+      - "application/json"
+      - "application/msgpack"
+      parameters:
+      - in: path
+        name: "id"
+        required: true
+        type: string
+        description: "The ID of the disturbance to retrieve"
+      - in: query
+        name: "omitduplicatestatus"
+        description: "Whether duplicate line status should be omitted. Duplicate line status are present mainly on earlier disturbances. Should always be true."
+        required: false
+        type: boolean
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/Disturbance"
+  
+securityDefinitions:
+  apiPair:
+    type: basic
+
+definitions:
+  Announcement:
+    type: "object"
+    properties:
+      time:
+        type: string
+        format: date-time
+      title:
+        type: string
+      body:
+        type: string
+      imageURL:
+        type: string
+        format: url
+      url:
+        type: string
+        format: url
+      source:
+        type: string
+        description: "ID of the source of this information"
+      network:
+        type: string
+        description: "ID of the network this announcement pertains to"
+  Connection:
+    type: "object"
+    properties:
+      from:
+        type: string
+        description: "ID of the station this connection originates from"
+        example: "pt-ml-po"
+      to:
+        type: string
+        description: "ID of the station this connection ends at"
+        example: "pt-ml-af"
+      typWaitS:
+        type: integer
+        description: "Typical waiting seconds. The average time users are waiting for a vehicle at `from` when going in the direction of `to`"
+      typStopS:
+        type: integer
+        description: "Typical stop seconds. The average time vehicles are stopping by `from` when going in the direction of `to`"
+      typS:
+        type: integer
+        description: "Typical seconds. The average time it takes for a vehicle to go through this connection"
+      worldLength:
+        type: integer
+        description: "The length of this connection in meters"
+        example: 732
+  Dataset:
+    type: "object"
+    properties:
+      network:
+        type: string
+        description: "ID of the network covered by this dataset"
+        example: "pt-ml"
+      version:
+        type: string
+        description: "Version of the dataset. Usually the date of the last modification, but this is not guaranteed to be the case forever."
+        example: "2019-09-20T15:28:32+01:00"
+      authors:
+        type: array
+        items:
+          type: string
+        description: "List of authors of this dataset"
+  Disturbance:
+    type: "object"
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: "Unique disturbance ID in the UnderLX system"
+      official:
+        type: boolean
+        description: "Whether this disturbance was confirmed by official sources"
+      oStartTime:
+        type: string
+        format: date-time
+        description: "Official start time. Invalid if the disturbance is not official"
+      oEndTime:
+        type: string
+        format: date-time
+        description: "Official end time. Invalid if the disturbance is not official or if it is still ongoing"
+      oEnded:
+        type: boolean
+        description: "Whether the disturbance has ended, according to official sources. False if the disturbance is still ongoing"
+      startTime:
+        type: string
+        format: date-time
+        description: "Disturbance start time. Always a valid date-time"
+      endTime:
+        type: string
+        format: date-time
+        description: "Disturbance end time. Invalid if the disturbance is still ongoing"
+      ended:
+        type: boolean
+        description: "Whether the disturbance has ended"
+      description:
+        type: string
+        description: "Disturbance for the description according to the sources. Usually corresponds to the first status of the disturbance"
+      notes:
+        type: string
+        description: "Notes manually added by the UnderLX team. May contain simple HTML markup, including image tags."
+      network:
+        type: string
+        description: "ID of the network affected by this disturbance"
+        example: "pt-ml"
+      line:
+        type: string
+        description: "ID of the line affected by this disturbance"
+        example: "pt-ml-azul"
+      categories:
+        description: "Categories automatically assigned by UnderLX"
+        type: array
+        items:
+          type: string
+          enum: [SIGNAL_FAILURE, TRAIN_FAILURE, POWER_OUTAGE, 3RD_PARTY_FAULT, PASSENGER_INCIDENT, STATION_ANOMALY, COMMUNITY_REPORTED]
+      status:
+        description: "Line statuses"
+        type: array
+        items:
+          $ref: "#/definitions/LineStatus"
+  LineStatus:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: "Unique line status ID in the UnderLX system"
+      time:
+        type: string
+        format: date-time
+        description: "Time at which the line assumed this status (or at which UnderLX received this status for the line)"
+      downtime:
+        type: boolean
+        description: "Whether this status represents a disruption in the passenger service"
+      status:
+        type: string
+        description: "Line status as produced/captured"
+        example: "Devido a avaria na sinalização está interrompida a circulação na linha entre as estações  Odivelas e Lumiar. Não é possível prever a duração da interrupção, que poderá ser prolongada. Pedimos desculpa pelo incómodo causado"
+      msgType:
+        type: string
+        description: "Status type as automatically identified from `status`. Can be used to facilitate automated translation of statuses by the client."
+        example: "ML_SIGNAL_BETWEEN_LONGHALT"
+      source:
+        type: string
+        description: "Internal ID of the status source in the UnderLX system"
+        example: "mlxscraper-pt-ml"
+
+  GenericUnauthorizedResponse:
+    type: object
+    properties:
+      success:
+        type: boolean
+        example: false
+      errors:
+        type: array
+        items:
+          type: string
+          example: "Unauthorized"
+externalDocs:
+  description: "Find out more about UnderLX"
+  url: "https://underlx.com/"
