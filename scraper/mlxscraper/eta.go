@@ -2,6 +2,7 @@ package mlxscraper
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -29,7 +30,9 @@ type ETAScraper struct {
 	etaValidity         time.Duration
 	clockDriftMovingAvg *movingaverage.MovingAverage
 
-	RequestURL     string
+	destinoToStationID map[string]string
+
+	EndpointURL    string
 	BearerToken    string
 	Network        *dataobjects.Network
 	HTTPClient     *http.Client
@@ -74,6 +77,8 @@ func (sc *ETAScraper) Init(node sqalx.Node, log *log.Logger) error {
 		sc.stationsByID[s.ID] = s
 	}
 
+	sc.destinoToStationID = make(map[string]string)
+
 	sc.estimateValidity()
 
 	return nil
@@ -84,6 +89,11 @@ func (sc *ETAScraper) Begin() {
 	sc.stopChan = make(chan struct{}, 1)
 	sc.ticker = time.NewTicker(sc.Period)
 	sc.running = true
+	err := sc.fetchDestinos()
+	if err != nil {
+		sc.log.Fatalln(err)
+		return
+	}
 	go sc.mainLoop()
 }
 
@@ -148,10 +158,66 @@ type directionETAs struct {
 	TempoChegada3 string `json:"tempoChegada3"`
 	Destino       string `json:"destino"`
 	SairServico   string `json:"sairServico"`
+	UT            string `json:"UT"`
+}
+
+type responseStructDirections struct {
+	Resposta []directionInfo `json:"resposta"`
+	Codigo   string          `json:"codigo"`
+}
+
+type directionInfo struct {
+	IDdestino   string `json:"id_destino"`
+	NomeDestino string `json:"nome_destino"`
+}
+
+func (sc *ETAScraper) fetchDestinos() error {
+	req, err := http.NewRequest(http.MethodGet, sc.EndpointURL+"/infoDestinos/todos", nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Authorization", sc.headerToken())
+	response, err := sc.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	responseBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+	response.Body.Close()
+
+	var data responseStructDirections
+	err = json.Unmarshal(responseBytes, &data)
+	if err != nil {
+		return err
+	}
+
+	if len(data.Resposta) == 0 {
+		return errors.New("response to directions request contained no directions")
+	}
+
+	for _, info := range data.Resposta {
+		found := false
+		for _, station := range sc.stations {
+			if info.NomeDestino == station.Name {
+				sc.destinoToStationID[info.IDdestino] = station.ID
+				found = true
+				break
+			}
+		}
+		if !found {
+			return errors.New("unknown destination name in response: " + info.NomeDestino)
+		}
+	}
+
+	return nil
 }
 
 func (sc *ETAScraper) fetchStations() (time.Duration, error) {
-	req, err := http.NewRequest(http.MethodGet, sc.RequestURL, nil)
+	req, err := http.NewRequest(http.MethodGet, sc.EndpointURL+"/tempoEspera/Estacao/todos", nil)
 	if err != nil {
 		return 0, err
 	}
@@ -162,7 +228,6 @@ func (sc *ETAScraper) fetchStations() (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer response.Body.Close()
 	requestDuration := time.Since(requestStart)
 
 	if response.ContentLength > 1024*1024 || response.StatusCode != http.StatusOK {
@@ -322,8 +387,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 }
 
 func (sc *ETAScraper) getDirection(dirETA directionETAs) *dataobjects.Station {
-	// TODO figure out how to obtain direction from dirETA.Destino and/or dirETA.Cais
-	d, ok := destinoToStationID[dirETA.Destino]
+	d, ok := sc.destinoToStationID[dirETA.Destino]
 	if !ok {
 		return nil
 	}
@@ -341,32 +405,4 @@ func (sc *ETAScraper) getLocation(timezone string) *time.Location {
 	}
 	sc.locs[timezone] = loc
 	return loc
-}
-
-var destinoToStationID = map[string]string{
-	"33": "pt-ml-rb",
-	"42": "pt-ml-sp",
-	"50": "pt-ml-te",
-	"54": "pt-ml-cs",
-	"38": "pt-ml-ss",
-	"60": "pt-ml-ap",
-	"43": "pt-ml-od",
-	"48": "pt-ml-ra",
-	"45": "pt-ml-cg",
-
-	"56": "pt-ml-bv",
-	"57": "pt-ml-ch",
-	"59": "pt-ml-mo",
-	"34": "pt-ml-as",
-	"35": "pt-ml-po",
-	"36": "pt-ml-cm",
-	"37": "pt-ml-la",
-	"39": "pt-ml-av",
-	"40": "pt-ml-bc",
-	"41": "pt-ml-tp",
-	"44": "pt-ml-lu",
-	"46": "pt-ml-cp",
-	"53": "pt-ml-mm",
-	"52": "pt-ml-am",
-	"51": "pt-ml-al",
 }

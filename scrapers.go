@@ -78,7 +78,7 @@ func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 		mlxETAscr = &mlxscraper.ETAScraper{
 			NewETACallback: vehicleETAHandler.RegisterVehicleETA,
 			BearerToken:    mlAccessToken,
-			RequestURL:     "https://api.metrolisboa.pt:8243/estadoServicoML/1.0.0/tempoEspera/Estacao/todos",
+			EndpointURL:    "https://api.metrolisboa.pt:8243/estadoServicoML/1.0.1",
 			Network:        network,
 			Period:         10 * time.Second,
 		}
