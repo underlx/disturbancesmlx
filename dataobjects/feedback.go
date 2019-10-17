@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gbl08ma/sqalx"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/gbl08ma/sqalx"
 )
 
 // Feedback is a piece of user feedback about the service,
@@ -75,6 +75,20 @@ func getFeedbacksWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Feed
 		}
 	}
 	return feedbacks, nil
+}
+
+// GetFeedback returns the Feedback with the given ID
+func GetFeedback(node sqalx.Node, id string) (*Feedback, error) {
+	s := sdb.Select().
+		Where(sq.Eq{"id": id})
+	feedbacks, err := getFeedbacksWithSelect(node, s)
+	if err != nil {
+		return nil, err
+	}
+	if len(feedbacks) == 0 {
+		return nil, errors.New("Feedback not found")
+	}
+	return feedbacks[0], nil
 }
 
 // Update adds or updates the feedback

@@ -54,7 +54,7 @@ func (r *Feedback) Post(c *yarf.Context) error {
 	defer tx.Rollback()
 
 	// Feedback UUIDs are client-generated, so we can't really trust their (lack of) uniqueness...
-	if _, err := dataobjects.GetTrip(tx, request.ID); err == nil {
+	if _, err := dataobjects.GetFeedback(tx, request.ID); err == nil {
 		return &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "A feedback with the specified ID already exists. Better luck generating a UUID next time.",
