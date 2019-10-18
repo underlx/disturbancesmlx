@@ -47,8 +47,9 @@ type apiStatus struct {
 }
 
 type apiStatusWrapper struct {
-	apiStatus `msgpack:",inline"`
-	SourceID  string `msgpack:"source" json:"source"`
+	apiStatus      `msgpack:",inline"`
+	SourceID       string `msgpack:"source" json:"source"`
+	OfficialSource bool   `msgpack:"officialSource" json:"officialSource"`
 }
 
 // WithNode associates a sqalx Node with this resource
@@ -83,8 +84,9 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 		prevStatusText := ""
 		for i, status := range disturbance.Statuses {
 			sw := apiStatusWrapper{
-				apiStatus: apiStatus(*status),
-				SourceID:  status.Source.ID,
+				apiStatus:      apiStatus(*status),
+				SourceID:       status.Source.ID,
+				OfficialSource: status.Source.Official,
 			}
 			if !omitDuplicateStatus || prevStatusText != status.Status || i == 0 {
 				prevStatusText = status.Status
@@ -138,8 +140,9 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 			prevStatusText := ""
 			for j, status := range disturbances[i].Statuses {
 				sw := apiStatusWrapper{
-					apiStatus: apiStatus(*status),
-					SourceID:  status.Source.ID,
+					apiStatus:      apiStatus(*status),
+					SourceID:       status.Source.ID,
+					OfficialSource: status.Source.Official,
 				}
 				if !omitDuplicateStatus || prevStatusText != status.Status || j == 0 {
 					prevStatusText = status.Status
