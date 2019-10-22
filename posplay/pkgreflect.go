@@ -5,8 +5,9 @@ package posplay
 import "reflect"
 
 var Types = map[string]reflect.Type{
-	"Config":                                   reflect.TypeOf((*Config)(nil)).Elem(),
-	"ConnectionHandler":                        reflect.TypeOf((*ConnectionHandler)(nil)).Elem(),
+	"Config":            reflect.TypeOf((*Config)(nil)).Elem(),
+	"ConnectionHandler": reflect.TypeOf((*ConnectionHandler)(nil)).Elem(),
+	"DiscordEventParticipationAchievementStrategy": reflect.TypeOf((*DiscordEventParticipationAchievementStrategy)(nil)).Elem(),
 	"PairConnection":                           reflect.TypeOf((*PairConnection)(nil)).Elem(),
 	"PairConnectionExtra":                      reflect.TypeOf((*PairConnectionExtra)(nil)).Elem(),
 	"ReachLevelAchievementStrategy":            reflect.TypeOf((*ReachLevelAchievementStrategy)(nil)).Elem(),
@@ -26,6 +27,7 @@ var Functions = map[string]reflect.Value{
 	"DoXPTransaction":                         reflect.ValueOf(DoXPTransaction),
 	"GetSession":                              reflect.ValueOf(GetSession),
 	"Initialize":                              reflect.ValueOf(Initialize),
+	"MonthStart":                              reflect.ValueOf(MonthStart),
 	"NameForNotificationMethod":               reflect.ValueOf(NameForNotificationMethod),
 	"NameForNotificationType":                 reflect.ValueOf(NameForNotificationType),
 	"NewSession":                              reflect.ValueOf(NewSession),

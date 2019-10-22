@@ -12,6 +12,7 @@ var Types = map[string]reflect.Type{
 	"TripsScatterplotNumTripsVsAvgSpeedPoint": reflect.TypeOf((*TripsScatterplotNumTripsVsAvgSpeedPoint)(nil)).Elem(),
 	"TypicalSecondsEntry":                     reflect.TypeOf((*TypicalSecondsEntry)(nil)).Elem(),
 	"TypicalSecondsMinMax":                    reflect.TypeOf((*TypicalSecondsMinMax)(nil)).Elem(),
+	"VehicleETAHandler":                       reflect.TypeOf((*VehicleETAHandler)(nil)).Elem(),
 	"VehicleHandler":                          reflect.TypeOf((*VehicleHandler)(nil)).Elem(),
 }
 
@@ -22,6 +23,7 @@ var Functions = map[string]reflect.Value{
 	"Initialize":                         reflect.ValueOf(Initialize),
 	"NewReportHandler":                   reflect.ValueOf(NewReportHandler),
 	"NewStatsHandler":                    reflect.ValueOf(NewStatsHandler),
+	"NewVehicleETAHandler":               reflect.ValueOf(NewVehicleETAHandler),
 	"NewVehicleHandler":                  reflect.ValueOf(NewVehicleHandler),
 	"SimulateRealtime":                   reflect.ValueOf(SimulateRealtime),
 	"TripsScatterplotNumTripsVsAvgSpeed": reflect.ValueOf(TripsScatterplotNumTripsVsAvgSpeed),

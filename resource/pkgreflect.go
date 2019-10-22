@@ -18,6 +18,7 @@ var Types = map[string]reflect.Type{
 	"LineCondition":           reflect.TypeOf((*LineCondition)(nil)).Elem(),
 	"Lobby":                   reflect.TypeOf((*Lobby)(nil)).Elem(),
 	"MQTTGatewayInfoProvider": reflect.TypeOf((*MQTTGatewayInfoProvider)(nil)).Elem(),
+	"Map":                     reflect.TypeOf((*Map)(nil)).Elem(),
 	"Meta":                    reflect.TypeOf((*Meta)(nil)).Elem(),
 	"Network":                 reflect.TypeOf((*Network)(nil)).Elem(),
 	"POI":                     reflect.TypeOf((*POI)(nil)).Elem(),
