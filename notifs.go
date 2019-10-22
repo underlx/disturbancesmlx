@@ -5,22 +5,22 @@ import (
 	"strconv"
 
 	fcm "github.com/NaySoftware/go-fcm"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 var enableStatusNotifs = true
 var enableAnnouncementNotifs = true
 
 func init() {
-	go func(newNotifChan <-chan dataobjects.StatusNotification) {
+	go func(newNotifChan <-chan types.StatusNotification) {
 		for sn := range newNotifChan {
 			SendNotificationForDisturbance(sn.Disturbance, sn.Status)
 		}
-	}(dataobjects.NewStatusNotification)
+	}(types.NewStatusNotification)
 }
 
 // SendNotificationForDisturbance sends a FCM notification for this disturbance about the specified status
-func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.Status) {
+func SendNotificationForDisturbance(d *types.Disturbance, s *types.Status) {
 	if !enableStatusNotifs {
 		return
 	}
@@ -64,7 +64,7 @@ func SendNotificationForDisturbance(d *dataobjects.Disturbance, s *dataobjects.S
 }
 
 // SendNotificationForAnnouncement sends a FCM notification for the specified announcement
-func SendNotificationForAnnouncement(a *dataobjects.Announcement) {
+func SendNotificationForAnnouncement(a *types.Announcement) {
 	if !enableAnnouncementNotifs {
 		return
 	}
@@ -139,7 +139,7 @@ func SendMetaBroadcast(shardID, shardMax int, id, broadcastType, forVersions, fo
 }
 
 // SendPersonalNotification sends a FCM message to a specific user
-func SendPersonalNotification(pair *dataobjects.APIPair, msgType string, data map[string]string) {
+func SendPersonalNotification(pair *types.APIPair, msgType string, data map[string]string) {
 	mainLog.Println("Sending personal notification to pair " + pair.Key)
 
 	data["type"] = msgType
@@ -166,6 +166,6 @@ func handleControlNotifs(notiftype string, enable bool) {
 }
 
 // SendNotificationForContest does nothing (stub method to be overriden on runtime by our awesome scripting system)
-func SendNotificationForContest(a *dataobjects.Announcement) {
+func SendNotificationForContest(a *types.Announcement) {
 
 }

@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -19,17 +19,17 @@ type apiLine struct {
 	Color       string               `msgpack:"color" json:"color"`
 	TypicalCars int                  `msgpack:"typCars" json:"typCars"`
 	Order       int                  `msgpack:"order" json:"order"`
-	Network     *dataobjects.Network `msgpack:"-" json:"-"`
+	Network     *types.Network `msgpack:"-" json:"-"`
 	ExternalID  string               `msgpack:"externalID" json:"externalID"`
 }
 
 type apiLineSchedule struct {
-	Line         *dataobjects.Line    `msgpack:"-" json:"-"`
+	Line         *types.Line    `msgpack:"-" json:"-"`
 	Holiday      bool                 `msgpack:"holiday" json:"holiday"`
 	Day          int                  `msgpack:"day" json:"day"`
 	Open         bool                 `msgpack:"open" json:"open"`
-	OpenTime     dataobjects.Time     `msgpack:"openTime" json:"openTime"`
-	OpenDuration dataobjects.Duration `msgpack:"duration" json:"duration"`
+	OpenTime     types.Time     `msgpack:"openTime" json:"openTime"`
+	OpenDuration types.Duration `msgpack:"duration" json:"duration"`
 }
 
 type apiLinePath struct {
@@ -59,19 +59,19 @@ func (r *Line) Get(c *yarf.Context) error {
 	}
 	defer tx.Commit() // read-only tx
 
-	var lines []*dataobjects.Line
+	var lines []*types.Line
 	if c.Param("id") == "conditions" {
 		// yarf's router is a bit limited
 		nc := yarf.NewContext(c.Request, c.Response)
 		return new(LineCondition).WithNode(r.node).Get(nc)
 	} else if c.Param("id") != "" {
-		line, err := dataobjects.GetLine(tx, c.Param("id"))
+		line, err := types.GetLine(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
-		lines = []*dataobjects.Line{line}
+		lines = []*types.Line{line}
 	} else {
-		lines, err = dataobjects.GetLines(tx)
+		lines, err = types.GetLines(tx)
 		if err != nil {
 			return err
 		}

@@ -11,7 +11,7 @@ import (
 	"github.com/underlx/disturbancesmlx/resource"
 
 	uuid "github.com/satori/go.uuid"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 
 	"github.com/underlx/disturbancesmlx/discordbot"
 )
@@ -67,7 +67,7 @@ func DiscordBot() {
 type BotCommandReceiver struct{}
 
 // NewLineStatus is called when the bot wants to add a new line status
-func (r *BotCommandReceiver) NewLineStatus(status *dataobjects.Status) {
+func (r *BotCommandReceiver) NewLineStatus(status *types.Status) {
 	handleNewStatusNotify(status)
 }
 
@@ -82,22 +82,22 @@ func (r *BotCommandReceiver) ControlNotifs(notifType string, enable bool) {
 }
 
 // CastDisturbanceVote is called when the bot wants to cast a disturbance vote
-func (r *BotCommandReceiver) CastDisturbanceVote(line *dataobjects.Line, weight int) {
-	err := reportHandler.AddReportManually(dataobjects.NewLineDisturbanceReportDebug(line, "discord"), weight)
+func (r *BotCommandReceiver) CastDisturbanceVote(line *types.Line, weight int) {
+	err := reportHandler.AddReportManually(types.NewLineDisturbanceReportDebug(line, "discord"), weight)
 	if err != nil {
 		discordLog.Println(err)
 	}
 }
 
 // ClearDisturbanceVotes is called when the bot wants to clear disturbance votes
-func (r *BotCommandReceiver) ClearDisturbanceVotes(line *dataobjects.Line) {
+func (r *BotCommandReceiver) ClearDisturbanceVotes(line *types.Line) {
 	reportHandler.ClearVotesForLine(line)
 }
 
 // GetDisturbanceVotes is called when the bot wants to show current disturbance report status
 func (r *BotCommandReceiver) GetDisturbanceVotes(messageCallback func(message string)) {
 	message := ""
-	lines, err := dataobjects.GetLines(rootSqalxNode)
+	lines, err := types.GetLines(rootSqalxNode)
 	if err != nil {
 		discordLog.Println(err)
 	}

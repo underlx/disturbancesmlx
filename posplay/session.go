@@ -7,7 +7,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/gbl08ma/sqalx"
 	uuid "github.com/satori/go.uuid"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/discordbot"
 	"golang.org/x/oauth2"
 )
@@ -42,7 +42,7 @@ func NewSession(node sqalx.Node, r *http.Request, w http.ResponseWriter, discord
 		guildMember = nil
 	}
 
-	player, err := dataobjects.GetPPPlayer(tx, uidConvS(ppsession.DiscordInfo.ID))
+	player, err := types.GetPPPlayer(tx, uidConvS(ppsession.DiscordInfo.ID))
 	if err != nil {
 		// new player
 		player, err = addNewPlayer(tx, ppsession.DiscordInfo, projectGuildErr == nil)
@@ -82,7 +82,7 @@ func NewSession(node sqalx.Node, r *http.Request, w http.ResponseWriter, discord
 	return &ppsession, nil
 }
 
-func refreshSession(r *http.Request, w http.ResponseWriter, ppsession *Session, guildMember *discordgo.Member, player *dataobjects.PPPlayer) error {
+func refreshSession(r *http.Request, w http.ResponseWriter, ppsession *Session, guildMember *discordgo.Member, player *types.PPPlayer) error {
 	err := ppsession.fetchDiscordInfo()
 	if err != nil {
 		return err
@@ -122,14 +122,14 @@ func GetSession(r *http.Request, w http.ResponseWriter, doLogin bool) (ppsession
 	return &msession, false, nil
 }
 
-func addNewPlayer(node sqalx.Node, discordUser *discordgo.User, inGuild bool) (*dataobjects.PPPlayer, error) {
+func addNewPlayer(node sqalx.Node, discordUser *discordgo.User, inGuild bool) (*types.PPPlayer, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
-	player := &dataobjects.PPPlayer{
+	player := &types.PPPlayer{
 		DiscordID:      uidConvS(discordUser.ID),
 		Joined:         time.Now(),
 		LBPrivacy:      PublicLBPrivacy,

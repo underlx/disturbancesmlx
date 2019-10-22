@@ -11,7 +11,7 @@ import (
 	cache "github.com/patrickmn/go-cache"
 
 	"github.com/mmcdole/gofeed"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // RSSScraper is an announcement scraper for the Metro de Lisboa website
@@ -21,14 +21,14 @@ type RSSScraper struct {
 	ticker         *time.Ticker
 	stopChan       chan struct{}
 	log            *log.Logger
-	newAnnCallback func(announcement *dataobjects.Announcement)
+	newAnnCallback func(announcement *types.Announcement)
 	firstUpdate    bool
 	fp             *gofeed.Parser
-	announcements  []*dataobjects.Announcement
+	announcements  []*types.Announcement
 	imageURLcache  *cache.Cache
 
 	URL     string
-	Network *dataobjects.Network
+	Network *types.Network
 	Period  time.Duration
 }
 
@@ -39,7 +39,7 @@ func (sc *RSSScraper) ID() string {
 
 // Init initializes the scraper
 func (sc *RSSScraper) Init(log *log.Logger,
-	newAnnCallback func(announcement *dataobjects.Announcement)) {
+	newAnnCallback func(announcement *types.Announcement)) {
 	sc.log = log
 	sc.newAnnCallback = newAnnCallback
 	sc.firstUpdate = true
@@ -72,8 +72,8 @@ func (sc *RSSScraper) Running() bool {
 	return sc.running
 }
 
-func (sc *RSSScraper) copyAnnouncements() []*dataobjects.Announcement {
-	c := make([]*dataobjects.Announcement, len(sc.announcements))
+func (sc *RSSScraper) copyAnnouncements() []*types.Announcement {
+	c := make([]*types.Announcement, len(sc.announcements))
 	for i, annPointer := range sc.announcements {
 		ann := *annPointer
 		c[i] = &ann
@@ -102,9 +102,9 @@ func (sc *RSSScraper) update() {
 		return
 	}
 
-	announcements := []*dataobjects.Announcement{}
+	announcements := []*types.Announcement{}
 	for _, item := range feed.Items {
-		ann := dataobjects.Announcement{
+		ann := types.Announcement{
 			Time:     *item.PublishedParsed,
 			Network:  sc.Network,
 			Title:    item.Title,
@@ -181,8 +181,8 @@ func (sc *RSSScraper) getImageForPost(postURL string) string {
 }
 
 // Networks returns the networks monitored by this scraper
-func (sc *RSSScraper) Networks() []*dataobjects.Network {
-	return []*dataobjects.Network{sc.Network}
+func (sc *RSSScraper) Networks() []*types.Network {
+	return []*types.Network{sc.Network}
 }
 
 // Sources returns the sources provided by this scraper
@@ -191,6 +191,6 @@ func (sc *RSSScraper) Sources() []string {
 }
 
 // Announcements returns the announcements read by this scraper
-func (sc *RSSScraper) Announcements(source string) []*dataobjects.Announcement {
+func (sc *RSSScraper) Announcements(source string) []*types.Announcement {
 	return sc.copyAnnouncements()
 }

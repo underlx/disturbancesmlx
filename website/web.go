@@ -20,7 +20,7 @@ import (
 	"github.com/gbl08ma/sqalx"
 	"github.com/gbl08ma/ssoclient"
 	"github.com/medicalwei/recaptcha"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/feeds"
@@ -50,7 +50,7 @@ type PageCommons struct {
 	Description string
 	ImageURL    string
 	Lines       []struct {
-		*dataobjects.Line
+		*types.Line
 		Down     bool
 		Official bool
 		Minutes  int
@@ -233,7 +233,7 @@ func InitPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 	commons.DebugBuild = DEBUG
 	commons.MQTTaddress = wsmqttURL
 
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	n, err := types.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		return commons, err
 	}
@@ -243,7 +243,7 @@ func InitPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, ti
 	}
 
 	commons.Lines = make([]struct {
-		*dataobjects.Line
+		*types.Line
 		Down     bool
 		Official bool
 		Minutes  int
@@ -274,10 +274,10 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Vehicles     []*dataobjects.VehicleETA
-		VehicleLines map[string]*dataobjects.Line
+		Vehicles     []*types.VehicleETA
+		VehicleLines map[string]*types.Line
 	}{
-		VehicleLines: make(map[string]*dataobjects.Line),
+		VehicleLines: make(map[string]*types.Line),
 	}
 
 	p.PageCommons, err = InitPageCommons(tx, w, r, "Observatório")
@@ -294,9 +294,9 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 		"D": "pt-ml-vermelha",
 	}
 
-	lineLetterToLine := map[string]*dataobjects.Line{}
+	lineLetterToLine := map[string]*types.Line{}
 	for letter, id := range lineLetterToID {
-		lineLetterToLine[letter], err = dataobjects.GetLine(tx, id)
+		lineLetterToLine[letter], err = types.GetLine(tx, id)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -306,7 +306,7 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 
 	vehicleMap := vehicleETAHandler.TrainPositions()
 
-	p.Vehicles = funk.Values(vehicleMap).([]*dataobjects.VehicleETA)
+	p.Vehicles = funk.Values(vehicleMap).([]*types.VehicleETA)
 
 	sort.Slice(p.Vehicles, func(i, j int) bool {
 		if p.Vehicles[i].VehicleIDisSpecial() && !p.Vehicles[j].VehicleIDisSpecial() {
@@ -386,7 +386,7 @@ func RSSFeed(w http.ResponseWriter, r *http.Request) {
 
 	feed.Items = []*feeds.Item{}
 
-	disturbances, err := dataobjects.GetLatestNDisturbances(tx, 20)
+	disturbances, err := types.GetLatestNDisturbances(tx, 20)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		webLog.Println(err)
@@ -441,7 +441,7 @@ func ReloadTemplates() {
 			loc, _ := time.LoadLocation("Europe/Lisbon")
 			return t.In(loc).Format("02 Jan 2006 15:04")
 		},
-		"formatTrainFrequency": func(dd dataobjects.Duration) string {
+		"formatTrainFrequency": func(dd types.Duration) string {
 			d := time.Duration(dd)
 			d = d.Round(time.Second)
 			m := d / time.Minute

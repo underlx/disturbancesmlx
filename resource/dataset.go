@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 
 	sq "github.com/Masterminds/squirrel"
@@ -18,7 +18,7 @@ type Dataset struct {
 type apiDatasetWrapper struct {
 	Version string               `msgpack:"version" json:"version"`
 	Authors pq.StringArray       `msgpack:"authors" json:"authors"`
-	Network *dataobjects.Network `msgpack:"-" json:"-"`
+	Network *types.Network `msgpack:"-" json:"-"`
 }
 
 type apiDataset struct {
@@ -47,7 +47,7 @@ func (r *Dataset) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	if c.Param("id") != "" {
-		dataset, err := dataobjects.GetDataset(tx, c.Param("id"))
+		dataset, err := types.GetDataset(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ func (r *Dataset) Get(c *yarf.Context) error {
 
 		RenderData(c, apidataset, "s-maxage=10")
 	} else {
-		datasets, err := dataobjects.GetDatasets(tx)
+		datasets, err := types.GetDatasets(tx)
 		if err != nil {
 			return err
 		}

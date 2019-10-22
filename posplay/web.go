@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 
 	"github.com/gbl08ma/sqalx"
 	"github.com/gorilla/csrf"
@@ -22,7 +22,7 @@ type pageCommons struct {
 	PageTitle   string
 	DebugBuild  bool
 	Session     *Session
-	Player      *dataobjects.PPPlayer
+	Player      *types.PPPlayer
 	CSRFfield   template.HTML
 	VersionInfo string
 
@@ -190,7 +190,7 @@ func templateReloadingMiddleware(next http.Handler) http.Handler {
 }
 
 // initPageCommons fills PageCommons with the info that is required by most page templates
-func initPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, title string, session *Session, player *dataobjects.PPPlayer) (commons pageCommons, err error) {
+func initPageCommons(node sqalx.Node, w http.ResponseWriter, r *http.Request, title string, session *Session, player *types.PPPlayer) (commons pageCommons, err error) {
 	commons.PageTitle = title + " | PosPlay"
 	commons.DebugBuild = DEBUG
 	commons.Session = session

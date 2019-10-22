@@ -12,7 +12,7 @@ import (
 	"log"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -51,7 +51,7 @@ func (r *resource) DecodeRequest(c *yarf.Context, v interface{}) error {
 }
 
 // AuthenticateClient authenticates a API client
-func (r *resource) AuthenticateClient(c *yarf.Context) (pair *dataobjects.APIPair, err error) {
+func (r *resource) AuthenticateClient(c *yarf.Context) (pair *types.APIPair, err error) {
 	tx, err := r.node.Beginx()
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (r *resource) AuthenticateClient(c *yarf.Context) (pair *dataobjects.APIPai
 		return nil, errors.New("Missing authorization header")
 	}
 
-	pair, err = dataobjects.GetPairIfCorrect(tx, key, secret, r.hashKey)
+	pair, err = types.GetPairIfCorrect(tx, key, secret, r.hashKey)
 	if err != nil {
 		return nil, errors.New("Incorrect authorization")
 	}

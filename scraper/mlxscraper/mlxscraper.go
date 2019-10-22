@@ -20,7 +20,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/gbl08ma/sqalx"
 	uuid "github.com/satori/go.uuid"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // Scraper is a scraper for the status of Metro de Lisboa
@@ -35,7 +35,7 @@ type Scraper struct {
 	estadoLineNames  []string
 	freqRegexp       *regexp.Regexp
 	numCarsRegexp    *regexp.Regexp
-	lines            map[string]*dataobjects.Line
+	lines            map[string]*types.Line
 	previousResponse []byte
 	log              *log.Logger
 	lastUpdate       time.Time
@@ -43,10 +43,10 @@ type Scraper struct {
 	lastRandom       string
 	randomGeneration time.Time
 
-	StatusCallback    func(status *dataobjects.Status)
-	ConditionCallback func(condition *dataobjects.LineCondition)
-	Network           *dataobjects.Network
-	Source            *dataobjects.Source
+	StatusCallback    func(status *types.Status)
+	ConditionCallback func(condition *types.LineCondition)
+	Network           *types.Network
+	Source            *types.Source
 	Period            time.Duration
 	HTTPClient        *http.Client
 }
@@ -69,7 +69,7 @@ func (sc *Scraper) Init(node sqalx.Node, log *log.Logger) {
 	sc.freqRegexp = regexp.MustCompile("[0-9]{2}:[0-9]{2}")
 	sc.numCarsRegexp = regexp.MustCompile("[0-9]+")
 
-	sc.lines = make(map[string]*dataobjects.Line)
+	sc.lines = make(map[string]*types.Line)
 
 	if sc.HTTPClient == nil {
 		sc.HTTPClient = &http.Client{
@@ -85,7 +85,7 @@ func (sc *Scraper) Init(node sqalx.Node, log *log.Logger) {
 	defer tx.Commit() // read-only tx
 
 	for _, lineID := range sc.lineIDs {
-		sc.lines[lineID], err = dataobjects.GetLine(tx, lineID)
+		sc.lines[lineID], err = types.GetLine(tx, lineID)
 		if err != nil {
 			log.Panicln(err)
 			return
@@ -203,7 +203,7 @@ func (sc *Scraper) update() {
 				if err != nil {
 					return
 				}
-				status := &dataobjects.Status{
+				status := &types.Status{
 					ID:         id.String(),
 					Time:       time.Now().UTC(),
 					Line:       sc.lines[lineID],
@@ -218,12 +218,12 @@ func (sc *Scraper) update() {
 				if err != nil {
 					return
 				}
-				condition := &dataobjects.LineCondition{
+				condition := &types.LineCondition{
 					ID:             id.String(),
 					Time:           time.Now().UTC(),
 					Line:           sc.lines[lineID],
 					TrainCars:      numCars,
-					TrainFrequency: dataobjects.Duration(freq),
+					TrainFrequency: types.Duration(freq),
 					Source:         sc.Source,
 				}
 				sc.ConditionCallback(condition)
@@ -242,13 +242,13 @@ func (sc *Scraper) End() {
 }
 
 // Networks returns the networks monitored by this scraper
-func (sc *Scraper) Networks() []*dataobjects.Network {
-	return []*dataobjects.Network{sc.Network}
+func (sc *Scraper) Networks() []*types.Network {
+	return []*types.Network{sc.Network}
 }
 
 // Lines returns the lines monitored by this scraper
-func (sc *Scraper) Lines() []*dataobjects.Line {
-	lines := []*dataobjects.Line{}
+func (sc *Scraper) Lines() []*types.Line {
+	lines := []*types.Line{}
 	for _, v := range sc.lines {
 		lines = append(lines, v)
 	}

@@ -2,18 +2,18 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
 // RealtimeStatsHandler handles real-time network statistics such as the number of users in transit
 type RealtimeStatsHandler interface {
-	RegisterActivity(lines []*dataobjects.Line, user *dataobjects.APIPair, justEntered bool)
+	RegisterActivity(lines []*types.Line, user *types.APIPair, justEntered bool)
 }
 
 // RealtimeVehicleHandler handles real-time vehicle information such as the position of trains in a network
 type RealtimeVehicleHandler interface {
-	RegisterTrainPassenger(currentStation *dataobjects.Station, direction *dataobjects.Station)
+	RegisterTrainPassenger(currentStation *types.Station, direction *types.Station)
 }
 
 // Realtime composites resource, handles real-time location submissions
@@ -53,7 +53,7 @@ type apiRealtimeLocation struct {
 	StationID string `msgpack:"s" json:"s"`
 	// DirectionID may be missing/empty if the user just entered the network
 	DirectionID string               `msgpack:"d" json:"d"`
-	Submitter   *dataobjects.APIPair `msgpack:"-" json:"-"`
+	Submitter   *types.APIPair `msgpack:"-" json:"-"`
 }
 
 // Post serves HTTP POST requests on this resource
@@ -78,7 +78,7 @@ func (r *Realtime) Post(c *yarf.Context) error {
 
 	request.Submitter = pair
 
-	station, err := dataobjects.GetStation(tx, request.StationID)
+	station, err := types.GetStation(tx, request.StationID)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (r *Realtime) Post(c *yarf.Context) error {
 
 	if r.vehicleHandler != nil {
 		if request.DirectionID != "" {
-			direction, err := dataobjects.GetStation(tx, request.DirectionID)
+			direction, err := types.GetStation(tx, request.DirectionID)
 			if err != nil {
 				return err
 			}

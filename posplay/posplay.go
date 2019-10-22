@@ -12,7 +12,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	cache "github.com/patrickmn/go-cache"
 	uuid "github.com/satori/go.uuid"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/discordbot"
 
 	"github.com/gbl08ma/sqalx"
@@ -36,7 +36,7 @@ type lightXPTXinfo struct {
 
 var tripSubmissionsChan = make(chan string, 100)
 var tripEditsChan = make(chan string, 100)
-var reportsChan = make(chan dataobjects.Report, 100)
+var reportsChan = make(chan types.Report, 100)
 var xpTxChan = make(chan lightXPTXinfo, 100)
 
 const (
@@ -97,7 +97,7 @@ type Config struct {
 	Store               *sessions.CookieStore
 	Node                sqalx.Node
 	GitCommit           string
-	SendAppNotification func(pair *dataobjects.APIPair, msgType string, data map[string]string)
+	SendAppNotification func(pair *types.APIPair, msgType string, data map[string]string)
 	guildID             string
 	roleID              string
 }
@@ -182,17 +182,17 @@ func BaseURL() string {
 }
 
 // RegisterTripSubmission schedules a trip submission for analysis
-func RegisterTripSubmission(trip *dataobjects.Trip) {
+func RegisterTripSubmission(trip *types.Trip) {
 	tripSubmissionsChan <- trip.ID
 }
 
 // RegisterTripFirstEdit schedules a trip resubmission (edit, confirmation) for analysis
-func RegisterTripFirstEdit(trip *dataobjects.Trip) {
+func RegisterTripFirstEdit(trip *types.Trip) {
 	tripEditsChan <- trip.ID
 }
 
 // RegisterReport schedules a report for analysis
-func RegisterReport(report dataobjects.Report) {
+func RegisterReport(report types.Report) {
 	reportsChan <- report
 }
 
@@ -206,7 +206,7 @@ func RegisterEventWinCallback(userID, messageID string, XPreward int, eventType 
 	}
 	defer tx.Rollback()
 
-	player, err := dataobjects.GetPPPlayer(tx, uidConvS(userID))
+	player, err := types.GetPPPlayer(tx, uidConvS(userID))
 	if err != nil {
 		// this user is not yet a PosPlay player
 		discordbot.SendDMtoUser(userID, &discordgo.MessageSend{
@@ -236,20 +236,20 @@ func RegisterEventWinCallback(userID, messageID string, XPreward int, eventType 
 		return false
 	}
 
-	sendDiscordNotif, err := dataobjects.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeGuildEventWon, NotificationMethodDiscordDM, NotificationDefaults)
+	sendDiscordNotif, err := types.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeGuildEventWon, NotificationMethodDiscordDM, NotificationDefaults)
 	if err != nil {
 		config.Log.Println(err)
 		return false
 	}
 
-	sendAppNotif, err := dataobjects.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeGuildEventWon, NotificationMethodAppNotif, NotificationDefaults)
+	sendAppNotif, err := types.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeGuildEventWon, NotificationMethodAppNotif, NotificationDefaults)
 	if err != nil {
 		config.Log.Println(err)
 		return false
 	}
-	var appNotifPair *dataobjects.APIPair
+	var appNotifPair *types.APIPair
 	if sendAppNotif {
-		pair, err := dataobjects.GetPPPair(tx, player.DiscordID)
+		pair, err := types.GetPPPair(tx, player.DiscordID)
 		if err != nil {
 			// app notification setting enabled, but the user doesn't have an associated app
 			sendAppNotif = false
@@ -292,7 +292,7 @@ func RegisterDiscussionParticipationCallback(userID string, XPreward int) bool {
 	}
 	defer tx.Rollback()
 
-	player, err := dataobjects.GetPPPlayer(tx, uidConvS(userID))
+	player, err := types.GetPPPlayer(tx, uidConvS(userID))
 	if err != nil {
 		// this user is not yet a PosPlay player
 		return false
@@ -313,7 +313,7 @@ func RegisterDiscussionParticipationCallback(userID string, XPreward int) bool {
 }
 
 // RegisterXPTransaction is exclusively meant for use when bootstrapping the achievements system on a database with previous XP transactions
-func RegisterXPTransaction(tx *dataobjects.PPXPTransaction) {
+func RegisterXPTransaction(tx *types.PPXPTransaction) {
 	xpTxChan <- lightXPTXinfo{
 		id:         tx.ID,
 		actualDiff: tx.Value,
@@ -322,7 +322,7 @@ func RegisterXPTransaction(tx *dataobjects.PPXPTransaction) {
 
 // DoXPTransaction adds a XP transaction to a user, performing the necessary checks and
 // calling the necessary handlers
-func DoXPTransaction(node sqalx.Node, player *dataobjects.PPPlayer, when time.Time, value int, txType string, extra map[string]interface{}, attemptMerge bool) error {
+func DoXPTransaction(node sqalx.Node, player *types.PPPlayer, when time.Time, value int, txType string, extra map[string]interface{}, attemptMerge bool) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err
@@ -333,7 +333,7 @@ func DoXPTransaction(node sqalx.Node, player *dataobjects.PPPlayer, when time.Ti
 	if err != nil {
 		return err
 	}
-	var newtx *dataobjects.PPXPTransaction
+	var newtx *types.PPXPTransaction
 	if attemptMerge && len(lasttx) > 0 && lasttx[0].Type == txType &&
 		lasttx[0].Time.After(WeekStart()) {
 		// to avoid creating many micro-transactions, update the latest transaction, adding the new reward
@@ -344,7 +344,7 @@ func DoXPTransaction(node sqalx.Node, player *dataobjects.PPPlayer, when time.Ti
 		if err != nil {
 			return err
 		}
-		newtx = &dataobjects.PPXPTransaction{
+		newtx = &types.PPXPTransaction{
 			ID:        txid.String(),
 			DiscordID: player.DiscordID,
 			Type:      txType,
@@ -471,7 +471,7 @@ func playerXPinfo(userID string) (discordbot.PosPlayXPInfo, error) {
 }
 
 func playerXPinfoWithTx(tx sqalx.Node, userID string) (discordbot.PosPlayXPInfo, error) {
-	player, err := dataobjects.GetPPPlayer(tx, uidConvS(userID))
+	player, err := types.GetPPPlayer(tx, uidConvS(userID))
 	if err != nil {
 		return discordbot.PosPlayXPInfo{}, err
 	}

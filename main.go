@@ -17,7 +17,7 @@ import (
 
 	"github.com/gbl08ma/keybox"
 	"github.com/underlx/disturbancesmlx/compute"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 var (
@@ -175,7 +175,7 @@ func main() {
 	}()
 
 	if DEBUG {
-		pair, err := dataobjects.NewPair(rootSqalxNode, "test", time.Now(), getHashKey())
+		pair, err := types.NewPair(rootSqalxNode, "test", time.Now(), getHashKey())
 		if err != nil {
 			mainLog.Println(err)
 		} else {
@@ -314,7 +314,7 @@ func printLatestDisturbance(node sqalx.Node) {
 	}
 	defer tx.Commit() // read-only tx
 
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	n, err := types.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		mainLog.Println(err)
 		return

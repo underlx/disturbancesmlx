@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 
 	altmath "github.com/pkg/math"
 )
@@ -42,7 +42,7 @@ func (h *VehicleHandler) ClearTypicalSecondsCache() {
 }
 
 // RegisterTrainPassenger registers the presence of a user in a station
-func (h *VehicleHandler) RegisterTrainPassenger(currentStation *dataobjects.Station, direction *dataobjects.Station) {
+func (h *VehicleHandler) RegisterTrainPassenger(currentStation *types.Station, direction *types.Station) {
 	h.presenceByStationAndDirection[h.getMapKey(currentStation, direction)] = time.Now()
 
 	h.readings = append(h.readings, PassengerReading{
@@ -61,7 +61,7 @@ func (h *VehicleHandler) Readings() []PassengerReading {
 }
 
 // NextTrainETA makes a best-effort calculation of the ETA to the next train at the specified station going in the specified direction
-func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Station, direction *dataobjects.Station) (time.Duration, error) {
+func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *types.Station, direction *types.Station) (time.Duration, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return 0, err
@@ -72,8 +72,8 @@ func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Stat
 	if err != nil {
 		return 0, err
 	}
-	thisLineStations := []*dataobjects.Station{}
-	var thisLine *dataobjects.Line
+	thisLineStations := []*types.Station{}
+	var thisLine *types.Line
 	// whether, in thisLineStations, the current direction is the last index (true) or zero (false)
 	// i.e., whether the caller is asking for the ETA in the direction that corresponds to moving "up" in the slice
 	var movingUp bool
@@ -110,7 +110,7 @@ func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Stat
 		if s, present := h.connectionDurationCache[from+"#"+to]; present {
 			return s
 		}
-		connection, err := dataobjects.GetConnection(tx, from, to, true)
+		connection, err := types.GetConnection(tx, from, to, true)
 		if err != nil {
 			return 0
 		}
@@ -296,8 +296,8 @@ func (h *VehicleHandler) NextTrainETA(node sqalx.Node, station *dataobjects.Stat
 
 // TrainETA contains information about the estimated arrival time of a train for a station and direction
 type TrainETA struct {
-	Station   *dataobjects.Station
-	Direction *dataobjects.Station
+	Station   *types.Station
+	Direction *types.Station
 	ETA       string
 }
 
@@ -309,7 +309,7 @@ func (h *VehicleHandler) AllTrainETAs(node sqalx.Node) ([]TrainETA, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	stations, err := dataobjects.GetStations(tx)
+	stations, err := types.GetStations(tx)
 	if err != nil {
 		return []TrainETA{}, err
 	}
@@ -333,6 +333,6 @@ func (h *VehicleHandler) AllTrainETAs(node sqalx.Node) ([]TrainETA, error) {
 	return trainETAs, nil
 }
 
-func (h *VehicleHandler) getMapKey(station *dataobjects.Station, direction *dataobjects.Station) string {
+func (h *VehicleHandler) getMapKey(station *types.Station, direction *types.Station) string {
 	return station.ID + "#" + direction.ID
 }

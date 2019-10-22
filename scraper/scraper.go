@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // Scraper is something that fetches information
@@ -22,8 +22,8 @@ type Scraper interface {
 type StatusScraper interface {
 	Scraper
 	Init(node sqalx.Node, log *log.Logger)
-	Networks() []*dataobjects.Network
-	Lines() []*dataobjects.Line
+	Networks() []*types.Network
+	Lines() []*types.Line
 	LastUpdate() time.Time
 }
 
@@ -38,8 +38,8 @@ type ETAScraper interface {
 type AnnouncementScraper interface {
 	Scraper
 	Init(log *log.Logger,
-		newAnnouncementReporter func(announcement *dataobjects.Announcement))
-	Networks() []*dataobjects.Network
+		newAnnouncementReporter func(announcement *types.Announcement))
+	Networks() []*types.Network
 	Sources() []string
-	Announcements(source string) []*dataobjects.Announcement
+	Announcements(source string) []*types.Announcement
 }

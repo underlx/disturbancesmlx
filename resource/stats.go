@@ -5,14 +5,14 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
 // StatsCalculator calculates general statistics about a network or part of a network
 type StatsCalculator interface {
-	OITInNetwork(network *dataobjects.Network, approximateTo int) int
-	OITInLine(line *dataobjects.Line, approximateTo int) int
+	OITInNetwork(network *types.Network, approximateTo int) int
+	OITInLine(line *types.Line, approximateTo int) int
 }
 
 // Stats composites resource
@@ -29,7 +29,7 @@ type apiStats struct {
 
 type apiLineStats struct {
 	Availability               float64              `msgpack:"availability" json:"availability"`
-	AverageDisturbanceDuration dataobjects.Duration `msgpack:"avgDistDuration" json:"avgDistDuration"`
+	AverageDisturbanceDuration types.Duration `msgpack:"avgDistDuration" json:"avgDistDuration"`
 }
 
 // WithNode associates a sqalx Node with this resource
@@ -81,7 +81,7 @@ func (r *Stats) Get(c *yarf.Context) error {
 	officialOnly := c.Request.URL.Query().Get("type") != "unofficial"
 
 	if c.Param("id") != "" {
-		network, err := dataobjects.GetNetwork(tx, c.Param("id"))
+		network, err := types.GetNetwork(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func (r *Stats) Get(c *yarf.Context) error {
 		RenderData(c, stats, "s-maxage=10")
 	} else {
 		statsMap := make(map[string]apiStats)
-		networks, err := dataobjects.GetNetworks(tx)
+		networks, err := types.GetNetworks(tx)
 		if err != nil {
 			return err
 		}
@@ -111,7 +111,7 @@ func (r *Stats) Get(c *yarf.Context) error {
 	return nil
 }
 
-func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network, startTime time.Time, endTime time.Time, officialOnly bool) (apiStats, error) {
+func (r *Stats) getStatsForNetwork(node sqalx.Node, network *types.Network, startTime time.Time, endTime time.Time, officialOnly bool) (apiStats, error) {
 	tx, err := r.Beginx()
 	if err != nil {
 		return apiStats{}, err
@@ -141,13 +141,13 @@ func (r *Stats) getStatsForNetwork(node sqalx.Node, network *dataobjects.Network
 		}
 		stats.LineStats[line.ID] = apiLineStats{
 			Availability:               availability,
-			AverageDisturbanceDuration: dataobjects.Duration(avgDuration),
+			AverageDisturbanceDuration: types.Duration(avgDuration),
 		}
 	}
 	return stats, nil
 }
 
-func (r *Stats) getLastDisturbanceTimeForNetwork(node sqalx.Node, network *dataobjects.Network, officialOnly bool) (time.Time, error) {
+func (r *Stats) getLastDisturbanceTimeForNetwork(node sqalx.Node, network *types.Network, officialOnly bool) (time.Time, error) {
 	tx, err := r.Beginx()
 	if err != nil {
 		return time.Now().UTC(), err

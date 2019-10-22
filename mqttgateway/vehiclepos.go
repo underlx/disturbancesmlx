@@ -5,7 +5,7 @@ import (
 
 	"github.com/gbl08ma/gmqtt/pkg/packets"
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
@@ -20,7 +20,7 @@ type vehiclePosition struct {
 	ValidFor    uint   `msgpack:"f" json:"validFor"` // always in seconds
 }
 
-func (g *MQTTGateway) buildVehiclePositionStruct(tx sqalx.Node, eta *dataobjects.VehicleETA) vehiclePosition {
+func (g *MQTTGateway) buildVehiclePositionStruct(tx sqalx.Node, eta *types.VehicleETA) vehiclePosition {
 	prevStation, pct := g.vehicleETAhandler.VehiclePosition(tx, eta)
 	return vehiclePosition{
 		Vehicle:     eta.VehicleServiceID,

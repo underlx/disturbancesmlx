@@ -8,7 +8,7 @@ import (
 
 	"github.com/gbl08ma/sqalx"
 	cache "github.com/patrickmn/go-cache"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/utils"
 )
 
@@ -23,18 +23,18 @@ func NewStatsHandler() *StatsHandler {
 	return new(StatsHandler)
 }
 
-func (h *StatsHandler) getNetworkCache(network *dataobjects.Network) *cache.Cache {
+func (h *StatsHandler) getNetworkCache(network *types.Network) *cache.Cache {
 	actual, _ := h.activityPerNetwork.LoadOrStore(network.ID, cache.New(cache.NoExpiration, 10*time.Minute))
 	return actual.(*cache.Cache)
 }
 
-func (h *StatsHandler) getLineCache(line *dataobjects.Line) *cache.Cache {
+func (h *StatsHandler) getLineCache(line *types.Line) *cache.Cache {
 	actual, _ := h.activityPerLine.LoadOrStore(line.ID, cache.New(cache.NoExpiration, 10*time.Minute))
 	return actual.(*cache.Cache)
 }
 
 // RangeNetworks calls f sequentially for each network known to this StatsHandler. If f returns false, the iteration is stopped.
-func (h *StatsHandler) RangeNetworks(node sqalx.Node, f func(network *dataobjects.Network, cache *cache.Cache) bool) error {
+func (h *StatsHandler) RangeNetworks(node sqalx.Node, f func(network *types.Network, cache *cache.Cache) bool) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func (h *StatsHandler) RangeNetworks(node sqalx.Node, f func(network *dataobject
 
 	var innerErr error
 	h.activityPerNetwork.Range(func(key, value interface{}) bool {
-		network, err := dataobjects.GetNetwork(tx, key.(string))
+		network, err := types.GetNetwork(tx, key.(string))
 		if err != nil {
 			innerErr = err
 			return false
@@ -54,7 +54,7 @@ func (h *StatsHandler) RangeNetworks(node sqalx.Node, f func(network *dataobject
 }
 
 // RangeLines calls f sequentially for each line known to this StatsHandler. If f returns false, the iteration is stopped.
-func (h *StatsHandler) RangeLines(node sqalx.Node, f func(line *dataobjects.Line, cache *cache.Cache) bool) error {
+func (h *StatsHandler) RangeLines(node sqalx.Node, f func(line *types.Line, cache *cache.Cache) bool) error {
 	tx, err := node.Beginx()
 	if err != nil {
 		return err
@@ -63,7 +63,7 @@ func (h *StatsHandler) RangeLines(node sqalx.Node, f func(line *dataobjects.Line
 
 	var innerErr error
 	h.activityPerLine.Range(func(key, value interface{}) bool {
-		line, err := dataobjects.GetLine(tx, key.(string))
+		line, err := types.GetLine(tx, key.(string))
 		if err != nil {
 			innerErr = err
 			return false
@@ -75,7 +75,7 @@ func (h *StatsHandler) RangeLines(node sqalx.Node, f func(line *dataobjects.Line
 
 // UserInNetwork returns true if the specified user has recently been in the specified network
 // (data obtained through real-time location reports)
-func (h *StatsHandler) UserInNetwork(network *dataobjects.Network, user *dataobjects.APIPair) bool {
+func (h *StatsHandler) UserInNetwork(network *types.Network, user *types.APIPair) bool {
 	cache := h.getNetworkCache(network)
 	_, present := cache.Get(user.Key)
 	return present
@@ -83,7 +83,7 @@ func (h *StatsHandler) UserInNetwork(network *dataobjects.Network, user *dataobj
 
 // UserInLine returns true if the specified user has recently been in the specified line
 // (data obtained through real-time location reports)
-func (h *StatsHandler) UserInLine(line *dataobjects.Line, user *dataobjects.APIPair) bool {
+func (h *StatsHandler) UserInLine(line *types.Line, user *types.APIPair) bool {
 	cache := h.getLineCache(line)
 	_, present := cache.Get(user.Key)
 	return present
@@ -92,7 +92,7 @@ func (h *StatsHandler) UserInLine(line *dataobjects.Line, user *dataobjects.APIP
 // OITInNetwork returns the number of users online in transit in the specified network
 // fudged to the unit indicated by approximateTo (so if it equals 5, this function will return
 // 0, 5, 10...). Use approximateTo = 0 to return the exact value
-func (h *StatsHandler) OITInNetwork(network *dataobjects.Network, approximateTo int) int {
+func (h *StatsHandler) OITInNetwork(network *types.Network, approximateTo int) int {
 	cache := h.getNetworkCache(network)
 	cache.DeleteExpired()
 	return utils.Fudge(cache.ItemCount(), approximateTo)
@@ -101,14 +101,14 @@ func (h *StatsHandler) OITInNetwork(network *dataobjects.Network, approximateTo 
 // OITInLine returns the number of users online in transit in the specified line
 // fudged to the unit indicated by approximateTo (so if it equals 5, this function will return
 // 0, 5, 10...). Use approximateTo = 0 to return the exact value
-func (h *StatsHandler) OITInLine(line *dataobjects.Line, approximateTo int) int {
+func (h *StatsHandler) OITInLine(line *types.Line, approximateTo int) int {
 	cache := h.getLineCache(line)
 	cache.DeleteExpired()
 	return utils.Fudge(cache.ItemCount(), approximateTo)
 }
 
 // RegisterActivity registers that a user is in transit in the given lines
-func (h *StatsHandler) RegisterActivity(lines []*dataobjects.Line, user *dataobjects.APIPair, justEntered bool) {
+func (h *StatsHandler) RegisterActivity(lines []*types.Line, user *types.APIPair, justEntered bool) {
 	expectedDuration := 4 * time.Minute
 	// user just entered the network, is going to wait for a vehicle, or
 	// user might change lines and will need to wait for a vehicle

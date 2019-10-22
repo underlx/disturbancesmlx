@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/posplay"
 	"github.com/yarf-framework/yarf"
 )
@@ -19,12 +19,12 @@ type apiTrip struct {
 	ID            string                    `msgpack:"id" json:"id"`
 	StartTime     time.Time                 `msgpack:"startTime" json:"startTime"`
 	EndTime       time.Time                 `msgpack:"endTime" json:"endTime"`
-	Submitter     *dataobjects.APIPair      `msgpack:"-" json:"-"`
+	Submitter     *types.APIPair      `msgpack:"-" json:"-"`
 	SubmitTime    time.Time                 `msgpack:"submitTime" json:"submitTime"`
 	EditTime      time.Time                 `msgpack:"editTime" json:"editTime"`
 	Edited        bool                      `msgpack:"edited" json:"edited"`
 	UserConfirmed bool                      `msgpack:"userConfirmed" json:"userConfirmed"`
-	StationUses   []*dataobjects.StationUse `msgpack:"-" json:"-"`
+	StationUses   []*types.StationUse `msgpack:"-" json:"-"`
 }
 
 type apiTripWrapper struct {
@@ -40,13 +40,13 @@ type apiTripCreationRequest struct {
 }
 
 type apiStationUse struct {
-	Station    *dataobjects.Station       `msgpack:"-" json:"-"`
+	Station    *types.Station       `msgpack:"-" json:"-"`
 	EntryTime  time.Time                  `msgpack:"entryTime" json:"entryTime"`
 	LeaveTime  time.Time                  `msgpack:"leaveTime" json:"leaveTime"`
-	Type       dataobjects.StationUseType `msgpack:"-" json:"-"`
+	Type       types.StationUseType `msgpack:"-" json:"-"`
 	Manual     bool                       `msgpack:"manual" json:"manual"`
-	SourceLine *dataobjects.Line          `msgpack:"-" json:"-"`
-	TargetLine *dataobjects.Line          `msgpack:"-" json:"-"`
+	SourceLine *types.Line          `msgpack:"-" json:"-"`
+	TargetLine *types.Line          `msgpack:"-" json:"-"`
 }
 
 type apiStationUseWrapper struct {
@@ -84,7 +84,7 @@ func (r *Trip) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	if c.Param("id") != "" {
-		trip, err := dataobjects.GetTrip(tx, c.Param("id"))
+		trip, err := types.GetTrip(tx, c.Param("id"))
 		if err != nil || trip.Submitter.Key != pair.Key {
 			return &yarf.CustomError{
 				HTTPCode:  http.StatusNotFound,
@@ -95,7 +95,7 @@ func (r *Trip) Get(c *yarf.Context) error {
 
 		r.render(c, trip)
 	} else {
-		trips, err := dataobjects.GetTripsForSubmitter(tx, pair)
+		trips, err := types.GetTripsForSubmitter(tx, pair)
 		if err != nil {
 			return err
 		}
@@ -153,7 +153,7 @@ func (r *Trip) Post(c *yarf.Context) error {
 	defer tx.Rollback()
 
 	// Trip UUIDs are client-generated, so we can't really trust their (lack of) uniqueness...
-	if _, err := dataobjects.GetTrip(tx, request.ID); err == nil {
+	if _, err := types.GetTrip(tx, request.ID); err == nil {
 		return &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "A trip with the specified ID already exists. Better luck generating a UUID next time.",
@@ -161,25 +161,25 @@ func (r *Trip) Post(c *yarf.Context) error {
 		}
 	}
 
-	trip := dataobjects.Trip{
+	trip := types.Trip{
 		ID:            request.ID,
 		StartTime:     request.Uses[0].EntryTime,
 		EndTime:       request.Uses[len(request.Uses)-1].LeaveTime,
 		Submitter:     pair,
 		SubmitTime:    time.Now().UTC(),
 		UserConfirmed: request.UserConfirmed,
-		StationUses:   []*dataobjects.StationUse{},
+		StationUses:   []*types.StationUse{},
 	}
 
 	for _, requestUse := range request.Uses {
-		use := dataobjects.StationUse{
+		use := types.StationUse{
 			EntryTime: requestUse.EntryTime,
 			LeaveTime: requestUse.LeaveTime,
-			Type:      dataobjects.StationUseType(requestUse.TypeString),
+			Type:      types.StationUseType(requestUse.TypeString),
 			Manual:    requestUse.Manual,
 		}
 
-		use.Station, err = dataobjects.GetStation(tx, requestUse.StationID)
+		use.Station, err = types.GetStation(tx, requestUse.StationID)
 		if err != nil {
 			return &yarf.CustomError{
 				HTTPCode:  http.StatusBadRequest,
@@ -188,9 +188,9 @@ func (r *Trip) Post(c *yarf.Context) error {
 			}
 		}
 
-		if use.Type == dataobjects.Interchange {
+		if use.Type == types.Interchange {
 			if requestUse.SourceLineID != "" {
-				use.SourceLine, err = dataobjects.GetLine(tx, requestUse.SourceLineID)
+				use.SourceLine, err = types.GetLine(tx, requestUse.SourceLineID)
 				if err != nil {
 					return &yarf.CustomError{
 						HTTPCode:  http.StatusBadRequest,
@@ -200,7 +200,7 @@ func (r *Trip) Post(c *yarf.Context) error {
 				}
 			}
 			if requestUse.TargetLineID != "" {
-				use.TargetLine, err = dataobjects.GetLine(tx, requestUse.TargetLineID)
+				use.TargetLine, err = types.GetLine(tx, requestUse.TargetLineID)
 				if err != nil {
 					return &yarf.CustomError{
 						HTTPCode:  http.StatusBadRequest,
@@ -276,18 +276,18 @@ func (r *Trip) Put(c *yarf.Context) error {
 	return nil
 }
 
-func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pair *dataobjects.APIPair) (dataobjects.Trip, bool, error) {
+func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pair *types.APIPair) (types.Trip, bool, error) {
 	if len(request.Uses) == 0 {
-		return dataobjects.Trip{}, false, &yarf.CustomError{
+		return types.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "Trip contains no station uses",
 			ErrorBody: "Trip contains no station uses",
 		}
 	}
 
-	oldtrip, err := dataobjects.GetTrip(tx, request.ID)
+	oldtrip, err := types.GetTrip(tx, request.ID)
 	if err != nil || oldtrip.Submitter.Key != pair.Key {
-		return dataobjects.Trip{}, false, &yarf.CustomError{
+		return types.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusNotFound,
 			ErrorMsg:  "A trip with the specified ID was not found.",
 			ErrorBody: "A trip with the specified ID was not found.",
@@ -295,14 +295,14 @@ func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pai
 	}
 
 	if time.Since(oldtrip.SubmitTime) > 7*24*time.Hour {
-		return dataobjects.Trip{}, false, &yarf.CustomError{
+		return types.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusLocked,
 			ErrorMsg:  "This trip was submitted over 7 days ago and can no longer be edited.",
 			ErrorBody: "This trip was submitted over 7 days ago and can no longer be edited.",
 		}
 	}
 
-	trip := dataobjects.Trip{
+	trip := types.Trip{
 		ID:            request.ID,
 		StartTime:     request.Uses[0].EntryTime,
 		EndTime:       request.Uses[len(request.Uses)-1].LeaveTime,
@@ -311,12 +311,12 @@ func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pai
 		EditTime:      time.Now().UTC(),
 		Edited:        true,
 		UserConfirmed: request.UserConfirmed,
-		StationUses:   []*dataobjects.StationUse{},
+		StationUses:   []*types.StationUse{},
 	}
 
 	maxFuture := time.Now().Add(15 * time.Minute)
 	if trip.StartTime.After(maxFuture) || trip.EndTime.After(maxFuture) {
-		return dataobjects.Trip{}, false, &yarf.CustomError{
+		return types.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "This trip is from the future. Adjust your clock.",
 			ErrorBody: "This trip is from the future. Adjust your clock.",
@@ -325,7 +325,7 @@ func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pai
 
 	if trip.EndTime.Sub(trip.StartTime) > 24*time.Hour {
 		// probably the clock of the phone was adjusted (from the default 1970-01-01) between the start and end of the trip
-		return dataobjects.Trip{}, false, &yarf.CustomError{
+		return types.Trip{}, false, &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "This trip took way too long.",
 			ErrorBody: "This trip took way too long.",
@@ -334,21 +334,21 @@ func (r *Trip) getTripToEdit(tx sqalx.Node, request *apiTripCreationRequest, pai
 
 	err = r.buildStationUses(tx, request, &trip)
 	if err != nil {
-		return dataobjects.Trip{}, false, err
+		return types.Trip{}, false, err
 	}
 	return trip, oldtrip.Edited, nil
 }
 
-func (r *Trip) buildStationUses(tx sqalx.Node, request *apiTripCreationRequest, trip *dataobjects.Trip) error {
+func (r *Trip) buildStationUses(tx sqalx.Node, request *apiTripCreationRequest, trip *types.Trip) error {
 	var err error
 	for _, requestUse := range request.Uses {
-		use := dataobjects.StationUse{
+		use := types.StationUse{
 			EntryTime: requestUse.EntryTime,
 			LeaveTime: requestUse.LeaveTime,
-			Type:      dataobjects.StationUseType(requestUse.TypeString),
+			Type:      types.StationUseType(requestUse.TypeString),
 			Manual:    requestUse.Manual,
 		}
-		use.Station, err = dataobjects.GetStation(tx, requestUse.StationID)
+		use.Station, err = types.GetStation(tx, requestUse.StationID)
 		if err != nil {
 			return &yarf.CustomError{
 				HTTPCode:  http.StatusBadRequest,
@@ -357,9 +357,9 @@ func (r *Trip) buildStationUses(tx sqalx.Node, request *apiTripCreationRequest, 
 			}
 		}
 
-		if use.Type == dataobjects.Interchange {
+		if use.Type == types.Interchange {
 			if requestUse.SourceLineID != "" {
-				use.SourceLine, err = dataobjects.GetLine(tx, requestUse.SourceLineID)
+				use.SourceLine, err = types.GetLine(tx, requestUse.SourceLineID)
 				if err != nil {
 					return &yarf.CustomError{
 						HTTPCode:  http.StatusBadRequest,
@@ -369,7 +369,7 @@ func (r *Trip) buildStationUses(tx sqalx.Node, request *apiTripCreationRequest, 
 				}
 			}
 			if requestUse.TargetLineID != "" {
-				use.TargetLine, err = dataobjects.GetLine(tx, requestUse.TargetLineID)
+				use.TargetLine, err = types.GetLine(tx, requestUse.TargetLineID)
 				if err != nil {
 					return &yarf.CustomError{
 						HTTPCode:  http.StatusBadRequest,
@@ -385,7 +385,7 @@ func (r *Trip) buildStationUses(tx sqalx.Node, request *apiTripCreationRequest, 
 	return nil
 }
 
-func (r *Trip) render(c *yarf.Context, trip *dataobjects.Trip) {
+func (r *Trip) render(c *yarf.Context, trip *types.Trip) {
 	data := apiTripWrapper{
 		apiTrip:        apiTrip(*trip),
 		APIstationUses: []apiStationUseWrapper{},

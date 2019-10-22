@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 func achievementsPage(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +33,7 @@ func achievementsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit() // read-only tx
 
-	player, err := dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+	player, err := types.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -43,14 +43,14 @@ func achievementsPage(w http.ResponseWriter, r *http.Request) {
 	p := struct {
 		pageCommons
 
-		Achieved        []*dataobjects.PPAchievement
-		NonAchieved     []*dataobjects.PPAchievement
-		Achieving       map[string]*dataobjects.PPPlayerAchievement
+		Achieved        []*types.PPAchievement
+		NonAchieved     []*types.PPAchievement
+		Achieving       map[string]*types.PPPlayerAchievement
 		ProgressCurrent map[string]int
 		ProgressTotal   map[string]int
 		ProgressPct     map[string]int
 	}{
-		Achieving:       make(map[string]*dataobjects.PPPlayerAchievement),
+		Achieving:       make(map[string]*types.PPPlayerAchievement),
 		ProgressCurrent: make(map[string]int),
 		ProgressTotal:   make(map[string]int),
 		ProgressPct:     make(map[string]int),
@@ -64,7 +64,7 @@ func achievementsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.SidebarSelected = "achievements"
 
-	forEachAchievement(tx, player, func(context *dataobjects.PPAchievementContext) {
+	forEachAchievement(tx, player, func(context *types.PPAchievementContext) {
 		current, total, e := context.Achievement.Strategy.Progress(context)
 		if e != nil {
 			if err == nil {
@@ -155,15 +155,15 @@ func achievementPage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit() // read-only tx
 
-	achievement, err := dataobjects.GetPPAchievement(tx, mux.Vars(r)["id"])
+	achievement, err := types.GetPPAchievement(tx, mux.Vars(r)["id"])
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	var player *dataobjects.PPPlayer
+	var player *types.PPPlayer
 	if session != nil {
-		player, err = dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+		player, err = types.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
 		if err != nil {
 			config.Log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -174,8 +174,8 @@ func achievementPage(w http.ResponseWriter, r *http.Request) {
 	p := struct {
 		pageCommons
 
-		Achievement       *dataobjects.PPAchievement
-		PlayerAchievement *dataobjects.PPPlayerAchievement
+		Achievement       *types.PPAchievement
+		PlayerAchievement *types.PPPlayerAchievement
 		ProgressCurrent   int
 		ProgressTotal     int
 		ProgressPct       int
@@ -198,7 +198,7 @@ func achievementPage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.UserInfoInHeader = true
 
-	context := &dataobjects.PPAchievementContext{
+	context := &types.PPAchievementContext{
 		Node:             tx,
 		Achievement:      achievement,
 		Player:           player,
@@ -225,7 +225,7 @@ func achievementPage(w http.ResponseWriter, r *http.Request) {
 
 	p.Criteria = template.HTML(achievement.Strategy.CriteriaHTML(context))
 
-	totalUsers, err := dataobjects.CountPPPlayers(tx)
+	totalUsers, err := types.CountPPPlayers(tx)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

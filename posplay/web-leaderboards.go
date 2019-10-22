@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 func leaderboardsWeekPage(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func leaderboardsWeekPage(w http.ResponseWriter, r *http.Request) {
 
 	discordID := uidConvS(session.DiscordInfo.ID)
 
-	player, err := dataobjects.GetPPPlayer(tx, discordID)
+	player, err := types.GetPPPlayer(tx, discordID)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -39,7 +39,7 @@ func leaderboardsWeekPage(w http.ResponseWriter, r *http.Request) {
 		pageCommons
 		Leaderboards []struct {
 			Start   time.Time
-			Entries []dataobjects.PPLeaderboardEntry
+			Entries []types.PPLeaderboardEntry
 		}
 	}{}
 	p.pageCommons, err = initPageCommons(tx, w, r, "Classificações semanais", session, player)
@@ -53,19 +53,19 @@ func leaderboardsWeekPage(w http.ResponseWriter, r *http.Request) {
 	start := WeekStart()
 	end := time.Now()
 	for i := 0; i < 5; i++ {
-		entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 15, 2, player)
+		entries, err := types.PPLeaderboardBetween(tx, start, end, 15, 2, player)
 		if err != nil {
 			config.Log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 		if len(entries) == 1 && entries[0].Position == 0 {
 			// avoid showing just this player in the 0th place
-			entries = []dataobjects.PPLeaderboardEntry{}
+			entries = []types.PPLeaderboardEntry{}
 		}
 
 		p.Leaderboards = append(p.Leaderboards, struct {
 			Start   time.Time
-			Entries []dataobjects.PPLeaderboardEntry
+			Entries []types.PPLeaderboardEntry
 		}{
 			Start:   start,
 			Entries: entries,
@@ -103,7 +103,7 @@ func leaderboardsMonthPage(w http.ResponseWriter, r *http.Request) {
 
 	discordID := uidConvS(session.DiscordInfo.ID)
 
-	player, err := dataobjects.GetPPPlayer(tx, discordID)
+	player, err := types.GetPPPlayer(tx, discordID)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -114,7 +114,7 @@ func leaderboardsMonthPage(w http.ResponseWriter, r *http.Request) {
 		pageCommons
 		Leaderboards []struct {
 			Start   time.Time
-			Entries []dataobjects.PPLeaderboardEntry
+			Entries []types.PPLeaderboardEntry
 		}
 	}{}
 	p.pageCommons, err = initPageCommons(tx, w, r, "Classificações mensais", session, player)
@@ -129,19 +129,19 @@ func leaderboardsMonthPage(w http.ResponseWriter, r *http.Request) {
 	start := origStart
 	end := time.Now()
 	for i := 0; i < 5; i++ {
-		entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 15, 2, player)
+		entries, err := types.PPLeaderboardBetween(tx, start, end, 15, 2, player)
 		if err != nil {
 			config.Log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 		if len(entries) == 1 && entries[0].Position == 0 {
 			// avoid showing just this player in the 0th place
-			entries = []dataobjects.PPLeaderboardEntry{}
+			entries = []types.PPLeaderboardEntry{}
 		}
 
 		p.Leaderboards = append(p.Leaderboards, struct {
 			Start   time.Time
-			Entries []dataobjects.PPLeaderboardEntry
+			Entries []types.PPLeaderboardEntry
 		}{
 			Start:   start,
 			Entries: entries,
@@ -179,7 +179,7 @@ func leaderboardsAllTimePage(w http.ResponseWriter, r *http.Request) {
 
 	discordID := uidConvS(session.DiscordInfo.ID)
 
-	player, err := dataobjects.GetPPPlayer(tx, discordID)
+	player, err := types.GetPPPlayer(tx, discordID)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -189,7 +189,7 @@ func leaderboardsAllTimePage(w http.ResponseWriter, r *http.Request) {
 	p := struct {
 		pageCommons
 		Leaderboard struct {
-			Entries []dataobjects.PPLeaderboardEntry
+			Entries []types.PPLeaderboardEntry
 		}
 	}{}
 	p.pageCommons, err = initPageCommons(tx, w, r, "Classificações globais", session, player)
@@ -202,18 +202,18 @@ func leaderboardsAllTimePage(w http.ResponseWriter, r *http.Request) {
 
 	start := time.Time{}
 	end := time.Now()
-	entries, err := dataobjects.PPLeaderboardBetween(tx, start, end, 50, 2, player)
+	entries, err := types.PPLeaderboardBetween(tx, start, end, 50, 2, player)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	if len(entries) == 1 && entries[0].Position == 0 {
 		// avoid showing just this player in the 0th place
-		entries = []dataobjects.PPLeaderboardEntry{}
+		entries = []types.PPLeaderboardEntry{}
 	}
 
 	p.Leaderboard = struct {
-		Entries []dataobjects.PPLeaderboardEntry
+		Entries []types.PPLeaderboardEntry
 	}{
 		Entries: entries,
 	}

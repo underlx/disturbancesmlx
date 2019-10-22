@@ -2,13 +2,13 @@ package discordbot
 
 import (
 	"github.com/gbl08ma/ankiddie"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // CommandReceiver is used to send commands and exchange information with the code that set up a bot
 type CommandReceiver interface {
 	// NewLineStatus is called when the bot wants to add a new line status
-	NewLineStatus(status *dataobjects.Status)
+	NewLineStatus(status *types.Status)
 
 	// ControlScraper is called when the bot wants to start/stop/change a scraper
 	ControlScraper(scraper string, enable bool, messageCallback func(message string))
@@ -17,10 +17,10 @@ type CommandReceiver interface {
 	ControlNotifs(notifType string, enable bool)
 
 	// CastDisturbanceVote is called when the bot wants to cast a disturbance vote
-	CastDisturbanceVote(line *dataobjects.Line, weight int)
+	CastDisturbanceVote(line *types.Line, weight int)
 
 	// ClearDisturbanceVotes is called when the bot wants to clear disturbance votes
-	ClearDisturbanceVotes(line *dataobjects.Line)
+	ClearDisturbanceVotes(line *types.Line)
 
 	// GetDisturbanceVotes is called when the bot wants to show current disturbance report status
 	GetDisturbanceVotes(messageCallback func(message string))

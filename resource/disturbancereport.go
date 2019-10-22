@@ -2,14 +2,14 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/posplay"
 	"github.com/yarf-framework/yarf"
 )
 
 // ReportHandler handles user reports such as service disturbances
 type ReportHandler interface {
-	HandleLineDisturbanceReport(report *dataobjects.LineDisturbanceReport) error
+	HandleLineDisturbanceReport(report *types.LineDisturbanceReport) error
 }
 
 // DisturbanceReport composites resource
@@ -61,14 +61,14 @@ func (r *DisturbanceReport) Post(c *yarf.Context) error {
 	}
 	defer tx.Commit() // read-only tx
 
-	line, err := dataobjects.GetLine(tx, request.LineID)
+	line, err := types.GetLine(tx, request.LineID)
 	if err != nil {
 		return err
 	}
 
 	// TODO validate categories once we use categories for anything
 
-	report := dataobjects.NewLineDisturbanceReportThroughAPI(pair, line, request.Category)
+	report := types.NewLineDisturbanceReportThroughAPI(pair, line, request.Category)
 	err = r.reportHandler.HandleLineDisturbanceReport(report)
 
 	if err == nil {

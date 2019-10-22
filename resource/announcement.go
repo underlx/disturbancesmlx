@@ -4,19 +4,19 @@ import (
 	"sort"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
 // Announcement composites resource
 type Announcement struct {
 	resource
-	annStore dataobjects.AnnouncementStore
+	annStore types.AnnouncementStore
 }
 
 type apiAnnouncement struct {
 	Time     time.Time            `msgpack:"time" json:"time"`
-	Network  *dataobjects.Network `msgpack:"-" json:"-"`
+	Network  *types.Network `msgpack:"-" json:"-"`
 	Title    string               `msgpack:"title" json:"title"`
 	Body     string               `msgpack:"body" json:"body"`
 	ImageURL string               `msgpack:"imageURL" json:"imageURL"`
@@ -30,14 +30,14 @@ type apiAnnouncementWrapper struct {
 }
 
 // WithAnnouncementStore associates an AnnouncementStore with this resource
-func (r *Announcement) WithAnnouncementStore(store dataobjects.AnnouncementStore) *Announcement {
+func (r *Announcement) WithAnnouncementStore(store types.AnnouncementStore) *Announcement {
 	r.annStore = store
 	return r
 }
 
 // Get serves HTTP GET requests on this resource
 func (r *Announcement) Get(c *yarf.Context) error {
-	var anns []*dataobjects.Announcement
+	var anns []*types.Announcement
 
 	if c.Param("source") != "" {
 		anns = r.annStore.SourceAnnouncements(c.Param("source"))

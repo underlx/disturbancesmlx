@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 func profilePage(w http.ResponseWriter, r *http.Request) {
@@ -28,9 +28,9 @@ func profilePage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit() // read-only tx
 
-	var player *dataobjects.PPPlayer
+	var player *types.PPPlayer
 	if session != nil {
-		player, err = dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+		player, err = types.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
 		if err != nil {
 			config.Log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -38,7 +38,7 @@ func profilePage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	profile, err := dataobjects.GetPPPlayer(tx, uidConvS(mux.Vars(r)["id"]))
+	profile, err := types.GetPPPlayer(tx, uidConvS(mux.Vars(r)["id"]))
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -48,16 +48,16 @@ func profilePage(w http.ResponseWriter, r *http.Request) {
 		pageCommons
 
 		ShowAsPrivate      bool
-		ProfilePlayer      *dataobjects.PPPlayer
+		ProfilePlayer      *types.PPPlayer
 		ProfileXP          int
 		ProfileLevel       int
-		AllTimeLeaderboard []dataobjects.PPLeaderboardEntry
-		WeekLeaderboard    []dataobjects.PPLeaderboardEntry
-		Achieved           []*dataobjects.PPAchievement
-		AchievedPlayer     map[string]*dataobjects.PPPlayerAchievement
+		AllTimeLeaderboard []types.PPLeaderboardEntry
+		WeekLeaderboard    []types.PPLeaderboardEntry
+		Achieved           []*types.PPAchievement
+		AchievedPlayer     map[string]*types.PPPlayerAchievement
 	}{
 		ProfilePlayer:  profile,
-		AchievedPlayer: make(map[string]*dataobjects.PPPlayerAchievement),
+		AchievedPlayer: make(map[string]*types.PPPlayerAchievement),
 	}
 
 	switch profile.ProfilePrivacy {
@@ -85,31 +85,31 @@ func profilePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// leaderboards
-	mustIncludes := []*dataobjects.PPPlayer{profile}
+	mustIncludes := []*types.PPPlayer{profile}
 	if player != nil {
 		mustIncludes = append(mustIncludes, player)
 	}
 
-	entries, err := dataobjects.PPLeaderboardBetween(tx, time.Time{}, time.Now(), 3, 1, mustIncludes...)
+	entries, err := types.PPLeaderboardBetween(tx, time.Time{}, time.Now(), 3, 1, mustIncludes...)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	if len(entries) == 1 && entries[0].Position == 0 {
 		// avoid showing just this player in the 0th place
-		entries = []dataobjects.PPLeaderboardEntry{}
+		entries = []types.PPLeaderboardEntry{}
 	}
 
 	p.AllTimeLeaderboard = entries
 
-	weekEntries, err := dataobjects.PPLeaderboardBetween(tx, WeekStart(), time.Now(), 3, 1, mustIncludes...)
+	weekEntries, err := types.PPLeaderboardBetween(tx, WeekStart(), time.Now(), 3, 1, mustIncludes...)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	if len(weekEntries) == 1 && weekEntries[0].Position == 0 {
 		// avoid showing just this player in the 0th place
-		weekEntries = []dataobjects.PPLeaderboardEntry{}
+		weekEntries = []types.PPLeaderboardEntry{}
 	}
 
 	p.WeekLeaderboard = weekEntries
@@ -165,9 +165,9 @@ func profileAchievementsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit() // read-only tx
 
-	var player *dataobjects.PPPlayer
+	var player *types.PPPlayer
 	if session != nil {
-		player, err = dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+		player, err = types.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
 		if err != nil {
 			config.Log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -175,7 +175,7 @@ func profileAchievementsPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	profile, err := dataobjects.GetPPPlayer(tx, uidConvS(mux.Vars(r)["id"]))
+	profile, err := types.GetPPPlayer(tx, uidConvS(mux.Vars(r)["id"]))
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -185,14 +185,14 @@ func profileAchievementsPage(w http.ResponseWriter, r *http.Request) {
 		pageCommons
 
 		ShowAsPrivate  bool
-		ProfilePlayer  *dataobjects.PPPlayer
+		ProfilePlayer  *types.PPPlayer
 		ProfileXP      int
 		ProfileLevel   int
-		Achieved       []*dataobjects.PPAchievement
-		AchievedPlayer map[string]*dataobjects.PPPlayerAchievement
+		Achieved       []*types.PPAchievement
+		AchievedPlayer map[string]*types.PPPlayerAchievement
 	}{
 		ProfilePlayer:  profile,
-		AchievedPlayer: make(map[string]*dataobjects.PPPlayerAchievement),
+		AchievedPlayer: make(map[string]*types.PPPlayerAchievement),
 	}
 
 	switch profile.ProfilePrivacy {

@@ -8,7 +8,7 @@ import (
 	"github.com/gbl08ma/ankiddie"
 	"github.com/gbl08ma/sqalx"
 	"github.com/underlx/disturbancesmlx/compute"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/discordbot"
 	"github.com/underlx/disturbancesmlx/mqttgateway"
 	"github.com/underlx/disturbancesmlx/posplay"
@@ -52,7 +52,7 @@ func (ai *ankoInterop) ConfigurePackages(packages map[string]map[string]reflect.
 	}
 
 	processPkg(pkgInfo{"compute", compute.Types, compute.Functions, compute.Consts, compute.Variables})
-	processPkg(pkgInfo{"dataobjects", dataobjects.Types, dataobjects.Functions, dataobjects.Consts, dataobjects.Variables})
+	processPkg(pkgInfo{"types", types.Types, types.Functions, types.Consts, types.Variables})
 	processPkg(pkgInfo{"discordbot", discordbot.Types, discordbot.Functions, discordbot.Consts, discordbot.Variables})
 	processPkg(pkgInfo{"resource", resource.Types, resource.Functions, resource.Consts, resource.Variables})
 	processPkg(pkgInfo{"posplay", posplay.Types, posplay.Functions, posplay.Consts, posplay.Variables})
@@ -89,7 +89,7 @@ func (ai *ankoInterop) ConfigurePackages(packages map[string]map[string]reflect.
 }
 
 func (ai *ankoInterop) GetScript(id string) (*ankiddie.Script, error) {
-	script, err := dataobjects.GetScript(ai.node, id)
+	script, err := types.GetScript(ai.node, id)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (ai *ankoInterop) GetScript(id string) (*ankiddie.Script, error) {
 }
 
 func (ai *ankoInterop) GetAutorunScripts(autorunLevel int) ([]*ankiddie.Script, error) {
-	scripts, err := dataobjects.GetAutorunScriptsWithType(ai.node, "anko", autorunLevel)
+	scripts, err := types.GetAutorunScriptsWithType(ai.node, "anko", autorunLevel)
 	if err != nil {
 		return []*ankiddie.Script{}, err
 	}
@@ -117,7 +117,7 @@ func (ai *ankoInterop) StoreScript(script *ankiddie.Script) error {
 	}
 	defer tx.Rollback()
 
-	s := dataobjects.Script(*script)
+	s := types.Script(*script)
 	err = s.Update(tx)
 	if err != nil {
 		return err

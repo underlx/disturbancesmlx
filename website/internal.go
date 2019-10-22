@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/underlx/disturbancesmlx/compute"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/discordbot"
 	"github.com/underlx/disturbancesmlx/utils"
 )
@@ -54,7 +54,7 @@ func InternalPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	n, err := types.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

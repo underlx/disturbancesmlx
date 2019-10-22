@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -12,9 +12,9 @@ type Transfer struct {
 }
 
 type apiTransfer struct {
-	Station        *dataobjects.Station `msgpack:"-" json:"-"`
-	From           *dataobjects.Line    `msgpack:"-" json:"-"`
-	To             *dataobjects.Line    `msgpack:"-" json:"-"`
+	Station        *types.Station `msgpack:"-" json:"-"`
+	From           *types.Line    `msgpack:"-" json:"-"`
+	To             *types.Line    `msgpack:"-" json:"-"`
 	TypicalSeconds int                  `msgpack:"typS" json:"typS"`
 }
 
@@ -40,7 +40,7 @@ func (r *Transfer) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	if c.Param("station") != "" && c.Param("from") != "" && c.Param("to") != "" {
-		transfer, err := dataobjects.GetTransfer(tx, c.Param("station"), c.Param("from"), c.Param("to"))
+		transfer, err := types.GetTransfer(tx, c.Param("station"), c.Param("from"), c.Param("to"))
 		if err != nil {
 			return err
 		}
@@ -53,7 +53,7 @@ func (r *Transfer) Get(c *yarf.Context) error {
 
 		RenderData(c, data, "s-maxage=10")
 	} else {
-		transfers, err := dataobjects.GetTransfers(tx)
+		transfers, err := types.GetTransfers(tx)
 		if err != nil {
 			return err
 		}

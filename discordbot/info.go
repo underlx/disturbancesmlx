@@ -13,7 +13,7 @@ import (
 
 	"github.com/gbl08ma/sqalx"
 	cedar "github.com/iohub/Ahocorasick"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -193,7 +193,7 @@ func (i *InfoHandler) buildWordMap() error {
 
 	// POIs before stations so all stations work (there's a POI named "estação de santa apolónia")
 	// otherwise the POI keys would overwrite some station keys
-	pois, err := dataobjects.GetPOIs(tx)
+	pois, err := types.GetPOIs(tx)
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (i *InfoHandler) buildWordMap() error {
 			poi.Names[poi.MainLocale])
 	}
 
-	networks, err := dataobjects.GetNetworks(tx)
+	networks, err := types.GetNetworks(tx)
 	if err != nil {
 		return err
 	}
@@ -221,7 +221,7 @@ func (i *InfoHandler) buildWordMap() error {
 			network.ID)
 	}
 
-	lines, err := dataobjects.GetLines(tx)
+	lines, err := types.GetLines(tx)
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ func (i *InfoHandler) buildWordMap() error {
 			"linha "+line.Name)
 	}
 
-	stations, err := dataobjects.GetStations(tx)
+	stations, err := types.GetStations(tx)
 	if err != nil {
 		return err
 	}
@@ -261,7 +261,7 @@ func (i *InfoHandler) buildWordMap() error {
 			wtriggers...)
 	}
 
-	lobbies, err := dataobjects.GetLobbies(tx)
+	lobbies, err := types.GetLobbies(tx)
 	if err != nil {
 		return err
 	}

@@ -7,12 +7,12 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/discordbot"
 )
 
-var allAchievements []*dataobjects.PPAchievement
-var allAchievementsByID map[string]*dataobjects.PPAchievement
+var allAchievements []*types.PPAchievement
+var allAchievementsByID map[string]*types.PPAchievement
 var allAchievementsMutex sync.RWMutex
 
 // ReloadAchievements reloads the achievement cache
@@ -24,8 +24,8 @@ func ReloadAchievements() error {
 	defer tx.Commit() // read-only tx
 
 	allAchievementsMutex.Lock()
-	allAchievementsByID = make(map[string]*dataobjects.PPAchievement)
-	allAchievements, err = dataobjects.GetPPAchievements(tx)
+	allAchievementsByID = make(map[string]*types.PPAchievement)
+	allAchievements, err = types.GetPPAchievements(tx)
 	for _, a := range allAchievements {
 		allAchievementsByID[a.ID] = a
 	}
@@ -33,14 +33,14 @@ func ReloadAchievements() error {
 	return err
 }
 
-func achieveAchievement(tx sqalx.Node, player *dataobjects.PPPlayer, achievement *dataobjects.PPAchievement, achievedTime time.Time) error {
+func achieveAchievement(tx sqalx.Node, player *types.PPPlayer, achievement *types.PPAchievement, achievedTime time.Time) error {
 	tx, err := tx.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	pach := dataobjects.PPPlayerAchievement{
+	pach := types.PPPlayerAchievement{
 		DiscordID:    player.DiscordID,
 		Achievement:  achievement,
 		Achieved:     true,
@@ -61,18 +61,18 @@ func achieveAchievement(tx sqalx.Node, player *dataobjects.PPPlayer, achievement
 	}
 
 	// notification sending code
-	sendDiscordNotif, err := dataobjects.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeAchievementAchieved, NotificationMethodDiscordDM, NotificationDefaults)
+	sendDiscordNotif, err := types.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeAchievementAchieved, NotificationMethodDiscordDM, NotificationDefaults)
 	if err != nil {
 		return err
 	}
 
-	sendAppNotif, err := dataobjects.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeAchievementAchieved, NotificationMethodAppNotif, NotificationDefaults)
+	sendAppNotif, err := types.GetPPNotificationSetting(tx, player.DiscordID, NotificationTypeAchievementAchieved, NotificationMethodAppNotif, NotificationDefaults)
 	if err != nil {
 		return err
 	}
-	var appNotifPair *dataobjects.APIPair
+	var appNotifPair *types.APIPair
 	if sendAppNotif {
-		pair, err := dataobjects.GetPPPair(tx, player.DiscordID)
+		pair, err := types.GetPPPair(tx, player.DiscordID)
 		if err != nil {
 			// app notification setting enabled, but the user doesn't have an associated app
 			sendAppNotif = false
@@ -106,10 +106,10 @@ func achieveAchievement(tx sqalx.Node, player *dataobjects.PPPlayer, achievement
 	return tx.Commit()
 }
 
-func forEachAchievementWithIDorPair(tx sqalx.Node, discordID uint64, pairKey string, doFunc func(context *dataobjects.PPAchievementContext)) error {
+func forEachAchievementWithIDorPair(tx sqalx.Node, discordID uint64, pairKey string, doFunc func(context *types.PPAchievementContext)) error {
 	if discordID == 0 && pairKey != "" {
 		// is this submitter even linked with a PosPlay account?
-		pair, err := dataobjects.GetPPPairForKey(tx, pairKey)
+		pair, err := types.GetPPPairForKey(tx, pairKey)
 		if err != nil {
 			// the answer is no, move on
 			return nil
@@ -117,7 +117,7 @@ func forEachAchievementWithIDorPair(tx sqalx.Node, discordID uint64, pairKey str
 		discordID = pair.DiscordID
 	}
 
-	player, err := dataobjects.GetPPPlayer(tx, discordID)
+	player, err := types.GetPPPlayer(tx, discordID)
 	if err != nil {
 		return err
 	}
@@ -125,8 +125,8 @@ func forEachAchievementWithIDorPair(tx sqalx.Node, discordID uint64, pairKey str
 	return forEachAchievement(tx, player, doFunc)
 }
 
-func forEachAchievement(tx sqalx.Node, player *dataobjects.PPPlayer, doFunc func(context *dataobjects.PPAchievementContext)) error {
-	context := dataobjects.PPAchievementContext{
+func forEachAchievement(tx sqalx.Node, player *types.PPPlayer, doFunc func(context *types.PPAchievementContext)) error {
+	context := types.PPAchievementContext{
 		Node:   tx,
 		Player: player,
 	}
@@ -134,7 +134,7 @@ func forEachAchievement(tx sqalx.Node, player *dataobjects.PPPlayer, doFunc func
 	cacheMap := make(map[string]*sync.Map)
 
 	allAchievementsMutex.RLock()
-	achCopy := make([]*dataobjects.PPAchievement, len(allAchievements))
+	achCopy := make([]*types.PPAchievement, len(allAchievements))
 	copy(achCopy, allAchievements)
 	allAchievementsMutex.RUnlock()
 
@@ -159,12 +159,12 @@ func processTripForAchievements(id string) error {
 	}
 	defer tx.Rollback()
 
-	trip, err := dataobjects.GetTrip(tx, id)
+	trip, err := types.GetTrip(tx, id)
 	if err != nil {
 		return err
 	}
 
-	forEachAchievementWithIDorPair(tx, 0, trip.Submitter.Key, func(context *dataobjects.PPAchievementContext) {
+	forEachAchievementWithIDorPair(tx, 0, trip.Submitter.Key, func(context *types.PPAchievementContext) {
 		context.Achievement.Strategy.HandleTrip(context, trip)
 	})
 
@@ -178,19 +178,19 @@ func processTripEditForAchievements(id string) error {
 	}
 	defer tx.Rollback()
 
-	trip, err := dataobjects.GetTrip(tx, id)
+	trip, err := types.GetTrip(tx, id)
 	if err != nil {
 		return err
 	}
 
-	forEachAchievementWithIDorPair(tx, 0, trip.Submitter.Key, func(context *dataobjects.PPAchievementContext) {
+	forEachAchievementWithIDorPair(tx, 0, trip.Submitter.Key, func(context *types.PPAchievementContext) {
 		context.Achievement.Strategy.HandleTripEdit(context, trip)
 	})
 
 	return tx.Commit()
 }
 
-func processReportForAchievements(report dataobjects.Report) error {
+func processReportForAchievements(report types.Report) error {
 	tx, err := config.Node.Beginx()
 	if err != nil {
 		return err
@@ -198,8 +198,8 @@ func processReportForAchievements(report dataobjects.Report) error {
 	defer tx.Rollback()
 
 	switch r := report.(type) {
-	case *dataobjects.LineDisturbanceReport:
-		forEachAchievementWithIDorPair(tx, 0, report.Submitter().Key, func(context *dataobjects.PPAchievementContext) {
+	case *types.LineDisturbanceReport:
+		forEachAchievementWithIDorPair(tx, 0, report.Submitter().Key, func(context *types.PPAchievementContext) {
 			context.Achievement.Strategy.HandleDisturbanceReport(context, r)
 		})
 	}
@@ -214,12 +214,12 @@ func processXPTxForAchievements(id string, actualValueDiff int) error {
 	}
 	defer tx.Rollback()
 
-	xptx, err := dataobjects.GetPPXPTransaction(tx, id)
+	xptx, err := types.GetPPXPTransaction(tx, id)
 	if err != nil {
 		return err
 	}
 
-	forEachAchievementWithIDorPair(tx, xptx.DiscordID, "", func(context *dataobjects.PPAchievementContext) {
+	forEachAchievementWithIDorPair(tx, xptx.DiscordID, "", func(context *types.PPAchievementContext) {
 		context.Achievement.Strategy.HandleXPTransaction(context, xptx, actualValueDiff)
 	})
 

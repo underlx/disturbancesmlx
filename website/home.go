@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/rickb777/date"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // HomePage serves the home page
@@ -20,7 +20,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	n, err := types.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -35,7 +35,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 		LinesExtra []struct {
 			DayCounts       []int
 			HourCounts      []int
-			LastDisturbance *dataobjects.Disturbance
+			LastDisturbance *types.Disturbance
 			Availability    string
 			AvgDuration     string
 		}
@@ -92,7 +92,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 	p.LinesExtra = make([]struct {
 		DayCounts       []int
 		HourCounts      []int
-		LastDisturbance *dataobjects.Disturbance
+		LastDisturbance *types.Disturbance
 		Availability    string
 		AvgDuration     string
 	}, len(lines))

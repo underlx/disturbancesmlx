@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // ErrInfoNotReady is returned when the requested information is not yet available
@@ -28,19 +28,19 @@ func init() {
 // AverageSpeed returns the average service speed in km/h
 // based on the trips in the specified time range
 func AverageSpeed(node sqalx.Node, fromTime time.Time, toTime time.Time, yieldFor time.Duration) (float64, error) {
-	return AverageSpeedFilter(node, fromTime, toTime, yieldFor, func(trip *dataobjects.Trip) bool { return true })
+	return AverageSpeedFilter(node, fromTime, toTime, yieldFor, func(trip *types.Trip) bool { return true })
 }
 
 // AverageSpeedFilter returns the average service speed in km/h
 // based on the trips in the specified time range that match the provided filter
-func AverageSpeedFilter(node sqalx.Node, fromTime time.Time, toTime time.Time, yieldFor time.Duration, filter func(trip *dataobjects.Trip) bool) (float64, error) {
+func AverageSpeedFilter(node sqalx.Node, fromTime time.Time, toTime time.Time, yieldFor time.Duration, filter func(trip *types.Trip) bool) (float64, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Commit() // read-only tx
 
-	tripIDs, err := dataobjects.GetTripIDsBetween(tx, fromTime, toTime)
+	tripIDs, err := types.GetTripIDsBetween(tx, fromTime, toTime)
 	if err != nil {
 		return 0, err
 	}
@@ -52,7 +52,7 @@ func AverageSpeedFilter(node sqalx.Node, fromTime time.Time, toTime time.Time, y
 	var totalTime time.Duration
 	var totalDistance int64
 
-	processTrip := func(trip *dataobjects.Trip) {
+	processTrip := func(trip *types.Trip) {
 		if !filter(trip) {
 			return
 		}
@@ -65,10 +65,10 @@ func AverageSpeedFilter(node sqalx.Node, fromTime time.Time, toTime time.Time, y
 	}
 
 	// instantiate each trip from DB individually
-	// (instead of using dataobjects.GetTrips)
+	// (instead of using types.GetTrips)
 	// to reduce memory usage
 	for _, tripID := range tripIDs {
-		trip, err := dataobjects.GetTrip(tx, tripID)
+		trip, err := types.GetTrip(tx, tripID)
 		if err != nil {
 			return 0, err
 		}

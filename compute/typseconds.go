@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // UpdateTypicalSeconds calculates and updates the TypicalSeconds
@@ -21,30 +21,30 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 	defer tx.Rollback()
 
 	startTime := time.Now().AddDate(0, -1, 0)
-	tripIDs, err := dataobjects.GetTripIDsBetween(tx, startTime, time.Now())
+	tripIDs, err := types.GetTripIDsBetween(tx, startTime, time.Now())
 	if err != nil {
 		return err
 	}
 
 	mainLog.Printf("UpdateTypicalSeconds: %d trip IDs\n", len(tripIDs))
 
-	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
+	// we can use pointers as keys in the following maps because types implements an internal cache
 	// that ensures the pointers to the transfers stay the same throughout this transaction
 	// (i.e. only one instance of each transfer is brought into memory)
-	transferAvgNumerator := make(map[*dataobjects.Transfer]float64)
-	transferAvgDenominator := make(map[*dataobjects.Transfer]float64)
+	transferAvgNumerator := make(map[*types.Transfer]float64)
+	transferAvgDenominator := make(map[*types.Transfer]float64)
 
-	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
+	// we can use pointers as keys in the following maps because types implements an internal cache
 	// that ensures the pointers to the transfers stay the same throughout this transaction
 	// (i.e. only one instance of each connection is brought into memory)
-	connectionAvgNumerator := make(map[*dataobjects.Connection]float64)
-	connectionAvgDenominator := make(map[*dataobjects.Connection]float64)
-	connectionStopAvgNumerator := make(map[*dataobjects.Connection]float64)
-	connectionStopAvgDenominator := make(map[*dataobjects.Connection]float64)
-	connectionWaitAvgNumerator := make(map[*dataobjects.Connection]float64)
-	connectionWaitAvgDenominator := make(map[*dataobjects.Connection]float64)
+	connectionAvgNumerator := make(map[*types.Connection]float64)
+	connectionAvgDenominator := make(map[*types.Connection]float64)
+	connectionStopAvgNumerator := make(map[*types.Connection]float64)
+	connectionStopAvgDenominator := make(map[*types.Connection]float64)
+	connectionWaitAvgNumerator := make(map[*types.Connection]float64)
+	connectionWaitAvgDenominator := make(map[*types.Connection]float64)
 
-	processTransfer := func(transfer *dataobjects.Transfer, use *dataobjects.StationUse) error {
+	processTransfer := func(transfer *types.Transfer, use *types.StationUse) error {
 		seconds := use.LeaveTime.Sub(use.EntryTime).Seconds()
 		// if going from one line to another took more than 15 minutes,
 		// probably what really happened was that the client's clock was adjusted
@@ -56,7 +56,7 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 		return nil
 	}
 
-	processConnection := func(connection *dataobjects.Connection, sourceUse *dataobjects.StationUse, targetUse *dataobjects.StationUse) error {
+	processConnection := func(connection *types.Connection, sourceUse *types.StationUse, targetUse *types.StationUse) error {
 		seconds := targetUse.EntryTime.Sub(sourceUse.LeaveTime).Seconds()
 		// if going from one station to another took more than 10 minutes,
 		// probably what really happened was that the client's clock was adjusted
@@ -67,17 +67,17 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 		}
 
 		waitSeconds := sourceUse.LeaveTime.Sub(sourceUse.EntryTime).Seconds()
-		if sourceUse.Type == dataobjects.NetworkEntry && waitSeconds < 60*3 {
+		if sourceUse.Type == types.NetworkEntry && waitSeconds < 60*3 {
 			connectionWaitAvgNumerator[connection] += waitSeconds - 20
 			connectionWaitAvgDenominator[connection]++
-		} else if sourceUse.Type == dataobjects.GoneThrough && waitSeconds < 60*3 {
+		} else if sourceUse.Type == types.GoneThrough && waitSeconds < 60*3 {
 			connectionStopAvgNumerator[connection] += waitSeconds - 20
 			connectionStopAvgDenominator[connection]++
 		}
 		return nil
 	}
 
-	processTrip := func(trip *dataobjects.Trip) error {
+	processTrip := func(trip *types.Trip) error {
 		if len(trip.StationUses) <= 1 {
 			// station visit or invalid trip
 			// can't extract any data about connections
@@ -94,8 +94,8 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 			}
 
 			// if this is a transfer, process it
-			if sourceUse.Type == dataobjects.Interchange {
-				transfer, err := dataobjects.GetTransfer(tx, sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
+			if sourceUse.Type == types.Interchange {
+				transfer, err := types.GetTransfer(tx, sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
 				if err != nil {
 					// transfer might no longer exist (closed stations, etc.)
 					// move on
@@ -116,7 +116,7 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 				continue
 			}
 
-			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID, true)
+			connection, err := types.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID, true)
 			if err != nil {
 				// connection might no longer exist (closed stations, etc.)
 				// move on
@@ -137,10 +137,10 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 	}
 
 	// instantiate each trip from DB individually
-	// (instead of using dataobjects.GetTrips)
+	// (instead of using types.GetTrips)
 	// to reduce memory usage
 	for _, tripID := range tripIDs {
-		trip, err := dataobjects.GetTrip(tx, tripID)
+		trip, err := types.GetTrip(tx, tripID)
 		if err != nil {
 			return err
 		}
@@ -207,14 +207,14 @@ func UpdateTypicalSeconds(node sqalx.Node, yieldFor time.Duration) error {
 		// deal with edges that have different weights depending on where one
 		// "comes from"
 
-		outgoingConnections := []*dataobjects.Connection{}
+		outgoingConnections := []*types.Connection{}
 		for connection := range connectionStopAvgDenominator {
 			if connection.From.ID == transfer.Station.ID {
 				outgoingConnections = append(outgoingConnections, connection)
 			}
 		}
 
-		outgoingDestConnections := []*dataobjects.Connection{}
+		outgoingDestConnections := []*types.Connection{}
 		for _, connection := range outgoingConnections {
 			lines, err := connection.To.Lines(tx)
 			if err != nil {
@@ -276,30 +276,30 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 	}
 	defer tx.Commit() // read-only tx
 
-	tripIDs, err := dataobjects.GetTripIDsBetween(tx, startTime, endTime)
+	tripIDs, err := types.GetTripIDsBetween(tx, startTime, endTime)
 	if err != nil {
 		return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, []TypicalSecondsMinMax{}, []TypicalSecondsMinMax{}, err
 	}
 
 	mainLog.Printf("TypicalSecondsByDowAndHour: %d trip IDs\n", len(tripIDs))
 
-	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
+	// we can use pointers as keys in the following maps because types implements an internal cache
 	// that ensures the pointers to the transfers stay the same throughout this transaction
 	// (i.e. only one instance of each transfer is brought into memory)
-	transferAvgNumerator := make(map[*dataobjects.Transfer]map[time.Weekday]map[int]float64)
-	transferAvgDenominator := make(map[*dataobjects.Transfer]map[time.Weekday]map[int]int64)
-	transferMax := make(map[*dataobjects.Transfer]int64)
-	transferMin := make(map[*dataobjects.Transfer]int64)
+	transferAvgNumerator := make(map[*types.Transfer]map[time.Weekday]map[int]float64)
+	transferAvgDenominator := make(map[*types.Transfer]map[time.Weekday]map[int]int64)
+	transferMax := make(map[*types.Transfer]int64)
+	transferMin := make(map[*types.Transfer]int64)
 
-	// we can use pointers as keys in the following maps because dataobjects implements an internal cache
+	// we can use pointers as keys in the following maps because types implements an internal cache
 	// that ensures the pointers to the transfers stay the same throughout this transaction
 	// (i.e. only one instance of each connection is brought into memory)
-	connectionAvgNumerator := make(map[*dataobjects.Connection]map[time.Weekday]map[int]float64)
-	connectionAvgDenominator := make(map[*dataobjects.Connection]map[time.Weekday]map[int]int64)
-	connectionMax := make(map[*dataobjects.Connection]int64)
-	connectionMin := make(map[*dataobjects.Connection]int64)
+	connectionAvgNumerator := make(map[*types.Connection]map[time.Weekday]map[int]float64)
+	connectionAvgDenominator := make(map[*types.Connection]map[time.Weekday]map[int]int64)
+	connectionMax := make(map[*types.Connection]int64)
+	connectionMin := make(map[*types.Connection]int64)
 
-	processTransfer := func(transfer *dataobjects.Transfer, use *dataobjects.StationUse) error {
+	processTransfer := func(transfer *types.Transfer, use *types.StationUse) error {
 		seconds := use.LeaveTime.Sub(use.EntryTime).Seconds()
 		// if going from one line to another took more than 15 minutes,
 		// probably what really happened was that the client's clock was adjusted
@@ -327,7 +327,7 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 		return nil
 	}
 
-	processConnection := func(connection *dataobjects.Connection, sourceUse *dataobjects.StationUse, targetUse *dataobjects.StationUse) error {
+	processConnection := func(connection *types.Connection, sourceUse *types.StationUse, targetUse *types.StationUse) error {
 		seconds := targetUse.EntryTime.Sub(sourceUse.LeaveTime).Seconds()
 		waitSeconds := sourceUse.LeaveTime.Sub(sourceUse.EntryTime).Seconds()
 		// if going from one station to another took more than 15 minutes,
@@ -357,7 +357,7 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 		return nil
 	}
 
-	processTrip := func(trip *dataobjects.Trip) error {
+	processTrip := func(trip *types.Trip) error {
 		if len(trip.StationUses) <= 1 {
 			// station visit or invalid trip
 			// can't extract any data about connections
@@ -374,8 +374,8 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 			}
 
 			// if this is a transfer, process it
-			if sourceUse.Type == dataobjects.Interchange {
-				transfer, err := dataobjects.GetTransfer(tx, sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
+			if sourceUse.Type == types.Interchange {
+				transfer, err := types.GetTransfer(tx, sourceUse.Station.ID, sourceUse.SourceLine.ID, sourceUse.TargetLine.ID)
 				if err != nil {
 					// transfer might no longer exist (closed stations, etc.)
 					// move on
@@ -396,7 +396,7 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 				continue
 			}
 
-			connection, err := dataobjects.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID, true)
+			connection, err := types.GetConnection(tx, sourceUse.Station.ID, targetUse.Station.ID, true)
 			if err != nil {
 				// connection might no longer exist (closed stations, etc.)
 				// move on
@@ -417,10 +417,10 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 	}
 
 	// instantiate each trip from DB individually
-	// (instead of using dataobjects.GetTrips)
+	// (instead of using types.GetTrips)
 	// to reduce memory usage
 	for i, tripID := range tripIDs {
-		trip, err := dataobjects.GetTrip(tx, tripID)
+		trip, err := types.GetTrip(tx, tripID)
 		if err != nil {
 			return []TypicalSecondsEntry{}, []TypicalSecondsEntry{}, []TypicalSecondsMinMax{}, []TypicalSecondsMinMax{}, err
 		}
@@ -434,7 +434,7 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 		}
 	}
 
-	connections := []*dataobjects.Connection{}
+	connections := []*types.Connection{}
 	for connection := range connectionAvgDenominator {
 		connections = append(connections, connection)
 	}
@@ -472,7 +472,7 @@ func TypicalSecondsByDowAndHour(node sqalx.Node, startTime, endTime time.Time) (
 		})
 	}
 
-	transfers := []*dataobjects.Transfer{}
+	transfers := []*types.Transfer{}
 	for transfer := range transferAvgDenominator {
 		transfers = append(transfers, transfer)
 	}

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 var rootSqalxNode sqalx.Node
@@ -36,7 +36,7 @@ func TripsScatterplotNumTripsVsAvgSpeed(node sqalx.Node, fromTime time.Time, toT
 	}
 	defer tx.Commit() // read-only tx
 
-	tripIDs, err := dataobjects.GetTripIDsBetween(tx, fromTime, toTime)
+	tripIDs, err := types.GetTripIDsBetween(tx, fromTime, toTime)
 	if err != nil {
 		return []TripsScatterplotNumTripsVsAvgSpeedPoint{}, err
 	}
@@ -53,11 +53,11 @@ func TripsScatterplotNumTripsVsAvgSpeed(node sqalx.Node, fromTime time.Time, toT
 		}
 		defer tx.Commit() // read-only tx
 		// instantiate each trip from DB individually
-		// (instead of using dataobjects.GetTrips)
+		// (instead of using types.GetTrips)
 		// to reduce memory usage
 		thisPoints := []TripsScatterplotNumTripsVsAvgSpeedPoint{}
 		for _, tripID := range tripIDsPart {
-			trip, err := dataobjects.GetTrip(tx, tripID)
+			trip, err := types.GetTrip(tx, tripID)
 			if err != nil {
 				return []TripsScatterplotNumTripsVsAvgSpeedPoint{}, err
 			}

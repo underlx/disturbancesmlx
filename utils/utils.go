@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/hako/durafmt"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // SupportedLocales contains the supported locales for extra and meta content
@@ -144,7 +144,7 @@ func FormatPortugueseDurationLong(d time.Duration) string {
 }
 
 // ComputeStationTriviaURLs returns a mapping from locales to URLs of the HTML file containing the trivia for the given station
-func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
+func ComputeStationTriviaURLs(station *types.Station) map[string]string {
 	m := make(map[string]string)
 	for _, locale := range SupportedLocales {
 		m[locale] = "stationkb/trivia/" + station.ID + "-" + locale + ".html"
@@ -154,7 +154,7 @@ func ComputeStationTriviaURLs(station *dataobjects.Station) map[string]string {
 
 // StationConnectionURLs returns a mapping from locales to connection types to URLs
 // of the HTML files containing the connection info for the given station
-func StationConnectionURLs(station *dataobjects.Station) map[string]map[string]string {
+func StationConnectionURLs(station *types.Station) map[string]map[string]string {
 	m := make(map[string]map[string]string)
 	connections := []string{"boat", "bus", "train", "park", "bike"}
 	for _, locale := range SupportedLocales {
@@ -172,11 +172,11 @@ func StationConnectionURLs(station *dataobjects.Station) map[string]map[string]s
 }
 
 // SchedulesToLines converts a lobby schedule to a set of human-readable lines
-func SchedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
-	schedulesByDay := make(map[int]*dataobjects.LobbySchedule)
+func SchedulesToLines(schedules []*types.LobbySchedule) []string {
+	schedulesByDay := make(map[int]*types.LobbySchedule)
 	exceptions := []struct {
 		day      int
-		schedule *dataobjects.LobbySchedule
+		schedule *types.LobbySchedule
 	}{}
 	for _, schedule := range schedules {
 		if schedule.Holiday && schedule.Day == 0 {
@@ -186,7 +186,7 @@ func SchedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 		} else {
 			exceptions = append(exceptions, struct {
 				day      int
-				schedule *dataobjects.LobbySchedule
+				schedule *types.LobbySchedule
 			}{schedule.Day, schedule})
 		}
 	}
@@ -249,7 +249,7 @@ func SchedulesToLines(schedules []*dataobjects.LobbySchedule) []string {
 
 	return scheduleString
 }
-func scheduleToString(schedule *dataobjects.LobbySchedule) string {
+func scheduleToString(schedule *types.LobbySchedule) string {
 	if !schedule.Open {
 		return "encerrado"
 	}
@@ -266,7 +266,7 @@ func scheduleToString(schedule *dataobjects.LobbySchedule) string {
 }
 
 // DisturbanceReasonString returns a short human-friendly string explaining why a disturbance happened/what it is related to
-func DisturbanceReasonString(disturbance *dataobjects.Disturbance, alwaysReturn bool) string {
+func DisturbanceReasonString(disturbance *types.Disturbance, alwaysReturn bool) string {
 	categories := disturbance.Categories()
 	if len(categories) == 0 {
 		if alwaysReturn {
@@ -288,43 +288,43 @@ func DisturbanceReasonString(disturbance *dataobjects.Disturbance, alwaysReturn 
 	for index, category := range categories {
 		isLast := index == count-1
 		switch category {
-		case dataobjects.SignalFailureCategory:
+		case types.SignalFailureCategory:
 			addReason()
 			result += " avaria na sinalização"
 			if !isLast {
 				result += ","
 			}
-		case dataobjects.TrainFailureCategory:
+		case types.TrainFailureCategory:
 			addReason()
 			result += " avaria de comboio"
 			if !isLast {
 				result += ","
 			}
-		case dataobjects.PowerOutageCategory:
+		case types.PowerOutageCategory:
 			addReason()
 			result += " falha de energia"
 			if !isLast {
 				result += ","
 			}
-		case dataobjects.ThirdPartyFaultCategory:
+		case types.ThirdPartyFaultCategory:
 			addReason()
 			result += " causa alheia"
 			if !isLast {
 				result += ","
 			}
-		case dataobjects.PassengerIncidentCategory:
+		case types.PassengerIncidentCategory:
 			addReason()
 			result += " incidente com passageiro"
 			if !isLast {
 				result += ","
 			}
-		case dataobjects.StationAnomalyCategory:
+		case types.StationAnomalyCategory:
 			addReason()
 			result += " anomalia na estação"
 			if !isLast {
 				result += ","
 			}
-		case dataobjects.CommunityReportedCategory:
+		case types.CommunityReportedCategory:
 			// do not add reason
 			result += " comunicada pela comunidade de utilizadores"
 			if !isLast {

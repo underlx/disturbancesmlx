@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // SimulateRealtime looks at trips to compute a stream of entry beacons,
@@ -19,7 +19,7 @@ func SimulateRealtime(node sqalx.Node, fromTime time.Time, toTime time.Time, wri
 	}
 	defer tx.Commit() // read-only tx
 
-	tripIDs, err := dataobjects.GetTripIDsBetween(tx, fromTime, toTime)
+	tripIDs, err := types.GetTripIDsBetween(tx, fromTime, toTime)
 	if err != nil {
 		return err
 	}
@@ -36,12 +36,12 @@ func SimulateRealtime(node sqalx.Node, fromTime time.Time, toTime time.Time, wri
 	}
 	entries := []RealTimeEntry{}
 
-	lines, err := dataobjects.GetLines(tx)
+	lines, err := types.GetLines(tx)
 	if err != nil {
 		return nil
 	}
 
-	processTrip := func(trip *dataobjects.Trip) error {
+	processTrip := func(trip *types.Trip) error {
 		nonManualCount := 0
 		for useIdx := 0; useIdx < len(trip.StationUses); useIdx++ {
 			curUse := trip.StationUses[useIdx]
@@ -53,7 +53,7 @@ func SimulateRealtime(node sqalx.Node, fromTime time.Time, toTime time.Time, wri
 			}
 			nonManualCount++
 
-			if curUse.Type == dataobjects.Visit {
+			if curUse.Type == types.Visit {
 				entries = append(entries, RealTimeEntry{
 					Time:        curUse.EntryTime,
 					StationID:   curUse.Station.ID,
@@ -71,7 +71,7 @@ func SimulateRealtime(node sqalx.Node, fromTime time.Time, toTime time.Time, wri
 					continue
 				}
 
-				connection, err := dataobjects.GetConnection(tx, prevUse.Station.ID, curUse.Station.ID, true)
+				connection, err := types.GetConnection(tx, prevUse.Station.ID, curUse.Station.ID, true)
 				if err != nil {
 					// connection might no longer exist (closed stations, etc.)
 					// or it might be a transfer, or we messed up reading the station uses
@@ -79,7 +79,7 @@ func SimulateRealtime(node sqalx.Node, fromTime time.Time, toTime time.Time, wri
 					continue
 				}
 
-				var direction *dataobjects.Station
+				var direction *types.Station
 
 				for _, line := range lines {
 					dir, err := line.GetDirectionForConnection(tx, connection)
@@ -110,10 +110,10 @@ func SimulateRealtime(node sqalx.Node, fromTime time.Time, toTime time.Time, wri
 	}
 
 	// instantiate each trip from DB individually
-	// (instead of using dataobjects.GetTrips)
+	// (instead of using types.GetTrips)
 	// to reduce memory usage
 	for _, tripID := range tripIDs {
-		trip, err := dataobjects.GetTrip(tx, tripID)
+		trip, err := types.GetTrip(tx, tripID)
 		if err != nil {
 			return err
 		}

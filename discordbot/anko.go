@@ -12,7 +12,7 @@ import (
 	"github.com/gbl08ma/ankiddie"
 	"github.com/gbl08ma/sqalx"
 	altmath "github.com/pkg/math"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // ScriptSystem handles scripting-related commands
@@ -74,7 +74,7 @@ func (ssys *ScriptSystem) handleRunScript(s *discordgo.Session, m *discordgo.Mes
 	}
 	defer tx.Commit() // read-only tx
 
-	script, err := dataobjects.GetScript(tx, args[0])
+	script, err := types.GetScript(tx, args[0])
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "🆖📜🆔")
 		return
@@ -304,7 +304,7 @@ func (ssys *ScriptSystem) handleDownloadScript(s *discordgo.Session, m *discordg
 			scriptName = scriptName[0 : len(scriptName)-4]
 		}
 
-		script, err := dataobjects.GetScript(tx, scriptName)
+		script, err := types.GetScript(tx, scriptName)
 		if err != nil {
 			content += "🆖📜🆔 `" + scriptName + "`\n"
 			continue
@@ -356,7 +356,7 @@ func (ssys *ScriptSystem) handleAutorunScript(s *discordgo.Session, m *discordgo
 	}
 	defer tx.Rollback()
 
-	script, err := dataobjects.GetScript(tx, args[0])
+	script, err := types.GetScript(tx, args[0])
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, "🆖📜🆔")
 		return

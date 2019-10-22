@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -16,10 +16,10 @@ type LineCondition struct {
 type apiLineCondition struct {
 	ID             string               `msgpack:"id" json:"id"`
 	Time           time.Time            `msgpack:"time" json:"time"`
-	Line           *dataobjects.Line    `msgpack:"-" json:"-"`
+	Line           *types.Line    `msgpack:"-" json:"-"`
 	TrainCars      int                  `msgpack:"trainCars" json:"trainCars"`
-	TrainFrequency dataobjects.Duration `msgpack:"trainFrequency" json:"trainFrequency"`
-	Source         *dataobjects.Source  `msgpack:"-" json:"-"`
+	TrainFrequency types.Duration `msgpack:"trainFrequency" json:"trainFrequency"`
+	Source         *types.Source  `msgpack:"-" json:"-"`
 }
 
 type apiLineConditionWrapper struct {
@@ -42,21 +42,21 @@ func (r *LineCondition) Get(c *yarf.Context) error {
 	}
 	defer tx.Commit() // read-only tx
 
-	var lineconditions []*dataobjects.LineCondition
+	var lineconditions []*types.LineCondition
 	cacheControl := "s-maxage=10"
 	latestOnly := c.Param("id") == "" && c.Request.URL.Query().Get("filter") == "latest"
 	if latestOnly {
 		cacheControl = "no-cache, no-store, must-revalidate"
 	}
 	if c.Param("lineid") != "" {
-		line, err := dataobjects.GetLine(tx, c.Param("lineid"))
+		line, err := types.GetLine(tx, c.Param("lineid"))
 		if err != nil {
 			return err
 		}
 		if latestOnly {
-			var condition *dataobjects.LineCondition
+			var condition *types.LineCondition
 			condition, err = line.LastCondition(tx)
-			lineconditions = []*dataobjects.LineCondition{condition}
+			lineconditions = []*types.LineCondition{condition}
 		} else {
 			lineconditions, err = line.Conditions(tx)
 		}
@@ -64,18 +64,18 @@ func (r *LineCondition) Get(c *yarf.Context) error {
 			return err
 		}
 	} else if c.Param("id") != "" {
-		condition, err := dataobjects.GetLineCondition(tx, c.Param("id"))
+		condition, err := types.GetLineCondition(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
-		lineconditions = []*dataobjects.LineCondition{condition}
+		lineconditions = []*types.LineCondition{condition}
 	} else if latestOnly {
 		// all latest conditions for each line
-		lines, err := dataobjects.GetLines(tx)
+		lines, err := types.GetLines(tx)
 		if err != nil {
 			return err
 		}
-		lineconditions = []*dataobjects.LineCondition{}
+		lineconditions = []*types.LineCondition{}
 		for _, line := range lines {
 			condition, err := line.LastCondition(tx)
 			if err != nil {
@@ -84,7 +84,7 @@ func (r *LineCondition) Get(c *yarf.Context) error {
 			lineconditions = append(lineconditions, condition)
 		}
 	} else {
-		lineconditions, err = dataobjects.GetLineConditions(tx)
+		lineconditions, err = types.GetLineConditions(tx)
 		if err != nil {
 			return err
 		}

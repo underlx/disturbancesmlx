@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/utils"
 	"github.com/yarf-framework/yarf"
 )
@@ -18,7 +18,7 @@ type apiStation struct {
 	AltNames []string             `msgpack:"altNames" json:"altNames"`
 	Tags     []string             `msgpack:"tags" json:"tags"`
 	LowTags  []string             `msgpack:"lowTags" json:"lowTags"`
-	Network  *dataobjects.Network `msgpack:"-" json:"-"`
+	Network  *types.Network `msgpack:"-" json:"-"`
 }
 
 type wifiWrapper struct {
@@ -61,14 +61,14 @@ func (r *Station) Get(c *yarf.Context) error {
 	}
 	defer tx.Commit() // read-only tx
 
-	var stations []*dataobjects.Station
+	var stations []*types.Station
 
 	if c.Param("id") != "" {
-		var station *dataobjects.Station
-		station, err = dataobjects.GetStation(tx, c.Param("id"))
-		stations = []*dataobjects.Station{station}
+		var station *types.Station
+		station, err = types.GetStation(tx, c.Param("id"))
+		stations = []*types.Station{station}
 	} else {
-		stations, err = dataobjects.GetStations(tx)
+		stations, err = types.GetStations(tx)
 	}
 
 	if err != nil {

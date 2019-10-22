@@ -11,7 +11,7 @@ import (
 	"github.com/gbl08ma/gmqtt"
 	"github.com/gbl08ma/gmqtt/pkg/packets"
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
@@ -191,7 +191,7 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 	}
 	defer tx.Commit() // read-only tx
 
-	stations, err := dataobjects.GetStations(tx)
+	stations, err := types.GetStations(tx)
 	if err != nil {
 		return err
 	}
@@ -218,7 +218,7 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 	return nil
 }
 
-func (g *MQTTGateway) sendStructsAccordingToAvailability(station *dataobjects.Station, structs []interface{}, isAll bool) {
+func (g *MQTTGateway) sendStructsAccordingToAvailability(station *types.Station, structs []interface{}, isAll bool) {
 	topicSuffix := ""
 	if isAll {
 		topicSuffix = "/all"
@@ -246,7 +246,7 @@ func (g *MQTTGateway) sendStructsAccordingToAvailability(station *dataobjects.St
 	}
 }
 
-func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *dataobjects.Station, numVehicles int) ([]interface{}, error) {
+func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *types.Station, numVehicles int) ([]interface{}, error) {
 	structs := []interface{}{}
 
 	directions, err := station.Directions(tx, true)
@@ -263,23 +263,23 @@ func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *dataobjects
 	return structs, nil
 }
 
-func (g *MQTTGateway) vehicleETAtoStruct(eta *dataobjects.VehicleETA) interface{} {
+func (g *MQTTGateway) vehicleETAtoStruct(eta *types.VehicleETA) interface{} {
 	if time.Since(eta.Computed) > 2*time.Minute {
 		return buildVehicleETANotAvailableStruct(eta.Direction.ID, time.Now(),
 			2*time.Minute, uint(eta.ArrivalOrder))
 	}
 	precise := eta.Precision < 30*time.Second
 	switch eta.Type {
-	case dataobjects.Absolute:
+	case types.Absolute:
 		return buildVehicleETATimestampStruct(eta.Direction.ID, eta.Computed,
 			eta.RemainingValidity(), eta.AbsoluteETA, uint(eta.ArrivalOrder))
-	case dataobjects.RelativeExact:
+	case types.RelativeExact:
 		return buildVehicleETAExactStruct(eta.Direction.ID, eta.Computed,
 			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder))
-	case dataobjects.RelativeMinimum:
+	case types.RelativeMinimum:
 		return buildVehicleETAMoreThanStruct(eta.Direction.ID, eta.Computed,
 			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder))
-	case dataobjects.RelativeMaximum:
+	case types.RelativeMaximum:
 		return buildVehicleETALessThanStruct(eta.Direction.ID, eta.Computed,
 			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder))
 	default:
@@ -295,7 +295,7 @@ func (g *MQTTGateway) SendVehicleETAForStationToClient(client *gmqtt.Client, top
 	}
 	defer tx.Commit() // read-only tx
 
-	station, err := dataobjects.GetStation(tx, stationID)
+	station, err := types.GetStation(tx, stationID)
 	if err != nil {
 		return err
 	}

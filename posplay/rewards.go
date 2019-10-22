@@ -4,7 +4,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 func processTripForReward(id string) error {
@@ -14,13 +14,13 @@ func processTripForReward(id string) error {
 	}
 	defer tx.Rollback()
 
-	trip, err := dataobjects.GetTrip(tx, id)
+	trip, err := types.GetTrip(tx, id)
 	if err != nil {
 		return err
 	}
 
 	// is this submitter even linked with a PosPlay account?
-	pair, err := dataobjects.GetPPPairForKey(tx, trip.Submitter.Key)
+	pair, err := types.GetPPPairForKey(tx, trip.Submitter.Key)
 	if err != nil {
 		// the answer is no, move on
 		return nil
@@ -32,7 +32,7 @@ func processTripForReward(id string) error {
 		return nil
 	}
 
-	player, err := dataobjects.GetPPPlayer(tx, pair.DiscordID)
+	player, err := types.GetPPPlayer(tx, pair.DiscordID)
 	if err != nil {
 		return err
 	}
@@ -55,13 +55,13 @@ func processTripForReward(id string) error {
 	return tx.Commit()
 }
 
-func computeTripXPReward(trip *dataobjects.Trip) (int, int, int, bool) {
+func computeTripXPReward(trip *types.Trip) (int, int, int, bool) {
 	visitedStations := make(map[string]bool)
 	interchanges := make(map[string]bool)
-	var network *dataobjects.Network
+	var network *types.Network
 	for _, use := range trip.StationUses {
 		visitedStations[use.Station.ID] = true
-		if use.Type == dataobjects.Interchange {
+		if use.Type == types.Interchange {
 			interchanges[use.Station.ID] = true
 		}
 		network = use.Station.Network
@@ -93,19 +93,19 @@ func processTripEditForReward(id string) error {
 	}
 	defer tx.Rollback()
 
-	trip, err := dataobjects.GetTrip(tx, id)
+	trip, err := types.GetTrip(tx, id)
 	if err != nil {
 		return err
 	}
 
 	// is this submitter even linked with a PosPlay account?
-	pair, err := dataobjects.GetPPPairForKey(tx, trip.Submitter.Key)
+	pair, err := types.GetPPPairForKey(tx, trip.Submitter.Key)
 	if err != nil {
 		// the answer is no, move on
 		return nil
 	}
 
-	player, err := dataobjects.GetPPPlayer(tx, pair.DiscordID)
+	player, err := types.GetPPPlayer(tx, pair.DiscordID)
 	if err != nil {
 		return err
 	}

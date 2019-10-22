@@ -12,7 +12,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"go.tianon.xyz/progress"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/utils"
 )
 
@@ -23,7 +23,7 @@ func buildNetworkMessage(id string) (*Embed, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	network, err := dataobjects.GetNetwork(tx, id)
+	network, err := types.GetNetwork(tx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func buildLineMessage(id string) (*Embed, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	line, err := dataobjects.GetLine(tx, id)
+	line, err := types.GetLine(tx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -256,7 +256,7 @@ func buildStationMessage(id string) (*Embed, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	station, err := dataobjects.GetStation(tx, id)
+	station, err := types.GetStation(tx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -395,7 +395,7 @@ func buildLobbyMesage(id string) (*Embed, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	lobby, err := dataobjects.GetLobby(tx, id)
+	lobby, err := types.GetLobby(tx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -466,7 +466,7 @@ func buildPOIMessage(id string) (*Embed, error) {
 	}
 	defer tx.Commit() // read-only tx
 
-	poi, err := dataobjects.GetPOI(tx, id)
+	poi, err := types.GetPOI(tx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -692,7 +692,7 @@ func buildAboutMessage(s *discordgo.Session, m *discordgo.MessageCreate) (*Embed
 			gitCommit, gitCommit, buildDate)).
 		SetThumbnail(s.State.User.AvatarURL("128"))
 
-	datasets, err := dataobjects.GetDatasets(tx)
+	datasets, err := types.GetDatasets(tx)
 	if err != nil {
 		return nil, err
 	}

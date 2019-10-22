@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -17,7 +17,7 @@ type Feedback struct {
 type apiFeedback struct {
 	ID       string                   `msgpack:"id" json:"id"`
 	Time     time.Time                `msgpack:"timestamp" json:"timestamp"`
-	Type     dataobjects.FeedbackType `msgpack:"type" json:"type"`
+	Type     types.FeedbackType `msgpack:"type" json:"type"`
 	Contents string                   `msgpack:"contents" json:"contents"`
 }
 
@@ -54,7 +54,7 @@ func (r *Feedback) Post(c *yarf.Context) error {
 	defer tx.Rollback()
 
 	// Feedback UUIDs are client-generated, so we can't really trust their (lack of) uniqueness...
-	if _, err := dataobjects.GetFeedback(tx, request.ID); err == nil {
+	if _, err := types.GetFeedback(tx, request.ID); err == nil {
 		return &yarf.CustomError{
 			HTTPCode:  http.StatusBadRequest,
 			ErrorMsg:  "A feedback with the specified ID already exists. Better luck generating a UUID next time.",
@@ -62,7 +62,7 @@ func (r *Feedback) Post(c *yarf.Context) error {
 		}
 	}
 
-	feedback := dataobjects.Feedback{
+	feedback := types.Feedback{
 		ID:        request.ID,
 		Submitter: pair,
 		Time:      request.Time,
@@ -85,7 +85,7 @@ func (r *Feedback) Post(c *yarf.Context) error {
 	return nil
 }
 
-func (r *Feedback) render(c *yarf.Context, feedback *dataobjects.Feedback) {
+func (r *Feedback) render(c *yarf.Context, feedback *types.Feedback) {
 	data := apiFeedback{
 		ID:       feedback.ID,
 		Time:     feedback.Time,

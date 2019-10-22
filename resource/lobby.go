@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -14,16 +14,16 @@ type Lobby struct {
 type apiLobby struct {
 	ID      string               `msgpack:"id" json:"id"`
 	Name    string               `msgpack:"name" json:"name"`
-	Station *dataobjects.Station `msgpack:"-" json:"-"`
+	Station *types.Station `msgpack:"-" json:"-"`
 }
 
 type apiLobbySchedule struct {
-	Lobby        *dataobjects.Lobby   `msgpack:"-" json:"-"`
+	Lobby        *types.Lobby   `msgpack:"-" json:"-"`
 	Holiday      bool                 `msgpack:"holiday" json:"holiday"`
 	Day          int                  `msgpack:"day" json:"day"`
 	Open         bool                 `msgpack:"open" json:"open"`
-	OpenTime     dataobjects.Time     `msgpack:"openTime" json:"openTime"`
-	OpenDuration dataobjects.Duration `msgpack:"duration" json:"duration"`
+	OpenTime     types.Time     `msgpack:"openTime" json:"openTime"`
+	OpenDuration types.Duration `msgpack:"duration" json:"duration"`
 }
 
 type exitWrapper struct {
@@ -31,7 +31,7 @@ type exitWrapper struct {
 	WorldCoord [2]float64         `msgpack:"worldCoord" json:"worldCoord"`
 	Streets    []string           `msgpack:"streets" json:"streets"`
 	Type       string             `msgpack:"type" json:"type"`
-	Lobby      *dataobjects.Lobby `msgpack:"-" json:"-"`
+	Lobby      *types.Lobby `msgpack:"-" json:"-"`
 }
 
 type apiLobbyWrapper struct {
@@ -57,7 +57,7 @@ func (r *Lobby) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	if c.Param("id") != "" {
-		lobby, err := dataobjects.GetLobby(tx, c.Param("id"))
+		lobby, err := types.GetLobby(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
@@ -87,12 +87,12 @@ func (r *Lobby) Get(c *yarf.Context) error {
 
 		RenderData(c, data, "s-maxage=10")
 	} else {
-		var lobbies []*dataobjects.Lobby
+		var lobbies []*types.Lobby
 		var err error
 		if c.Param("sid") != "" {
-			lobbies, err = dataobjects.GetLobbiesForStation(tx, c.Param("sid"))
+			lobbies, err = types.GetLobbiesForStation(tx, c.Param("sid"))
 		} else {
-			lobbies, err = dataobjects.GetLobbies(tx)
+			lobbies, err = types.GetLobbies(tx)
 		}
 		if err != nil {
 			return err

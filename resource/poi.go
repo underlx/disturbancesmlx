@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -35,13 +35,13 @@ func (r *POI) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	if c.Param("id") != "" {
-		poi, err := dataobjects.GetPOI(tx, c.Param("id"))
+		poi, err := types.GetPOI(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
 		RenderData(c, apiPOI(*poi), "s-maxage=10")
 	} else {
-		pois, err := dataobjects.GetPOIs(tx)
+		pois, err := types.GetPOIs(tx)
 		if err != nil {
 			return err
 		}

@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/scraper"
 )
 
 var annStore AnnouncementStore
 
-// AnnouncementStore implements dataobjects.AnnouncementStore
+// AnnouncementStore implements types.AnnouncementStore
 type AnnouncementStore struct {
 	scrapers map[string]scraper.AnnouncementScraper
 }
@@ -23,8 +23,8 @@ func (as *AnnouncementStore) AddScraper(s scraper.AnnouncementScraper) {
 }
 
 // AllAnnouncements gets all announcements from all sources, unsorted
-func (as *AnnouncementStore) AllAnnouncements() []*dataobjects.Announcement {
-	ann := []*dataobjects.Announcement{}
+func (as *AnnouncementStore) AllAnnouncements() []*types.Announcement {
+	ann := []*types.Announcement{}
 	for source, scraper := range as.scrapers {
 		ann = append(ann, scraper.Announcements(source)...)
 	}
@@ -32,10 +32,10 @@ func (as *AnnouncementStore) AllAnnouncements() []*dataobjects.Announcement {
 }
 
 // SourceAnnouncements gets all announcements from a specific source
-func (as *AnnouncementStore) SourceAnnouncements(source string) []*dataobjects.Announcement {
+func (as *AnnouncementStore) SourceAnnouncements(source string) []*types.Announcement {
 	ann, ok := as.scrapers[source]
 	if !ok {
-		return []*dataobjects.Announcement{}
+		return []*types.Announcement{}
 	}
 	return ann.Announcements(source)
 }

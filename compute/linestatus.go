@@ -2,7 +2,7 @@ package compute
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // UpdateStatusMsgTypes updates the MsgTypes of existing line statuses
@@ -13,7 +13,7 @@ func UpdateStatusMsgTypes(node sqalx.Node) error {
 	}
 	defer tx.Rollback()
 
-	statuses, err := dataobjects.GetStatuses(tx)
+	statuses, err := types.GetStatuses(tx)
 	if err != nil {
 		return err
 	}

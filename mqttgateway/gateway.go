@@ -18,7 +18,7 @@ import (
 	"github.com/gbl08ma/gmqtt/pkg/packets"
 	"github.com/gbl08ma/keybox"
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // MQTTGateway is a real-time gateway that uses the MQTT protocol
@@ -63,7 +63,7 @@ type Config struct {
 }
 
 type userInfo struct {
-	Pair        *dataobjects.APIPair
+	Pair        *types.APIPair
 	IsWebSocket bool
 	ConnectedAt time.Time
 }
@@ -250,7 +250,7 @@ func (g *MQTTGateway) handleOnConnect(client *gmqtt.Client) (code uint8) {
 		})
 		return packets.CodeAccepted
 	}
-	pair, err := dataobjects.GetPairIfCorrect(g.Node, key, secret, g.authHashKey)
+	pair, err := types.GetPairIfCorrect(g.Node, key, secret, g.authHashKey)
 	if err != nil {
 		return packets.CodeBadUsernameorPsw
 	}
@@ -381,7 +381,7 @@ func (g *MQTTGateway) handleRealTimeLocationPublish(info userInfo, client *gmqtt
 	}
 	defer tx.Commit() // read-only tx
 
-	station, err := dataobjects.GetStation(tx, request.StationID)
+	station, err := types.GetStation(tx, request.StationID)
 	if err != nil {
 		g.Log.Println(err)
 		return
@@ -403,7 +403,7 @@ func (g *MQTTGateway) handleRealTimeLocationPublish(info userInfo, client *gmqtt
 
 	if g.vehicleHandler != nil {
 		if request.DirectionID != "" {
-			direction, err := dataobjects.GetStation(tx, request.DirectionID)
+			direction, err := types.GetStation(tx, request.DirectionID)
 			if err != nil {
 				g.Log.Println(err)
 				return

@@ -5,15 +5,15 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
 // PairConnectionHandler handles connections of APIPairs with external first-party services and subsystems
 type PairConnectionHandler interface {
 	ID() string
-	TryCreateConnection(node sqalx.Node, code, deviceName string, pair *dataobjects.APIPair) bool
-	GetConnectionsForPair(node sqalx.Node, pair *dataobjects.APIPair) ([]dataobjects.PairConnection, error)
+	TryCreateConnection(node sqalx.Node, code, deviceName string, pair *types.APIPair) bool
+	GetConnectionsForPair(node sqalx.Node, pair *types.APIPair) ([]types.PairConnection, error)
 	DisplayName() string
 }
 
@@ -72,7 +72,7 @@ func (r *PairConnection) Get(c *yarf.Context) error {
 	}
 	defer tx.Rollback() // read-only tx, but this ensures that pairConnectionHandlers can't write even if they wanted
 
-	connections := []dataobjects.PairConnection{}
+	connections := []types.PairConnection{}
 	services := []PairConnectionHandler{}
 	for _, handler := range pairConnectionHandlers {
 		c, err := handler.GetConnectionsForPair(tx, pair)

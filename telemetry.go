@@ -5,7 +5,7 @@ import (
 	"time"
 
 	cache "github.com/patrickmn/go-cache"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	statsd "gopkg.in/alexcesaro/statsd.v2"
 )
 
@@ -42,12 +42,12 @@ func StatsSender() {
 	for {
 		select {
 		case <-ticker.C:
-			statsHandler.RangeNetworks(rootSqalxNode, func(n *dataobjects.Network, cache *cache.Cache) bool {
+			statsHandler.RangeNetworks(rootSqalxNode, func(n *types.Network, cache *cache.Cache) bool {
 				c.Gauge("online_in_transit_"+n.ID, statsHandler.OITInNetwork(n, 0))
 				return true
 			})
 
-			statsHandler.RangeLines(rootSqalxNode, func(l *dataobjects.Line, cache *cache.Cache) bool {
+			statsHandler.RangeLines(rootSqalxNode, func(l *types.Line, cache *cache.Cache) bool {
 				c.Gauge("online_in_transit_"+l.ID, statsHandler.OITInLine(l, 0))
 				c.Gauge("report_votes_"+l.ID, reportHandler.CountVotesForLine(l))
 				c.Gauge("report_threshold_"+l.ID, reportHandler.GetThresholdForLine(l))

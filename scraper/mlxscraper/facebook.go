@@ -9,7 +9,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	cache "github.com/patrickmn/go-cache"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // FacebookScraper is an announcement scraper for the Metro de Lisboa Facebook page
@@ -18,14 +18,14 @@ type FacebookScraper struct {
 	ticker         *time.Ticker
 	stopChan       chan struct{}
 	log            *log.Logger
-	newAnnCallback func(announcement *dataobjects.Announcement)
+	newAnnCallback func(announcement *types.Announcement)
 	firstUpdate    bool
-	announcements  []*dataobjects.Announcement
+	announcements  []*types.Announcement
 	running        bool
 	imageURLcache  *cache.Cache
 
 	AccessToken string
-	Network     *dataobjects.Network
+	Network     *types.Network
 	Period      time.Duration
 }
 
@@ -36,7 +36,7 @@ func (sc *FacebookScraper) ID() string {
 
 // Init initializes the scraper
 func (sc *FacebookScraper) Init(log *log.Logger,
-	newAnnCallback func(announcement *dataobjects.Announcement)) {
+	newAnnCallback func(announcement *types.Announcement)) {
 	sc.stopChan = make(chan struct{})
 	sc.ticker = time.NewTicker(sc.Period)
 	sc.log = log
@@ -69,8 +69,8 @@ func (sc *FacebookScraper) Running() bool {
 	return sc.running
 }
 
-func (sc *FacebookScraper) copyAnnouncements() []*dataobjects.Announcement {
-	c := make([]*dataobjects.Announcement, len(sc.announcements))
+func (sc *FacebookScraper) copyAnnouncements() []*types.Announcement {
+	c := make([]*types.Announcement, len(sc.announcements))
 	for i, annPointer := range sc.announcements {
 		ann := *annPointer
 		c[i] = &ann
@@ -120,7 +120,7 @@ func (sc *FacebookScraper) update() {
 		sc.log.Println("Missing elements in response")
 		return
 	}
-	announcements := []*dataobjects.Announcement{}
+	announcements := []*types.Announcement{}
 	recent.Children().Each(func(i int, s *goquery.Selection) {
 		dataft, ok := s.Attr("data-ft")
 		if !ok {
@@ -193,7 +193,7 @@ func (sc *FacebookScraper) update() {
 
 		imgURL, _ := s.Find("div:nth-child(3) img").First().Attr("src")
 
-		ann := dataobjects.Announcement{
+		ann := types.Announcement{
 			Time:     postTime,
 			Network:  sc.Network,
 			Title:    "",
@@ -230,8 +230,8 @@ func (sc *FacebookScraper) update() {
 }
 
 // Networks returns the networks monitored by this scraper
-func (sc *FacebookScraper) Networks() []*dataobjects.Network {
-	return []*dataobjects.Network{sc.Network}
+func (sc *FacebookScraper) Networks() []*types.Network {
+	return []*types.Network{sc.Network}
 }
 
 // Sources returns the sources provided by this scraper
@@ -240,6 +240,6 @@ func (sc *FacebookScraper) Sources() []string {
 }
 
 // Announcements returns the announcements read by this scraper
-func (sc *FacebookScraper) Announcements(source string) []*dataobjects.Announcement {
+func (sc *FacebookScraper) Announcements(source string) []*types.Announcement {
 	return sc.copyAnnouncements()
 }

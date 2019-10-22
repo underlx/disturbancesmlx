@@ -13,7 +13,7 @@ import (
 	"net"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -150,7 +150,7 @@ func (r *Pair) Post(c *yarf.Context) error {
 	// signature ok
 
 	ipAddr := net.ParseIP(c.GetClientIP())
-	pReq := dataobjects.NewAndroidPairRequest(pairRequest.Nonce, pairRequest.AndroidID, ipAddr)
+	pReq := types.NewAndroidPairRequest(pairRequest.Nonce, pairRequest.AndroidID, ipAddr)
 
 	activation, err := pReq.CalculateActivationTime(tx, maxTimestampSkew)
 
@@ -175,7 +175,7 @@ func (r *Pair) Post(c *yarf.Context) error {
 		return err
 	}
 
-	pair, err := dataobjects.NewPair(tx, "android", activation, r.hashKey)
+	pair, err := types.NewPair(tx, "android", activation, r.hashKey)
 	if err != nil {
 		return err
 	}

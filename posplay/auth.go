@@ -11,7 +11,7 @@ import (
 
 	"github.com/dchest/uniuri"
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/discordbot"
 )
 
@@ -94,7 +94,7 @@ func (h *ConnectionHandler) ID() string {
 }
 
 // TryCreateConnection implements resource.PairConnectionHandler
-func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceName string, pair *dataobjects.APIPair) bool {
+func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceName string, pair *types.APIPair) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -122,7 +122,7 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 
 	// remove any current pair for this discord ID
 
-	existing, err := dataobjects.GetPPPair(tx, process.DiscordID)
+	existing, err := types.GetPPPair(tx, process.DiscordID)
 	if err == nil {
 		err = existing.Delete(tx)
 		if err != nil {
@@ -134,7 +134,7 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 
 	// remove any current pair for this API key
 	removedExistingKey := false
-	existingPair, err := dataobjects.GetPPPairForKey(tx, pair.Key)
+	existingPair, err := types.GetPPPairForKey(tx, pair.Key)
 	if err == nil {
 		err = existingPair.Delete(tx)
 		if err != nil {
@@ -145,7 +145,7 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 	}
 
 	// save pair
-	pppair := dataobjects.PPPair{
+	pppair := types.PPPair{
 		DiscordID:  process.DiscordID,
 		Pair:       pair,
 		Paired:     time.Now(),
@@ -159,7 +159,7 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 	}
 
 	// give XP bonus if it has never been given before
-	player, err := dataobjects.GetPPPlayer(tx, process.DiscordID)
+	player, err := types.GetPPPlayer(tx, process.DiscordID)
 	if err != nil {
 		config.Log.Println(err)
 		return false
@@ -221,24 +221,24 @@ func (h *ConnectionHandler) TryCreateConnection(node sqalx.Node, code, deviceNam
 }
 
 // GetConnectionsForPair implements resource.PairConnectionHandler
-func (h *ConnectionHandler) GetConnectionsForPair(node sqalx.Node, pair *dataobjects.APIPair) ([]dataobjects.PairConnection, error) {
+func (h *ConnectionHandler) GetConnectionsForPair(node sqalx.Node, pair *types.APIPair) ([]types.PairConnection, error) {
 	tx, err := node.Beginx()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Commit()
 
-	ppPair, err := dataobjects.GetPPPairForKey(tx, pair.Key)
+	ppPair, err := types.GetPPPairForKey(tx, pair.Key)
 	if err != nil {
-		return []dataobjects.PairConnection{}, nil
+		return []types.PairConnection{}, nil
 	}
 
 	info, err := playerXPinfoWithTx(tx, uidConvI(ppPair.DiscordID))
 	if err != nil {
-		return []dataobjects.PairConnection{}, err
+		return []types.PairConnection{}, err
 	}
 
-	return []dataobjects.PairConnection{&PairConnection{
+	return []types.PairConnection{&PairConnection{
 		pair:    pair,
 		created: ppPair.Paired,
 		extra: PairConnectionExtra{

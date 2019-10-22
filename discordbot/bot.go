@@ -23,7 +23,7 @@ import (
 	"github.com/gbl08ma/sqalx"
 	cache "github.com/patrickmn/go-cache"
 	uuid "github.com/satori/go.uuid"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/utils"
 )
 
@@ -466,10 +466,10 @@ func handleLineStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []
 	}
 	defer tx.Commit() // read-only tx
 
-	status := &dataobjects.Status{
+	status := &types.Status{
 		ID:   id.String(),
 		Time: time.Now().UTC(),
-		Source: &dataobjects.Source{
+		Source: &types.Source{
 			ID:        "underlx-bot",
 			Name:      "UnderLX Discord bot",
 			Automatic: false,
@@ -487,9 +487,9 @@ func handleLineStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []
 		return
 	}
 
-	line, err := dataobjects.GetLine(tx, words[1])
+	line, err := types.GetLine(tx, words[1])
 	if err != nil {
-		lines, err := dataobjects.GetLines(tx)
+		lines, err := types.GetLines(tx)
 		if err != nil {
 			s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 			return
@@ -576,11 +576,11 @@ func handleRUSSIA(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 	}
 	defer tx.Commit() // read-only tx
 
-	var line *dataobjects.Line
+	var line *types.Line
 	if words[0] == "cast" || words[0] == "empty" {
-		line, err = dataobjects.GetLine(tx, words[1])
+		line, err = types.GetLine(tx, words[1])
 		if err != nil {
-			lines, err := dataobjects.GetLines(tx)
+			lines, err := types.GetLines(tx)
 			if err != nil {
 				s.ChannelMessageSend(m.ChannelID, "❌ "+err.Error())
 				return

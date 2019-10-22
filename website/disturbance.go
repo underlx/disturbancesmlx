@@ -12,7 +12,7 @@ import (
 	"github.com/goodsign/monday"
 	"github.com/gorilla/mux"
 	"github.com/underlx/disturbancesmlx/compute"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // DisturbancePage serves the page for a specific disturbance
@@ -34,7 +34,7 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Disturbance *dataobjects.Disturbance
+		Disturbance *types.Disturbance
 		CanEdit     bool
 	}{
 		CanEdit: hasSession && session.IsAdmin,
@@ -47,7 +47,7 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p.Disturbance, err = dataobjects.GetDisturbance(tx, mux.Vars(r)["id"])
+	p.Disturbance, err = types.GetDisturbance(tx, mux.Vars(r)["id"])
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusNotFound)
@@ -78,7 +78,7 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 	if latestStatus != nil {
 		imageType := ""
 		switch {
-		case latestStatus.MsgType == dataobjects.MLSolvedMessage:
+		case latestStatus.MsgType == types.MLSolvedMessage:
 			imageType = "solved"
 		case strings.Contains(string(latestStatus.MsgType), "HALTED"):
 		case strings.Contains(string(latestStatus.MsgType), "SINCE"):
@@ -110,7 +110,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 	defer tx.Commit()
 
 	type perLine struct {
-		Line              *dataobjects.Line
+		Line              *types.Line
 		TotalHoursDown    float32
 		HoursDown         []float32
 		TotalAvailability float32
@@ -119,7 +119,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Disturbances []*dataobjects.Disturbance
+		Disturbances []*types.Disturbance
 		PerLine      []perLine
 		Dates        []time.Time
 		AverageSpeed float64
@@ -173,7 +173,7 @@ func DisturbanceListPage(w http.ResponseWriter, r *http.Request) {
 		"Metro de Lisboa", // TODO unhardcode this one day
 		monday.Format(startDate, "January de 2006", monday.LocalePtPT))
 
-	p.Disturbances, err = dataobjects.GetDisturbancesBetween(tx, startDate, endDate, p.OfficialOnly)
+	p.Disturbances, err = types.GetDisturbancesBetween(tx, startDate, endDate, p.OfficialOnly)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusNotFound)

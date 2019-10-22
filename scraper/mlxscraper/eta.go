@@ -14,7 +14,7 @@ import (
 	movingaverage "github.com/RobinUS2/golang-moving-average"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // ETAScraper is a scraper for Metro de Lisboa vehicle ETAs
@@ -23,8 +23,8 @@ type ETAScraper struct {
 	ticker   *time.Ticker
 	stopChan chan struct{}
 
-	stations            []*dataobjects.Station
-	stationsByID        map[string]*dataobjects.Station
+	stations            []*types.Station
+	stationsByID        map[string]*types.Station
 	log                 *log.Logger
 	locs                map[string]*time.Location
 	etaValidity         time.Duration
@@ -34,10 +34,10 @@ type ETAScraper struct {
 
 	EndpointURL    string
 	BearerToken    string
-	Network        *dataobjects.Network
+	Network        *types.Network
 	HTTPClient     *http.Client
 	Period         time.Duration
-	NewETACallback func(eta *dataobjects.VehicleETA)
+	NewETACallback func(eta *types.VehicleETA)
 }
 
 // ID returns the ID of this scraper
@@ -66,13 +66,13 @@ func (sc *ETAScraper) Init(node sqalx.Node, log *log.Logger) error {
 	if sc.Network != nil {
 		sc.stations, err = sc.Network.Stations(tx)
 	} else {
-		sc.stations, err = dataobjects.GetStations(tx)
+		sc.stations, err = types.GetStations(tx)
 	}
 	if err != nil {
 		return err
 	}
 
-	sc.stationsByID = make(map[string]*dataobjects.Station)
+	sc.stationsByID = make(map[string]*types.Station)
 	for _, s := range sc.stations {
 		sc.stationsByID[s.ID] = s
 	}
@@ -324,13 +324,13 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 			sc.log.Println("Warning: received ETA seems to have been computed in the future by", creation.Sub(time.Now()))
 		}
 
-		commonETA := dataobjects.VehicleETA{
+		commonETA := types.VehicleETA{
 			Station:   station,
 			Direction: sc.getDirection(dirETA),
 			Computed:  creation,
 			ValidFor:  time.Now().Sub(creation) + sc.etaValidity,
 			Precision: 1 * time.Second,
-			Type:      dataobjects.RelativeExact,
+			Type:      types.RelativeExact,
 			Platform:  dirETA.Cais,
 		}
 
@@ -386,7 +386,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 	return nil
 }
 
-func (sc *ETAScraper) getDirection(dirETA directionETAs) *dataobjects.Station {
+func (sc *ETAScraper) getDirection(dirETA directionETAs) *types.Station {
 	d, ok := sc.destinoToStationID[dirETA.Destino]
 	if !ok {
 		return nil

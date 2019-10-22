@@ -3,7 +3,7 @@ package resource
 import (
 	"github.com/gbl08ma/sqalx"
 	"github.com/ulule/deepcopier"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -13,8 +13,8 @@ type Connection struct {
 }
 
 type apiConnection struct {
-	From *dataobjects.Station `msgpack:"-" json:"-"`
-	To   *dataobjects.Station `msgpack:"-" json:"-"`
+	From *types.Station `msgpack:"-" json:"-"`
+	To   *types.Station `msgpack:"-" json:"-"`
 	//FromPlatform          string               `msgpack:"from_platform" json:"from_platform"`
 	//ToPlatform            string               `msgpack:"to_platform" json:"to_platform"`
 	TypicalWaitingSeconds int `msgpack:"typWaitS" json:"typWaitS"`
@@ -46,7 +46,7 @@ func (r *Connection) Get(c *yarf.Context) error {
 	compat := c.Request.URL.Query().Get("closedcompat") != "false"
 
 	if c.Param("from") != "" && c.Param("to") != "" {
-		connection, err := dataobjects.GetConnection(tx, c.Param("from"), c.Param("to"), compat)
+		connection, err := types.GetConnection(tx, c.Param("from"), c.Param("to"), compat)
 		if err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ func (r *Connection) Get(c *yarf.Context) error {
 
 		RenderData(c, data, "s-maxage=10")
 	} else {
-		connections, err := dataobjects.GetConnections(tx, compat)
+		connections, err := types.GetConnections(tx, compat)
 		if err != nil {
 			return err
 		}

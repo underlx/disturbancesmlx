@@ -3,7 +3,7 @@ package posplay
 import (
 	"net/http"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 func homePage(w http.ResponseWriter, r *http.Request) {
@@ -34,28 +34,28 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 		TotalAchievements int
 	}{}
 
-	p.TotalPlayers, err = dataobjects.CountPPPlayers(tx)
+	p.TotalPlayers, err = types.CountPPPlayers(tx)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	p.TotalXP, err = dataobjects.GetPPXPTransactionsTotal(tx)
+	p.TotalXP, err = types.GetPPXPTransactionsTotal(tx)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	p.TotalTrips, err = dataobjects.CountPPXPTransactionsWithType(tx, "TRIP_SUBMIT_REWARD")
+	p.TotalTrips, err = types.CountPPXPTransactionsWithType(tx, "TRIP_SUBMIT_REWARD")
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	p.TotalAchievements, err = dataobjects.CountPPPlayerAchievementsAchieved(tx)
+	p.TotalAchievements, err = types.CountPPPlayerAchievementsAchieved(tx)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

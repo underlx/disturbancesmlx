@@ -8,60 +8,60 @@ import (
 
 	"github.com/thoas/go-funk"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/website"
 )
 
 func init() {
-	dataobjects.RegisterPPAchievementStrategy(new(ReachLevelAchievementStrategy))
-	dataobjects.RegisterPPAchievementStrategy(new(DiscordEventParticipationAchievementStrategy))
-	dataobjects.RegisterPPAchievementStrategy(new(VisitStationsAchievementStrategy))
-	dataobjects.RegisterPPAchievementStrategy(new(VisitThroughoutLineAchievementStrategy))
-	dataobjects.RegisterPPAchievementStrategy(new(SubmitAchievementStrategy))
-	dataobjects.RegisterPPAchievementStrategy(new(TripDuringDisturbanceAchievementStrategy))
+	types.RegisterPPAchievementStrategy(new(ReachLevelAchievementStrategy))
+	types.RegisterPPAchievementStrategy(new(DiscordEventParticipationAchievementStrategy))
+	types.RegisterPPAchievementStrategy(new(VisitStationsAchievementStrategy))
+	types.RegisterPPAchievementStrategy(new(VisitThroughoutLineAchievementStrategy))
+	types.RegisterPPAchievementStrategy(new(SubmitAchievementStrategy))
+	types.RegisterPPAchievementStrategy(new(TripDuringDisturbanceAchievementStrategy))
 }
 
-// StubAchievementStrategy partially implements dataobjects.PPAchievementStrategy
+// StubAchievementStrategy partially implements types.PPAchievementStrategy
 type StubAchievementStrategy struct{}
 
 // ID is not implemented on purpose (to force strategies to specify theirs)
 
-// HandleTrip implements dataobjects.PPAchievementStrategy
-func (s *StubAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+// HandleTrip implements types.PPAchievementStrategy
+func (s *StubAchievementStrategy) HandleTrip(context *types.PPAchievementContext, trip *types.Trip) error {
 	return nil
 }
 
-// HandleTripEdit implements dataobjects.PPAchievementStrategy
-func (s *StubAchievementStrategy) HandleTripEdit(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+// HandleTripEdit implements types.PPAchievementStrategy
+func (s *StubAchievementStrategy) HandleTripEdit(context *types.PPAchievementContext, trip *types.Trip) error {
 	return nil
 }
 
-// HandleDisturbanceReport implements dataobjects.PPAchievementStrategy
-func (s *StubAchievementStrategy) HandleDisturbanceReport(context *dataobjects.PPAchievementContext, report *dataobjects.LineDisturbanceReport) error {
+// HandleDisturbanceReport implements types.PPAchievementStrategy
+func (s *StubAchievementStrategy) HandleDisturbanceReport(context *types.PPAchievementContext, report *types.LineDisturbanceReport) error {
 	return nil
 }
 
-// HandleXPTransaction implements dataobjects.PPAchievementStrategy
-func (s *StubAchievementStrategy) HandleXPTransaction(context *dataobjects.PPAchievementContext, transaction *dataobjects.PPXPTransaction, actualValueDiff int) error {
+// HandleXPTransaction implements types.PPAchievementStrategy
+func (s *StubAchievementStrategy) HandleXPTransaction(context *types.PPAchievementContext, transaction *types.PPXPTransaction, actualValueDiff int) error {
 	return nil
 }
 
-// Progress implements dataobjects.PPAchievementStrategy
+// Progress implements types.PPAchievementStrategy
 // If total == 0: this achievement has no progress, it's "all or nothing"
 // If total == -1: this achievement is still locked for the user, show a censured version
 // If total < -1: this achievement is still locked for the user, do not show it at all
-func (s *StubAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
+func (s *StubAchievementStrategy) Progress(context *types.PPAchievementContext) (current, total int, err error) {
 	return 0, -2, nil
 }
 
-// ProgressHTML implements dataobjects.PPAchievementStrategy
-func (s *StubAchievementStrategy) ProgressHTML(context *dataobjects.PPAchievementContext) string {
+// ProgressHTML implements types.PPAchievementStrategy
+func (s *StubAchievementStrategy) ProgressHTML(context *types.PPAchievementContext) string {
 	return ""
 }
 
-// CriteriaHTML implements dataobjects.PPAchievementStrategy
+// CriteriaHTML implements types.PPAchievementStrategy
 // context.Player may be nil when calling this function
-func (s *StubAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+func (s *StubAchievementStrategy) CriteriaHTML(context *types.PPAchievementContext) string {
 	return ""
 }
 
@@ -75,8 +75,8 @@ func (s *ReachLevelAchievementStrategy) ID() string {
 	return "reach_level"
 }
 
-// HandleXPTransaction implements dataobjects.PPAchievementStrategy
-func (s *ReachLevelAchievementStrategy) HandleXPTransaction(context *dataobjects.PPAchievementContext, transaction *dataobjects.PPXPTransaction, actualValueDiff int) error {
+// HandleXPTransaction implements types.PPAchievementStrategy
+func (s *ReachLevelAchievementStrategy) HandleXPTransaction(context *types.PPAchievementContext, transaction *types.PPXPTransaction, actualValueDiff int) error {
 	tx, err := context.Node.Beginx()
 	if err != nil {
 		return err
@@ -96,8 +96,8 @@ func (s *ReachLevelAchievementStrategy) HandleXPTransaction(context *dataobjects
 
 	prevXP := curXP - actualValueDiff
 
-	curLevel, _ := dataobjects.PosPlayPlayerLevel(curXP)
-	prevLevel, _ := dataobjects.PosPlayPlayerLevel(prevXP)
+	curLevel, _ := types.PosPlayPlayerLevel(curXP)
+	prevLevel, _ := types.PosPlayPlayerLevel(prevXP)
 
 	var config map[string]interface{}
 	context.Achievement.UnmarshalConfig(&config)
@@ -113,8 +113,8 @@ func (s *ReachLevelAchievementStrategy) HandleXPTransaction(context *dataobjects
 	return tx.Commit()
 }
 
-// Progress implements dataobjects.PPAchievementStrategy
-func (s *ReachLevelAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
+// Progress implements types.PPAchievementStrategy
+func (s *ReachLevelAchievementStrategy) Progress(context *types.PPAchievementContext) (current, total int, err error) {
 	var config map[string]interface{}
 	context.Achievement.UnmarshalConfig(&config)
 	achievementLevel := int(config["level"].(float64))
@@ -134,7 +134,7 @@ func (s *ReachLevelAchievementStrategy) Progress(context *dataobjects.PPAchievem
 
 		context.StrategyOwnCache.Store(context.Player.DiscordID, curXP.(int))
 	}
-	curLevel, _ := dataobjects.PosPlayPlayerLevel(curXP.(int))
+	curLevel, _ := types.PosPlayPlayerLevel(curXP.(int))
 
 	if curLevel > achievementLevel {
 		curLevel = achievementLevel
@@ -145,8 +145,8 @@ func (s *ReachLevelAchievementStrategy) Progress(context *dataobjects.PPAchievem
 	return curLevel, achievementLevel, nil
 }
 
-// ProgressHTML implements dataobjects.PPAchievementStrategy
-func (s *ReachLevelAchievementStrategy) ProgressHTML(context *dataobjects.PPAchievementContext) string {
+// ProgressHTML implements types.PPAchievementStrategy
+func (s *ReachLevelAchievementStrategy) ProgressHTML(context *types.PPAchievementContext) string {
 	var config map[string]interface{}
 	context.Achievement.UnmarshalConfig(&config)
 	achievementLevel := int(config["level"].(float64))
@@ -172,13 +172,13 @@ func (s *ReachLevelAchievementStrategy) ProgressHTML(context *dataobjects.PPAchi
 		context.StrategyOwnCache.Store(context.Player.DiscordID, curXP.(int))
 	}
 
-	remaining := dataobjects.PosPlayLevelToXP(achievementLevel) - curXP.(int)
+	remaining := types.PosPlayLevelToXP(achievementLevel) - curXP.(int)
 
 	return fmt.Sprintf("Falta-lhe ganhar %d XP para alcançar esta proeza.", remaining)
 }
 
-// CriteriaHTML implements dataobjects.PPAchievementStrategy
-func (s *ReachLevelAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+// CriteriaHTML implements types.PPAchievementStrategy
+func (s *ReachLevelAchievementStrategy) CriteriaHTML(context *types.PPAchievementContext) string {
 	var config map[string]interface{}
 	context.Achievement.UnmarshalConfig(&config)
 	achievementLevel := int(config["level"].(float64))
@@ -190,7 +190,7 @@ func (s *ReachLevelAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchi
 				<li>Equivalente a ter um total de XP igual ou superior a %d</li>
 			</ul>
 		</li>
-	</ul>`, achievementLevel, dataobjects.PosPlayLevelToXP(achievementLevel))
+	</ul>`, achievementLevel, types.PosPlayLevelToXP(achievementLevel))
 }
 
 // DiscordEventParticipationAchievementStrategy is an achievement strategy that rewards users when they participate in a set number of Discord events
@@ -203,8 +203,8 @@ func (s *DiscordEventParticipationAchievementStrategy) ID() string {
 	return "discord_event_participation"
 }
 
-// HandleXPTransaction implements dataobjects.PPAchievementStrategy
-func (s *DiscordEventParticipationAchievementStrategy) HandleXPTransaction(context *dataobjects.PPAchievementContext, transaction *dataobjects.PPXPTransaction, actualValueDiff int) error {
+// HandleXPTransaction implements types.PPAchievementStrategy
+func (s *DiscordEventParticipationAchievementStrategy) HandleXPTransaction(context *types.PPAchievementContext, transaction *types.PPXPTransaction, actualValueDiff int) error {
 	var config map[string]interface{}
 	context.Achievement.UnmarshalConfig(&config)
 	includeReaction := true
@@ -264,8 +264,8 @@ func (s *DiscordEventParticipationAchievementStrategy) HandleXPTransaction(conte
 	return tx.Commit()
 }
 
-// Progress implements dataobjects.PPAchievementStrategy
-func (s *DiscordEventParticipationAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
+// Progress implements types.PPAchievementStrategy
+func (s *DiscordEventParticipationAchievementStrategy) Progress(context *types.PPAchievementContext) (current, total int, err error) {
 	var config map[string]interface{}
 	context.Achievement.UnmarshalConfig(&config)
 	includeReaction := true
@@ -312,8 +312,8 @@ func (s *DiscordEventParticipationAchievementStrategy) Progress(context *dataobj
 	return count, achievementCount, nil
 }
 
-// ProgressHTML implements dataobjects.PPAchievementStrategy
-func (s *DiscordEventParticipationAchievementStrategy) ProgressHTML(context *dataobjects.PPAchievementContext) string {
+// ProgressHTML implements types.PPAchievementStrategy
+func (s *DiscordEventParticipationAchievementStrategy) ProgressHTML(context *types.PPAchievementContext) string {
 	var config map[string]interface{}
 	context.Achievement.UnmarshalConfig(&config)
 	achievementCount := int(config["count"].(float64))
@@ -371,8 +371,8 @@ func (s *DiscordEventParticipationAchievementStrategy) ProgressHTML(context *dat
 	}
 }
 
-// CriteriaHTML implements dataobjects.PPAchievementStrategy
-func (s *DiscordEventParticipationAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+// CriteriaHTML implements types.PPAchievementStrategy
+func (s *DiscordEventParticipationAchievementStrategy) CriteriaHTML(context *types.PPAchievementContext) string {
 	var config map[string]interface{}
 	context.Achievement.UnmarshalConfig(&config)
 	achievementCount := int(config["count"].(float64))
@@ -421,8 +421,8 @@ func (s *VisitStationsAchievementStrategy) ID() string {
 	return "visit_stations"
 }
 
-// HandleTrip implements dataobjects.PPAchievementStrategy
-func (s *VisitStationsAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+// HandleTrip implements types.PPAchievementStrategy
+func (s *VisitStationsAchievementStrategy) HandleTrip(context *types.PPAchievementContext, trip *types.Trip) error {
 	tx, err := context.Node.Beginx()
 	if err != nil {
 		return err
@@ -444,7 +444,7 @@ func (s *VisitStationsAchievementStrategy) HandleTrip(context *dataobjects.PPAch
 		existingData.UnmarshalExtra(&extra)
 
 		stationsLeftToVisit = funk.FilterString(stationsLeftToVisit, func(x string) bool {
-			station, err := dataobjects.GetStation(tx, x)
+			station, err := types.GetStation(tx, x)
 			if err != nil {
 				return false
 			}
@@ -474,7 +474,7 @@ func (s *VisitStationsAchievementStrategy) HandleTrip(context *dataobjects.PPAch
 			return !funk.ContainsString(stationsLeftToVisit, x)
 		})
 		if existingData == nil {
-			existingData = &dataobjects.PPPlayerAchievement{
+			existingData = &types.PPPlayerAchievement{
 				DiscordID:   context.Player.DiscordID,
 				Achievement: context.Achievement,
 			}
@@ -499,8 +499,8 @@ func (s *VisitStationsAchievementStrategy) HandleTrip(context *dataobjects.PPAch
 	return tx.Commit()
 }
 
-// Progress implements dataobjects.PPAchievementStrategy
-func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
+// Progress implements types.PPAchievementStrategy
+func (s *VisitStationsAchievementStrategy) Progress(context *types.PPAchievementContext) (current, total int, err error) {
 	tx, err := context.Node.Beginx()
 	if err != nil {
 		return 0, -1, err
@@ -516,7 +516,7 @@ func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchie
 	}
 
 	config.Stations = funk.FilterString(config.Stations, func(x string) bool {
-		station, err := dataobjects.GetStation(tx, x)
+		station, err := types.GetStation(tx, x)
 		if err != nil {
 			return false
 		}
@@ -536,7 +536,7 @@ func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchie
 	existingData.UnmarshalExtra(&extra)
 
 	extra.VisitedStations = funk.FilterString(extra.VisitedStations, func(x string) bool {
-		station, err := dataobjects.GetStation(tx, x)
+		station, err := types.GetStation(tx, x)
 		if err != nil {
 			return false
 		}
@@ -555,8 +555,8 @@ func (s *VisitStationsAchievementStrategy) Progress(context *dataobjects.PPAchie
 	return len(extra.VisitedStations), len(config.Stations), nil
 }
 
-// ProgressHTML implements dataobjects.PPAchievementStrategy
-func (s *VisitStationsAchievementStrategy) ProgressHTML(context *dataobjects.PPAchievementContext) string {
+// ProgressHTML implements types.PPAchievementStrategy
+func (s *VisitStationsAchievementStrategy) ProgressHTML(context *types.PPAchievementContext) string {
 	var config visitStationsConfig
 	context.Achievement.UnmarshalConfig(&config)
 	if config.SingleTrip {
@@ -585,9 +585,9 @@ func (s *VisitStationsAchievementStrategy) ProgressHTML(context *dataobjects.PPA
 	stationsLeftToVisit := funk.FilterString(config.Stations, func(x string) bool {
 		return !funk.ContainsString(extra.VisitedStations, x)
 	})
-	stations := []*dataobjects.Station{}
+	stations := []*types.Station{}
 	for _, s := range stationsLeftToVisit {
-		station, err := dataobjects.GetStation(context.Node, s)
+		station, err := types.GetStation(context.Node, s)
 		if err != nil {
 			continue
 		}
@@ -608,8 +608,8 @@ func (s *VisitStationsAchievementStrategy) ProgressHTML(context *dataobjects.PPA
 	return result
 }
 
-// CriteriaHTML implements dataobjects.PPAchievementStrategy
-func (s *VisitStationsAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+// CriteriaHTML implements types.PPAchievementStrategy
+func (s *VisitStationsAchievementStrategy) CriteriaHTML(context *types.PPAchievementContext) string {
 	var config visitStationsConfig
 	context.Achievement.UnmarshalConfig(&config)
 
@@ -620,9 +620,9 @@ func (s *VisitStationsAchievementStrategy) CriteriaHTML(context *dataobjects.PPA
 		result = "<ul><li>Visitar as seguintes estações:<ul>"
 	}
 
-	stations := []*dataobjects.Station{}
+	stations := []*types.Station{}
 	for _, s := range config.Stations {
-		station, err := dataobjects.GetStation(context.Node, s)
+		station, err := types.GetStation(context.Node, s)
 		if err != nil {
 			continue
 		}
@@ -666,8 +666,8 @@ func (s *VisitThroughoutLineAchievementStrategy) ID() string {
 	return "visit_throughout_line"
 }
 
-// HandleTrip implements dataobjects.PPAchievementStrategy
-func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+// HandleTrip implements types.PPAchievementStrategy
+func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *types.PPAchievementContext, trip *types.Trip) error {
 	tx, err := context.Node.Beginx()
 	if err != nil {
 		return err
@@ -683,18 +683,18 @@ func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *dataobjects
 	var config visitThroughoutLineConfig
 	context.Achievement.UnmarshalConfig(&config)
 
-	var possibleLines []*dataobjects.Line
+	var possibleLines []*types.Line
 	if config.Line == "*" {
-		possibleLines, err = dataobjects.GetLines(tx)
+		possibleLines, err = types.GetLines(tx)
 		if err != nil {
 			return err
 		}
 	} else {
-		line, err := dataobjects.GetLine(tx, config.Line)
+		line, err := types.GetLine(tx, config.Line)
 		if err != nil {
 			return err
 		}
-		possibleLines = []*dataobjects.Line{line}
+		possibleLines = []*types.Line{line}
 	}
 	possibleNeedles := []string{}
 	for _, line := range possibleLines {
@@ -725,7 +725,7 @@ func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *dataobjects
 		descending:
 			fallthrough
 		case "descending", "down":
-			stations = funk.Reverse(stations).([]*dataobjects.Station)
+			stations = funk.Reverse(stations).([]*types.Station)
 			needle := ""
 			for _, station := range stations {
 				if !closed[station.ID] {
@@ -762,22 +762,22 @@ func (s *VisitThroughoutLineAchievementStrategy) HandleTrip(context *dataobjects
 	return tx.Commit()
 }
 
-// Progress implements dataobjects.PPAchievementStrategy
-func (s *VisitThroughoutLineAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
+// Progress implements types.PPAchievementStrategy
+func (s *VisitThroughoutLineAchievementStrategy) Progress(context *types.PPAchievementContext) (current, total int, err error) {
 	return 0, 0, nil
 }
 
-// CriteriaHTML implements dataobjects.PPAchievementStrategy
-func (s *VisitThroughoutLineAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+// CriteriaHTML implements types.PPAchievementStrategy
+func (s *VisitThroughoutLineAchievementStrategy) CriteriaHTML(context *types.PPAchievementContext) string {
 	var config visitThroughoutLineConfig
 	context.Achievement.UnmarshalConfig(&config)
 
 	var result string
-	var line *dataobjects.Line
+	var line *types.Line
 	if config.Line == "*" {
 		result = "<ul><li>Percorrer qualquer linha"
 	} else {
-		line, _ = dataobjects.GetLine(context.Node, config.Line)
+		line, _ = types.GetLine(context.Node, config.Line)
 		result = "<ul><li>Percorrer a linha <a href=\"" + website.BaseURL() + "/l/" + line.ID + "\">" + line.Name + "</a>"
 	}
 	switch config.Direction {
@@ -820,8 +820,8 @@ func (s *SubmitAchievementStrategy) ID() string {
 	return "submit"
 }
 
-// HandleTrip implements dataobjects.PPAchievementStrategy
-func (s *SubmitAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+// HandleTrip implements types.PPAchievementStrategy
+func (s *SubmitAchievementStrategy) HandleTrip(context *types.PPAchievementContext, trip *types.Trip) error {
 	var config submitConfig
 	context.Achievement.UnmarshalConfig(&config)
 	if config.Type != "trip" {
@@ -851,8 +851,8 @@ func (s *SubmitAchievementStrategy) HandleTrip(context *dataobjects.PPAchievemen
 	return tx.Commit()
 }
 
-// HandleTripEdit implements dataobjects.PPAchievementStrategy
-func (s *SubmitAchievementStrategy) HandleTripEdit(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+// HandleTripEdit implements types.PPAchievementStrategy
+func (s *SubmitAchievementStrategy) HandleTripEdit(context *types.PPAchievementContext, trip *types.Trip) error {
 	var config submitConfig
 	context.Achievement.UnmarshalConfig(&config)
 	if config.Type != "trip_edit" {
@@ -882,8 +882,8 @@ func (s *SubmitAchievementStrategy) HandleTripEdit(context *dataobjects.PPAchiev
 	return tx.Commit()
 }
 
-// HandleDisturbanceReport implements dataobjects.PPAchievementStrategy
-func (s *SubmitAchievementStrategy) HandleDisturbanceReport(context *dataobjects.PPAchievementContext, report *dataobjects.LineDisturbanceReport) error {
+// HandleDisturbanceReport implements types.PPAchievementStrategy
+func (s *SubmitAchievementStrategy) HandleDisturbanceReport(context *types.PPAchievementContext, report *types.LineDisturbanceReport) error {
 	var config submitConfig
 	context.Achievement.UnmarshalConfig(&config)
 	if config.Type != "disturbance_report" {
@@ -910,8 +910,8 @@ func (s *SubmitAchievementStrategy) HandleDisturbanceReport(context *dataobjects
 	return tx.Commit()
 }
 
-// CriteriaHTML implements dataobjects.PPAchievementStrategy
-func (s *SubmitAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+// CriteriaHTML implements types.PPAchievementStrategy
+func (s *SubmitAchievementStrategy) CriteriaHTML(context *types.PPAchievementContext) string {
 	var config submitConfig
 	context.Achievement.UnmarshalConfig(&config)
 
@@ -944,13 +944,13 @@ func (s *TripDuringDisturbanceAchievementStrategy) ID() string {
 	return "trip_during_disturbance"
 }
 
-// Progress implements dataobjects.PPAchievementStrategy
-func (s *TripDuringDisturbanceAchievementStrategy) Progress(context *dataobjects.PPAchievementContext) (current, total int, err error) {
+// Progress implements types.PPAchievementStrategy
+func (s *TripDuringDisturbanceAchievementStrategy) Progress(context *types.PPAchievementContext) (current, total int, err error) {
 	return 0, 0, nil
 }
 
-// HandleTrip implements dataobjects.PPAchievementStrategy
-func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjects.PPAchievementContext, trip *dataobjects.Trip) error {
+// HandleTrip implements types.PPAchievementStrategy
+func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *types.PPAchievementContext, trip *types.Trip) error {
 	if len(trip.StationUses) < 2 {
 		return nil
 	}
@@ -970,12 +970,12 @@ func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjec
 		return tx.Commit()
 	}
 
-	var line *dataobjects.Line
-	var network *dataobjects.Network
+	var line *types.Line
+	var network *types.Network
 	if (config.Line == "*" || config.Line == "") && (config.Network != "*" && config.Network != "") {
-		network, err = dataobjects.GetNetwork(tx, config.Network)
+		network, err = types.GetNetwork(tx, config.Network)
 	} else if config.Line != "*" && config.Line != "" {
-		line, err = dataobjects.GetLine(tx, config.Line)
+		line, err = types.GetLine(tx, config.Line)
 	}
 	if err != nil {
 		return err
@@ -1005,7 +1005,7 @@ func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjec
 		}
 	} else {
 		// all lines of any network
-		disturbances, err := dataobjects.GetDisturbancesBetween(tx, trip.StartTime, trip.EndTime, config.OfficialOnly)
+		disturbances, err := types.GetDisturbancesBetween(tx, trip.StartTime, trip.EndTime, config.OfficialOnly)
 		if err != nil {
 			return err
 		}
@@ -1069,19 +1069,19 @@ func (s *TripDuringDisturbanceAchievementStrategy) HandleTrip(context *dataobjec
 	return tx.Commit()
 }
 
-// CriteriaHTML implements dataobjects.PPAchievementStrategy
-func (s *TripDuringDisturbanceAchievementStrategy) CriteriaHTML(context *dataobjects.PPAchievementContext) string {
+// CriteriaHTML implements types.PPAchievementStrategy
+func (s *TripDuringDisturbanceAchievementStrategy) CriteriaHTML(context *types.PPAchievementContext) string {
 	var config tripDuringDisturbanceConfig
 	context.Achievement.UnmarshalConfig(&config)
 
 	result := "<ul>"
-	var line *dataobjects.Line
-	var network *dataobjects.Network
+	var line *types.Line
+	var network *types.Network
 	var err error
 	if (config.Line == "*" || config.Line == "") && (config.Network != "*" && config.Network != "") {
-		network, err = dataobjects.GetNetwork(context.Node, config.Network)
+		network, err = types.GetNetwork(context.Node, config.Network)
 	} else if config.Line != "*" && config.Line != "" {
-		line, err = dataobjects.GetLine(context.Node, config.Line)
+		line, err = types.GetLine(context.Node, config.Line)
 	}
 	if err != nil {
 		return ""

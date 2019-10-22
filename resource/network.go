@@ -2,7 +2,7 @@ package resource
 
 import (
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -18,19 +18,19 @@ type apiNetwork struct {
 	Names        map[string]string    `msgpack:"names" json:"names"`
 	TypicalCars  int                  `msgpack:"typCars" json:"typCars"`
 	Holidays     []int64              `msgpack:"holidays" json:"holidays"`
-	OpenTime     dataobjects.Time     `msgpack:"openTime" json:"openTime"`
-	OpenDuration dataobjects.Duration `msgpack:"duration" json:"duration"`
+	OpenTime     types.Time     `msgpack:"openTime" json:"openTime"`
+	OpenDuration types.Duration `msgpack:"duration" json:"duration"`
 	Timezone     string               `msgpack:"timezone" json:"timezone"`
 	NewsURL      string               `msgpack:"newsURL" json:"newsURL"`
 }
 
 type apiNetworkSchedule struct {
-	Network      *dataobjects.Network `msgpack:"-" json:"-"`
+	Network      *types.Network `msgpack:"-" json:"-"`
 	Holiday      bool                 `msgpack:"holiday" json:"holiday"`
 	Day          int                  `msgpack:"day" json:"day"`
 	Open         bool                 `msgpack:"open" json:"open"`
-	OpenTime     dataobjects.Time     `msgpack:"openTime" json:"openTime"`
-	OpenDuration dataobjects.Duration `msgpack:"duration" json:"duration"`
+	OpenTime     types.Time     `msgpack:"openTime" json:"openTime"`
+	OpenDuration types.Duration `msgpack:"duration" json:"duration"`
 }
 
 type apiNetworkWrapper struct {
@@ -55,7 +55,7 @@ func (r *Network) Get(c *yarf.Context) error {
 	defer tx.Commit() // read-only tx
 
 	if c.Param("id") != "" {
-		network, err := dataobjects.GetNetwork(tx, c.Param("id"))
+		network, err := types.GetNetwork(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func (r *Network) Get(c *yarf.Context) error {
 		}
 		RenderData(c, data, "s-maxage=10")
 	} else {
-		networks, err := dataobjects.GetNetworks(tx)
+		networks, err := types.GetNetworks(tx)
 		if err != nil {
 			return err
 		}

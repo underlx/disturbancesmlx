@@ -7,7 +7,7 @@ import (
 	"github.com/gbl08ma/monkey"
 	"github.com/underlx/disturbancesmlx/discordbot"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // MetaStatsPage serves a page with meta-statistics about the service
@@ -20,7 +20,7 @@ func MetaStatsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit()
 
-	n, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	n, err := types.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -62,7 +62,7 @@ func MetaStatsPage(w http.ResponseWriter, r *http.Request) {
 	loc, _ := time.LoadLocation(n.Timezone)
 
 	p.TripCountDates, p.TripUnconfirmedCounts, p.TripConfirmedCounts, err =
-		dataobjects.CountTripsByDay(tx, time.Now().In(loc).AddDate(0, 0, -30), time.Now().In(loc))
+		types.CountTripsByDay(tx, time.Now().In(loc).AddDate(0, 0, -30), time.Now().In(loc))
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -70,14 +70,14 @@ func MetaStatsPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.ActivationCountDates, p.ActivationCounts, err =
-		dataobjects.CountPairActivationsByDay(tx, time.Now().In(loc).AddDate(0, 0, -30), time.Now().In(loc))
+		types.CountPairActivationsByDay(tx, time.Now().In(loc).AddDate(0, 0, -30), time.Now().In(loc))
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	scripts, err := dataobjects.GetScriptsWithType(tx, "anko")
+	scripts, err := types.GetScriptsWithType(tx, "anko")
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

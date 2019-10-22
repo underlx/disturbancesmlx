@@ -9,7 +9,7 @@ import (
 	"github.com/thoas/go-funk"
 
 	"github.com/gorilla/mux"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // LinePage serves the page for a specific line
@@ -24,21 +24,21 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Line        *dataobjects.Line
-		Stations    []*dataobjects.Station
+		Line        *types.Line
+		Stations    []*types.Station
 		StationInfo []struct {
 			Closed              bool
-			LeftLine, RightLine *dataobjects.Line
+			LeftLine, RightLine *types.Line
 		}
 		WeekAvailability  float64
 		WeekDuration      time.Duration
 		MonthAvailability float64
 		MonthDuration     time.Duration
-		Disturbances      []*dataobjects.Disturbance
+		Disturbances      []*types.Disturbance
 		CurTrains         []string
 	}{}
 
-	p.Line, err = dataobjects.GetLine(tx, mux.Vars(r)["id"])
+	p.Line, err = types.GetLine(tx, mux.Vars(r)["id"])
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusNotFound)
@@ -63,7 +63,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.StationInfo = make([]struct {
 		Closed              bool
-		LeftLine, RightLine *dataobjects.Line
+		LeftLine, RightLine *types.Line
 	}, len(p.Stations))
 
 	for i, station := range p.Stations {
@@ -129,7 +129,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	trains := vehicleETAHandler.TrainsInLine(p.Line)
 	p.CurTrains = funk.Keys(trains).([]string)
 	sort.Slice(p.CurTrains, func(i, j int) bool {
-		return dataobjects.VehicleIDLessFuncString(p.CurTrains[i], p.CurTrains[j])
+		return types.VehicleIDLessFuncString(p.CurTrains[i], p.CurTrains[j])
 	})
 
 	err = webtemplate.ExecuteTemplate(w, "line.html", p)

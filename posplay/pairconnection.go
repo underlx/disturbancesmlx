@@ -3,12 +3,12 @@ package posplay
 import (
 	"time"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
-// PairConnection implements dataobjects.PairConnection
+// PairConnection implements types.PairConnection
 type PairConnection struct {
-	pair    *dataobjects.APIPair
+	pair    *types.APIPair
 	created time.Time
 	extra   PairConnectionExtra
 }
@@ -27,7 +27,7 @@ type PairConnectionExtra struct {
 }
 
 // Pair returns the pair of this connection
-func (c *PairConnection) Pair() *dataobjects.APIPair {
+func (c *PairConnection) Pair() *types.APIPair {
 	return c.pair
 }
 

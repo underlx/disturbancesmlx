@@ -3,7 +3,7 @@ package website
 import (
 	"net/http"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/utils"
 )
 
@@ -21,10 +21,10 @@ func ReportPage(w http.ResponseWriter, r *http.Request) {
 		PageCommons
 		Message         string
 		MessageIsError  bool
-		ReportableLines []*dataobjects.Line
-		LineConditions  map[string]*dataobjects.LineCondition
+		ReportableLines []*types.Line
+		LineConditions  map[string]*types.LineCondition
 	}{
-		LineConditions: make(map[string]*dataobjects.LineCondition),
+		LineConditions: make(map[string]*types.LineCondition),
 	}
 
 	p.PageCommons, err = InitPageCommons(tx, w, r, "Comunicar problemas na circulação")
@@ -55,14 +55,14 @@ func ReportPage(w http.ResponseWriter, r *http.Request) {
 		} else {
 			oneSucceeded := false
 			for _, value := range r.Form["lines"] {
-				line, err := dataobjects.GetLine(tx, value)
+				line, err := types.GetLine(tx, value)
 				if err != nil {
 					webLog.Println(err)
 					w.WriteHeader(http.StatusBadRequest)
 					return
 				}
 
-				report := dataobjects.NewLineDisturbanceReport(utils.GetClientIP(r), line, "general")
+				report := types.NewLineDisturbanceReport(utils.GetClientIP(r), line, "general")
 
 				err = reportHandler.HandleLineDisturbanceReport(report)
 				if err == nil {

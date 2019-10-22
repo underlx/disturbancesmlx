@@ -3,11 +3,11 @@ package posplay
 import (
 	"fmt"
 
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // DescriptionForXPTransaction returns a human-friendly description of a XP transaction
-func DescriptionForXPTransaction(tx *dataobjects.PPXPTransaction) string {
+func DescriptionForXPTransaction(tx *types.PPXPTransaction) string {
 	extra := tx.UnmarshalExtra()
 	switch tx.Type {
 	case "SIGNUP_BONUS":

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/utils"
 )
 
@@ -24,24 +24,24 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Station *dataobjects.Station
+		Station *types.Station
 		// we must make info about all stations available, so IDs in vehicle ETAs can be decoded
-		Stations       []*dataobjects.Station
-		StationLines   []*dataobjects.Line
-		Lobbies        []*dataobjects.Lobby
+		Stations       []*types.Station
+		StationLines   []*types.Line
+		Lobbies        []*types.Lobby
 		LobbySchedules [][]string
-		LobbyExits     [][]*dataobjects.Exit
+		LobbyExits     [][]*types.Exit
 		Trivia         string
 		Connections    []ConnectionData
-		POIs           []*dataobjects.POI
+		POIs           []*types.POI
 		Closed         bool
 		PrevNext       []struct {
-			Prev *dataobjects.Station
-			Next *dataobjects.Station
+			Prev *types.Station
+			Next *types.Station
 		}
 	}{}
 
-	p.Station, err = dataobjects.GetStation(tx, mux.Vars(r)["id"])
+	p.Station, err = types.GetStation(tx, mux.Vars(r)["id"])
 	if err != nil {
 		webLog.Println(err)
 		w.WriteHeader(http.StatusNotFound)
@@ -79,8 +79,8 @@ func StationPage(w http.ResponseWriter, r *http.Request) {
 		for i, station := range stations {
 			if station.ID == p.Station.ID {
 				pn := struct {
-					Prev *dataobjects.Station
-					Next *dataobjects.Station
+					Prev *types.Station
+					Next *types.Station
 				}{}
 				if i > 0 {
 					pn.Prev = stations[i-1]

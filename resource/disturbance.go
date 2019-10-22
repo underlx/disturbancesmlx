@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/yarf-framework/yarf"
 )
 
@@ -22,28 +22,28 @@ type apiDisturbance struct {
 	UStartTime  time.Time             `msgpack:"startTime" json:"startTime"`
 	UEndTime    time.Time             `msgpack:"endTime" json:"endTime"`
 	UEnded      bool                  `msgpack:"ended" json:"ended"`
-	Line        *dataobjects.Line     `msgpack:"-" json:"-"`
+	Line        *types.Line     `msgpack:"-" json:"-"`
 	Description string                `msgpack:"description" json:"description"`
 	Notes       string                `msgpack:"notes" json:"notes"`
-	Statuses    []*dataobjects.Status `msgpack:"-" json:"-"`
+	Statuses    []*types.Status `msgpack:"-" json:"-"`
 }
 
 type apiDisturbanceWrapper struct {
 	apiDisturbance `msgpack:",inline"`
 	NetworkID      string                            `msgpack:"network" json:"network"`
 	LineID         string                            `msgpack:"line" json:"line"`
-	Categories     []dataobjects.DisturbanceCategory `msgpack:"categories" json:"categories"`
+	Categories     []types.DisturbanceCategory `msgpack:"categories" json:"categories"`
 	APIstatuses    []apiStatusWrapper                `msgpack:"statuses" json:"statuses"`
 }
 
 type apiStatus struct {
 	ID         string                        `msgpack:"id" json:"id"`
 	Time       time.Time                     `msgpack:"time" json:"time"`
-	Line       *dataobjects.Line             `msgpack:"-" json:"-"`
+	Line       *types.Line             `msgpack:"-" json:"-"`
 	IsDowntime bool                          `msgpack:"downtime" json:"downtime"`
 	Status     string                        `msgpack:"status" json:"status"`
-	Source     *dataobjects.Source           `msgpack:"-" json:"-"`
-	MsgType    dataobjects.StatusMessageType `msgpack:"msgType" json:"msgType"`
+	Source     *types.Source           `msgpack:"-" json:"-"`
+	MsgType    types.StatusMessageType `msgpack:"msgType" json:"msgType"`
 }
 
 type apiStatusWrapper struct {
@@ -69,7 +69,7 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 	omitDuplicateStatus := c.Request.URL.Query().Get("omitduplicatestatus") == "true"
 
 	if c.Param("id") != "" {
-		disturbance, err := dataobjects.GetDisturbance(tx, c.Param("id"))
+		disturbance, err := types.GetDisturbance(tx, c.Param("id"))
 		if err != nil {
 			return err
 		}
@@ -96,17 +96,17 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 
 		RenderData(c, data, "s-maxage=10")
 	} else {
-		var disturbances []*dataobjects.Disturbance
+		var disturbances []*types.Disturbance
 		var err error
 		start := c.Request.URL.Query().Get("start")
 		cacheControl := "s-maxage=10"
 		if start == "" {
 			switch c.Request.URL.Query().Get("filter") {
 			case "ongoing":
-				disturbances, err = dataobjects.GetOngoingDisturbances(tx)
+				disturbances, err = types.GetOngoingDisturbances(tx)
 				cacheControl = "no-cache, no-store, must-revalidate"
 			default:
-				disturbances, err = dataobjects.GetDisturbances(tx)
+				disturbances, err = types.GetDisturbances(tx)
 			}
 		} else {
 			startTime, err2 := time.Parse(time.RFC3339, start)
@@ -121,7 +121,7 @@ func (r *Disturbance) Get(c *yarf.Context) error {
 					return err2
 				}
 			}
-			disturbances, err = dataobjects.GetDisturbancesBetween(tx, startTime, endTime, false)
+			disturbances, err = types.GetDisturbancesBetween(tx, startTime, endTime, false)
 		}
 
 		if err != nil {

@@ -10,7 +10,7 @@ import (
 	"github.com/gbl08ma/sqalx"
 	cache "github.com/patrickmn/go-cache"
 	uuid "github.com/satori/go.uuid"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 // ReportHandler implements resource.ReportHandler
@@ -21,12 +21,12 @@ type ReportHandler struct {
 	thresholds     *sync.Map
 	multiplier     float32
 	baseOffset     int
-	statusReporter func(status *dataobjects.Status, allowNotify bool)
+	statusReporter func(status *types.Status, allowNotify bool)
 }
 
 // NewReportHandler initializes a new ReportHandler and returns it
 func NewReportHandler(statsHandler *StatsHandler, node sqalx.Node,
-	statusReporter func(status *dataobjects.Status, allowNotify bool)) *ReportHandler {
+	statusReporter func(status *types.Status, allowNotify bool)) *ReportHandler {
 	h := &ReportHandler{
 		reports:        cache.New(cache.NoExpiration, 30*time.Second),
 		statsHandler:   statsHandler,
@@ -42,12 +42,12 @@ func NewReportHandler(statsHandler *StatsHandler, node sqalx.Node,
 }
 
 type reportData struct {
-	Report dataobjects.Report
+	Report types.Report
 	Weight int
 }
 
 // HandleLineDisturbanceReport handles line disturbance reports
-func (r *ReportHandler) HandleLineDisturbanceReport(report *dataobjects.LineDisturbanceReport) error {
+func (r *ReportHandler) HandleLineDisturbanceReport(report *types.LineDisturbanceReport) error {
 	if closed, err := report.Line().CurrentlyClosed(r.node); err == nil && closed {
 		return errors.New("HandleLineDisturbanceReport: the line of this report is currently closed")
 	}
@@ -61,7 +61,7 @@ func (r *ReportHandler) HandleLineDisturbanceReport(report *dataobjects.LineDist
 }
 
 // AddReportManually forcefully adds a report with a manually specified weight (works even on closed lines)
-func (r *ReportHandler) AddReportManually(report *dataobjects.LineDisturbanceReport, weight int) error {
+func (r *ReportHandler) AddReportManually(report *types.LineDisturbanceReport, weight int) error {
 	data := &reportData{report, weight}
 	err := r.reports.Add(report.RateLimiterKey(), data, 15*time.Minute)
 	if err != nil {
@@ -71,7 +71,7 @@ func (r *ReportHandler) AddReportManually(report *dataobjects.LineDisturbanceRep
 	return nil
 }
 
-func (r *ReportHandler) getVoteWeightForReport(report *dataobjects.LineDisturbanceReport) (int, error) {
+func (r *ReportHandler) getVoteWeightForReport(report *types.LineDisturbanceReport) (int, error) {
 	if !report.ReplayProtected() || report.Submitter() == nil {
 		return 1, nil
 	}
@@ -87,7 +87,7 @@ func (r *ReportHandler) getVoteWeightForReport(report *dataobjects.LineDisturban
 	}
 
 	// app user that submitted a trip in the last 20 minutes
-	recentTrips, err := dataobjects.GetTripsForSubmitterBetween(r.node, report.Submitter(), time.Now().Add(-20*time.Minute), time.Now())
+	recentTrips, err := types.GetTripsForSubmitterBetween(r.node, report.Submitter(), time.Now().Add(-20*time.Minute), time.Now())
 	if err != nil {
 		return 0, err
 	}
@@ -99,12 +99,12 @@ func (r *ReportHandler) getVoteWeightForReport(report *dataobjects.LineDisturban
 	return 5, nil
 }
 
-func (r *ReportHandler) getEarliestVoteForLine(line *dataobjects.Line) *reportData {
+func (r *ReportHandler) getEarliestVoteForLine(line *types.Line) *reportData {
 	earliestTime := time.Time{}
 	var earliestValue *reportData
 	for _, item := range r.reports.Items() {
 		data := item.Object.(*reportData)
-		if ldr, ok := data.Report.(*dataobjects.LineDisturbanceReport); ok {
+		if ldr, ok := data.Report.(*types.LineDisturbanceReport); ok {
 			if earliestTime.IsZero() || ldr.Time().Before(earliestTime) {
 				earliestTime = ldr.Time()
 				earliestValue = data
@@ -115,11 +115,11 @@ func (r *ReportHandler) getEarliestVoteForLine(line *dataobjects.Line) *reportDa
 }
 
 // CountVotesForLine counts how many votes there are for a disturbance in this line
-func (r *ReportHandler) CountVotesForLine(line *dataobjects.Line) int {
+func (r *ReportHandler) CountVotesForLine(line *types.Line) int {
 	count := 0
 	for _, item := range r.reports.Items() {
 		data := item.Object.(*reportData)
-		if ldr, ok := data.Report.(*dataobjects.LineDisturbanceReport); ok {
+		if ldr, ok := data.Report.(*types.LineDisturbanceReport); ok {
 			if ldr.Line().ID == line.ID {
 				count += data.Weight
 			}
@@ -129,10 +129,10 @@ func (r *ReportHandler) CountVotesForLine(line *dataobjects.Line) int {
 }
 
 // ClearVotesForLine clears reports for the specified line
-func (r *ReportHandler) ClearVotesForLine(line *dataobjects.Line) {
+func (r *ReportHandler) ClearVotesForLine(line *types.Line) {
 	for key, item := range r.reports.Items() {
 		data := item.Object.(*reportData)
-		if ldr, ok := data.Report.(*dataobjects.LineDisturbanceReport); ok {
+		if ldr, ok := data.Report.(*types.LineDisturbanceReport); ok {
 			if ldr.Line().ID == line.ID {
 				r.reports.Delete(key)
 			}
@@ -141,7 +141,7 @@ func (r *ReportHandler) ClearVotesForLine(line *dataobjects.Line) {
 }
 
 // GetThresholdForLine returns the current threshold for the specified line
-func (r *ReportHandler) GetThresholdForLine(line *dataobjects.Line) int {
+func (r *ReportHandler) GetThresholdForLine(line *types.Line) int {
 	numUsers := r.statsHandler.OITInLine(line, 0)
 	var newValue int
 	if numUsers <= 1 {
@@ -164,11 +164,11 @@ func (r *ReportHandler) GetThresholdForLine(line *dataobjects.Line) int {
 	return r.baseOffset + int((float32(sum)/float32(count))*r.multiplier)
 }
 
-func (r *ReportHandler) lineHasEnoughVotesToStartDisturbance(line *dataobjects.Line) bool {
+func (r *ReportHandler) lineHasEnoughVotesToStartDisturbance(line *types.Line) bool {
 	return r.CountVotesForLine(line) >= r.GetThresholdForLine(line)
 }
 
-func (r *ReportHandler) lineHasEnoughVotesToKeepDisturbance(line *dataobjects.Line) bool {
+func (r *ReportHandler) lineHasEnoughVotesToKeepDisturbance(line *types.Line) bool {
 	return r.CountVotesForLine(line) >= r.GetThresholdForLine(line)/2
 }
 
@@ -180,7 +180,7 @@ func (r *ReportHandler) evaluateSituation() {
 	}
 	defer tx.Commit() // read-only tx (any new statuses are handled in different transactions)
 
-	lines, err := dataobjects.GetLines(tx)
+	lines, err := types.GetLines(tx)
 	if err != nil {
 		mainLog.Println("ReportHandler: " + err.Error())
 		return
@@ -218,7 +218,7 @@ func (r *ReportHandler) evaluateSituation() {
 	}
 }
 
-func (r *ReportHandler) startDisturbance(node sqalx.Node, line *dataobjects.Line) error {
+func (r *ReportHandler) startDisturbance(node sqalx.Node, line *types.Line) error {
 	earliestVote := r.getEarliestVoteForLine(line)
 	if earliestVote == nil {
 		return errors.New("earliest vote is nil")
@@ -242,19 +242,19 @@ func (r *ReportHandler) startDisturbance(node sqalx.Node, line *dataobjects.Line
 
 		if earliestVote.Report.Time().Before(time.Now().Add(-1 * time.Minute)) {
 			// avoid issuing two states if their times would be too close to each other
-			status := &dataobjects.Status{
+			status := &types.Status{
 				ID:         id.String(),
 				Time:       earliestVote.Report.Time().UTC(),
 				Line:       line,
 				IsDowntime: true,
 				Status:     "Os utilizadores comunicaram problemas na circulação",
-				Source: &dataobjects.Source{
+				Source: &types.Source{
 					ID:        "underlx-community",
 					Name:      "UnderLX user community",
 					Automatic: false,
 					Official:  false,
 				},
-				MsgType: dataobjects.ReportBeginMessage,
+				MsgType: types.ReportBeginMessage,
 			}
 
 			r.statusReporter(status, false)
@@ -265,19 +265,19 @@ func (r *ReportHandler) startDisturbance(node sqalx.Node, line *dataobjects.Line
 			}
 		}
 
-		status := &dataobjects.Status{
+		status := &types.Status{
 			ID:         id.String(),
 			Time:       time.Now().UTC(),
 			Line:       line,
 			IsDowntime: true,
 			Status:     "Vários utilizadores confirmaram problemas na circulação",
-			Source: &dataobjects.Source{
+			Source: &types.Source{
 				ID:        "underlx-community",
 				Name:      "UnderLX user community",
 				Automatic: false,
 				Official:  false,
 			},
-			MsgType: dataobjects.ReportConfirmMessage,
+			MsgType: types.ReportConfirmMessage,
 		}
 
 		r.statusReporter(status, true)
@@ -285,19 +285,19 @@ func (r *ReportHandler) startDisturbance(node sqalx.Node, line *dataobjects.Line
 		// last disturbance ended after the earliest vote we have in memory
 		// show a different message in this case
 
-		status := &dataobjects.Status{
+		status := &types.Status{
 			ID:         id.String(),
 			Time:       time.Now().UTC(),
 			Line:       line,
 			IsDowntime: true,
 			Status:     "Vários utilizadores confirmaram mais problemas na circulação",
-			Source: &dataobjects.Source{
+			Source: &types.Source{
 				ID:        "underlx-community",
 				Name:      "UnderLX user community",
 				Automatic: false,
 				Official:  false,
 			},
-			MsgType: dataobjects.ReportReconfirmMessage,
+			MsgType: types.ReportReconfirmMessage,
 		}
 
 		r.statusReporter(status, true)
@@ -305,25 +305,25 @@ func (r *ReportHandler) startDisturbance(node sqalx.Node, line *dataobjects.Line
 	return nil
 }
 
-func (r *ReportHandler) endDisturbance(line *dataobjects.Line) error {
+func (r *ReportHandler) endDisturbance(line *types.Line) error {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return err
 	}
 
-	status := &dataobjects.Status{
+	status := &types.Status{
 		ID:         id.String(),
 		Time:       time.Now().UTC(),
 		Line:       line,
 		IsDowntime: false,
 		Status:     "Já não existem relatos de problemas na circulação",
-		Source: &dataobjects.Source{
+		Source: &types.Source{
 			ID:        "underlx-community",
 			Name:      "UnderLX user community",
 			Automatic: false,
 			Official:  false,
 		},
-		MsgType: dataobjects.ReportSolvedMessage,
+		MsgType: types.ReportSolvedMessage,
 	}
 
 	r.statusReporter(status, true)

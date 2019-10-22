@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/scraper"
 	"github.com/underlx/disturbancesmlx/scraper/mlxscraper"
 )
@@ -32,10 +32,10 @@ func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 
 	lisbonLoc, _ := time.LoadLocation("Europe/Lisbon")
 
-	network, err := dataobjects.GetNetwork(tx, MLnetworkID)
+	network, err := types.GetNetwork(tx, MLnetworkID)
 	if err != nil {
 		// network does not exist, create it
-		network = &dataobjects.Network{
+		network = &types.Network{
 			ID:         MLnetworkID,
 			Name:       "Metro de Lisboa",
 			MainLocale: "pt",
@@ -46,8 +46,8 @@ func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 			},
 			TypicalCars:  6,
 			Holidays:     []int64{},
-			OpenTime:     dataobjects.Time(time.Date(0, 0, 0, 6, 30, 0, 0, lisbonLoc)),
-			OpenDuration: dataobjects.Duration(18*time.Hour + 30*time.Minute),
+			OpenTime:     types.Time(time.Date(0, 0, 0, 6, 30, 0, 0, lisbonLoc)),
+			OpenDuration: types.Duration(18*time.Hour + 30*time.Minute),
 			Timezone:     "Europe/Lisbon",
 			NewsURL:      "http://www.metrolisboa.pt/feed/",
 		}
@@ -61,7 +61,7 @@ func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 		StatusCallback:    handleNewStatusNotify,
 		ConditionCallback: handleNewCondition,
 		Network:           network,
-		Source: &dataobjects.Source{
+		Source: &types.Source{
 			ID:        "mlxscraper-pt-ml",
 			Name:      "Metro de Lisboa estado_Linhas.php",
 			Automatic: true,
@@ -95,11 +95,11 @@ func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 	return tx.Commit()
 }
 
-func handleNewStatusNotify(status *dataobjects.Status) {
+func handleNewStatusNotify(status *types.Status) {
 	handleNewStatus(status, true)
 }
 
-func handleNewStatus(status *dataobjects.Status, allowNotify bool) {
+func handleNewStatus(status *types.Status, allowNotify bool) {
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		mainLog.Println(err)
@@ -128,7 +128,7 @@ func handleNewStatus(status *dataobjects.Status, allowNotify bool) {
 	lastChange = time.Now().UTC()
 }
 
-func handleNewCondition(condition *dataobjects.LineCondition) {
+func handleNewCondition(condition *types.LineCondition) {
 	tx, err := rootSqalxNode.Beginx()
 	if err != nil {
 		mainLog.Println(err)
@@ -155,7 +155,7 @@ func TearDownScrapers() {
 
 // SetUpAnnouncements sets up the scrapers used to obtain network announcements
 func SetUpAnnouncements(facebookAccessToken string) {
-	network, err := dataobjects.GetNetwork(rootSqalxNode, MLnetworkID)
+	network, err := types.GetNetwork(rootSqalxNode, MLnetworkID)
 	if err != nil {
 		mainLog.Println(err)
 		return

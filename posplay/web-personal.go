@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/underlx/disturbancesmlx/dataobjects"
+	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/discordbot"
 )
 
@@ -20,7 +20,7 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 	}
 	defer tx.Commit() // read-only tx
 
-	player, err := dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+	player, err := types.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -34,7 +34,7 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 	p := struct {
 		pageCommons
 
-		XPTransactions     []*dataobjects.PPXPTransaction
+		XPTransactions     []*types.PPXPTransaction
 		PairedDevice       bool
 		XPBreakdownSeason  []xpItem
 		XPBreakdownAllTime []xpItem
@@ -54,7 +54,7 @@ func dashboardPage(w http.ResponseWriter, r *http.Request, session *Session) {
 		return
 	}
 
-	_, err = dataobjects.GetPPPair(tx, player.DiscordID)
+	_, err = types.GetPPPair(tx, player.DiscordID)
 	p.PairedDevice = err == nil
 
 	types := [][]string{
@@ -140,7 +140,7 @@ func pairPage(w http.ResponseWriter, r *http.Request) {
 
 	discordID := uidConvS(session.DiscordInfo.ID)
 
-	player, err := dataobjects.GetPPPlayer(tx, discordID)
+	player, err := types.GetPPPlayer(tx, discordID)
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -150,7 +150,7 @@ func pairPage(w http.ResponseWriter, r *http.Request) {
 	p := struct {
 		pageCommons
 		PairProcess *pairProcess
-		CurrentPair *dataobjects.PPPair
+		CurrentPair *types.PPPair
 	}{
 		PairProcess: TheConnectionHandler.getProcess(discordID),
 	}
@@ -162,7 +162,7 @@ func pairPage(w http.ResponseWriter, r *http.Request) {
 	}
 	p.SidebarSelected = "pair"
 
-	p.CurrentPair, _ = dataobjects.GetPPPair(tx, discordID)
+	p.CurrentPair, _ = types.GetPPPair(tx, discordID)
 
 	err = webtemplate.ExecuteTemplate(w, "pair.html", p)
 	if err != nil {
@@ -236,7 +236,7 @@ func settingsLikePage(w http.ResponseWriter, r *http.Request, isOnboarding bool)
 	}
 	defer tx.Rollback()
 
-	player, err := dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+	player, err := types.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -276,13 +276,13 @@ func settingsLikePage(w http.ResponseWriter, r *http.Request, isOnboarding bool)
 	}
 
 	if !isOnboarding {
-		_, err := dataobjects.GetPPPair(tx, player.DiscordID)
+		_, err := types.GetPPPair(tx, player.DiscordID)
 		p.HasPair = err == nil
 
 		for _, notifType := range p.NotifTypes {
 			p.NotifSettings[notifType] = make(map[string]bool)
 			for _, notifMethod := range p.NotifMethods {
-				p.NotifSettings[notifType][notifMethod], err = dataobjects.GetPPNotificationSetting(tx, player.DiscordID, notifType, notifMethod, NotificationDefaults)
+				p.NotifSettings[notifType][notifMethod], err = types.GetPPNotificationSetting(tx, player.DiscordID, notifType, notifMethod, NotificationDefaults)
 				if err != nil {
 					config.Log.Println(err)
 					w.WriteHeader(http.StatusInternalServerError)
@@ -323,7 +323,7 @@ func settingsLikePage(w http.ResponseWriter, r *http.Request, isOnboarding bool)
 			for _, notifType := range p.NotifTypes {
 				for _, notifMethod := range p.NotifMethods {
 					p.NotifSettings[notifType][notifMethod] = r.Form.Get(fmt.Sprintf("notif-%s-%s", notifType, notifMethod)) != ""
-					err = dataobjects.SetPPNotificationSetting(tx, player.DiscordID, notifType, notifMethod,
+					err = types.SetPPNotificationSetting(tx, player.DiscordID, notifType, notifMethod,
 						p.NotifSettings[notifType][notifMethod])
 					if err != nil {
 						config.Log.Println(err)
@@ -392,7 +392,7 @@ func xpTransactionHistoryPage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Commit() // read-only tx
 
-	player, err := dataobjects.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
+	player, err := types.GetPPPlayer(tx, uidConvS(session.DiscordInfo.ID))
 	if err != nil {
 		config.Log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -402,7 +402,7 @@ func xpTransactionHistoryPage(w http.ResponseWriter, r *http.Request) {
 	p := struct {
 		pageCommons
 
-		XPTransactions []*dataobjects.PPXPTransaction
+		XPTransactions []*types.PPXPTransaction
 	}{}
 	p.pageCommons, err = initPageCommons(tx, w, r, "Histórico de recompensas", session, player)
 	if err != nil {
