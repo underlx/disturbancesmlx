@@ -81,6 +81,7 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 		case latestStatus.MsgType == types.MLSolvedMessage:
 			imageType = "solved"
 		case strings.Contains(string(latestStatus.MsgType), "HALTED"):
+			fallthrough
 		case strings.Contains(string(latestStatus.MsgType), "SINCE"):
 			imageType = "halted"
 		case strings.Contains(string(latestStatus.MsgType), "BETWEEN"):
