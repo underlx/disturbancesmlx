@@ -45,7 +45,7 @@
         <p>Estão {{ len .CurTrains }} comboios a realizar serviço de passageiros nesta linha{{if len .CurTrains }}:<br>
           <ul>
           {{range $i, $train := .CurTrains}}
-            <li>{{ $train.VehicleServiceID }}{{ if $train.TransportUnits }} ({{ $train.TransportUnits }} carruagens){{end}}</li>
+            <li>{{ $train.VehicleServiceID }} ({{ if $train.TransportUnits }}{{ $train.TransportUnits }} carruagens, {{end}} destino {{ $train.Direction.Name}})</li>
           {{end}}
           </ul>
           {{else}}.{{end}}</p>
