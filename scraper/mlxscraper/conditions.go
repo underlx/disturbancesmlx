@@ -158,11 +158,6 @@ func (sc *ConditionsScraper) fetchConditionsForLine(line *types.Line) error {
 	}
 	response.Body.Close()
 
-	responseBytes = []byte(`{
-		"resposta": null,
-		"codigo": "200"
-	  }`)
-
 	var data responseStructFreq
 	err = json.Unmarshal(responseBytes, &data)
 	if err != nil {

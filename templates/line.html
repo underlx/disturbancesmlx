@@ -50,8 +50,10 @@
           </ul>
           {{else}}.{{end}}</p>
         {{ if .Condition }}
+        {{ if .Condition.TrainFrequency }}
         <p>Intervalo entre comboios previsto pelo Metro para a hora atual: {{ formatTrainFrequency .Condition.TrainFrequency }}</p>
         <p>Número de carruagens por comboio previsto pelo Metro para a hora atual: {{ .Condition.TrainCars }}</p>
+        {{end}}
         {{end}}
       </div>
       <div class="pure-u-1">
