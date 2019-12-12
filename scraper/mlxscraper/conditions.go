@@ -158,6 +158,11 @@ func (sc *ConditionsScraper) fetchConditionsForLine(line *types.Line) error {
 	}
 	response.Body.Close()
 
+	responseBytes = []byte(`{
+		"resposta": null,
+		"codigo": "200"
+	  }`)
+
 	var data responseStructFreq
 	err = json.Unmarshal(responseBytes, &data)
 	if err != nil {
@@ -166,6 +171,25 @@ func (sc *ConditionsScraper) fetchConditionsForLine(line *types.Line) error {
 		if err != nil {
 			return nil
 		}
+	}
+
+	id, err := uuid.NewV4()
+	if err != nil {
+		return err
+	}
+
+	if data.Resposta.Linha == "" {
+		// network closed
+		condition := &types.LineCondition{
+			ID:             id.String(),
+			Time:           time.Now().UTC(),
+			Line:           line,
+			TrainCars:      0,
+			TrainFrequency: 0,
+			Source:         sc.Source,
+		}
+		sc.ConditionCallback(condition)
+		return nil
 	}
 
 	freqStr := data.Resposta.Intervalo
@@ -179,10 +203,6 @@ func (sc *ConditionsScraper) fetchConditionsForLine(line *types.Line) error {
 		return err
 	}
 
-	id, err := uuid.NewV4()
-	if err != nil {
-		return err
-	}
 	condition := &types.LineCondition{
 		ID:             id.String(),
 		Time:           time.Now().UTC(),
