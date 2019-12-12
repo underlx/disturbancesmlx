@@ -36,6 +36,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		MonthDuration     time.Duration
 		Disturbances      []*types.Disturbance
 		CurTrains         []*types.VehicleETA
+		Condition         *types.LineCondition
 	}{}
 
 	p.Line, err = types.GetLine(tx, mux.Vars(r)["id"])
@@ -133,6 +134,14 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 	sort.Slice(p.CurTrains, func(i, j int) bool {
 		return types.VehicleIDLessFuncString(p.CurTrains[i].VehicleServiceID, p.CurTrains[j].VehicleServiceID)
 	})
+
+	if closed, err := p.Line.CurrentlyClosed(tx); err == nil && !closed {
+		p.Condition, err = p.Line.LastCondition(tx)
+		if err != nil {
+			webLog.Println(err)
+			return
+		}
+	}
 
 	err = webtemplate.ExecuteTemplate(w, "line.html", p)
 	if err != nil {

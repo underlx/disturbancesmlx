@@ -49,6 +49,10 @@
           {{end}}
           </ul>
           {{else}}.{{end}}</p>
+        {{ if .Condition }}
+        <p>Intervalo entre comboios previsto pelo Metro para a hora atual: {{ formatTrainFrequency .Condition.TrainFrequency }}</p>
+        <p>Número de carruagens por comboio previsto pelo Metro para a hora atual: {{ .Condition.TrainCars }}</p>
+        {{end}}
       </div>
       <div class="pure-u-1">
         <h2>Perturbações nos últimos 7 dias</h2>
