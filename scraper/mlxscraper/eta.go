@@ -26,7 +26,6 @@ type ETAScraper struct {
 	stations            []*types.Station
 	stationsByID        map[string]*types.Station
 	log                 *log.Logger
-	locs                map[string]*time.Location
 	etaValidity         time.Duration
 	clockDriftMovingAvg *movingaverage.MovingAverage
 
@@ -49,7 +48,6 @@ func (sc *ETAScraper) ID() string {
 func (sc *ETAScraper) Init(node sqalx.Node, log *log.Logger) error {
 	sc.clockDriftMovingAvg = movingaverage.New(100)
 	sc.log = log
-	sc.locs = make(map[string]*time.Location)
 
 	if sc.HTTPClient == nil {
 		sc.HTTPClient = &http.Client{
@@ -315,7 +313,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 			continue
 		}
 
-		creation, err := time.ParseInLocation("20060102150405", dirETA.Hora, sc.getLocation(station.Network.Timezone))
+		creation, err := time.ParseInLocation("20060102150405", dirETA.Hora, getLocation(station.Network.Timezone, sc.log))
 		if err != nil {
 			return err
 		}
@@ -350,6 +348,12 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 			}
 			firstETA.SetETA(time.Duration(seconds) * time.Second)
 
+			// we assume that the number in UT applies to the next train only
+			ut, err := strconv.Atoi(dirETA.UT)
+			if err != nil {
+				ut = 0
+			}
+			firstETA.TransportUnits = ut * 3
 			sc.NewETACallback(&firstETA)
 		}
 
@@ -394,15 +398,17 @@ func (sc *ETAScraper) getDirection(dirETA directionETAs) *types.Station {
 	return sc.stationsByID[d]
 }
 
-func (sc *ETAScraper) getLocation(timezone string) *time.Location {
-	if loc, ok := sc.locs[timezone]; ok {
+var locs = make(map[string]*time.Location)
+
+func getLocation(timezone string, log *log.Logger) *time.Location {
+	if loc, ok := locs[timezone]; ok {
 		return loc
 	}
 
 	loc, err := time.LoadLocation(timezone)
 	if err != nil {
-		sc.log.Fatalln("Invalid timezone", timezone)
+		log.Fatalln("Invalid timezone", timezone)
 	}
-	sc.locs[timezone] = loc
+	locs[timezone] = loc
 	return loc
 }

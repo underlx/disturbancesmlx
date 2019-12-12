@@ -7,14 +7,15 @@ import (
 	"time"
 
 	"github.com/gbl08ma/sqalx"
-	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/scraper"
 	"github.com/underlx/disturbancesmlx/scraper/mlxscraper"
+	"github.com/underlx/disturbancesmlx/types"
 )
 
 var (
 	mlxscr     scraper.StatusScraper
 	mlxETAscr  scraper.ETAScraper
+	mlxcondscr scraper.ETAScraper
 	rssmlxscr  scraper.AnnouncementScraper
 	fbmlxscr   scraper.AnnouncementScraper
 	contestscr scraper.AnnouncementScraper
@@ -58,9 +59,8 @@ func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 	}
 
 	mlxscr = &mlxscraper.Scraper{
-		StatusCallback:    handleNewStatusNotify,
-		ConditionCallback: handleNewCondition,
-		Network:           network,
+		StatusCallback: handleNewStatusNotify,
+		Network:        network,
 		Source: &types.Source{
 			ID:        "mlxscraper-pt-ml",
 			Name:      "Metro de Lisboa estado_Linhas.php",
@@ -89,8 +89,29 @@ func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 		}
 		mlxETAscr.Begin()
 		scrapers[mlxETAscr.ID()] = mlxETAscr
+
+		mlxcondscr = &mlxscraper.ConditionsScraper{
+			ConditionCallback: handleNewCondition,
+			BearerToken:       mlAccessToken,
+			EndpointURL:       "https://api.metrolisboa.pt:8243/estadoServicoML/1.0.1",
+			Network:           network,
+			Source: &types.Source{
+				ID:        "mlxcond-pt-ml",
+				Name:      "Metro de Lisboa EstadoServicoML",
+				Automatic: true,
+				Official:  true,
+			},
+			Period: 1 * time.Minute,
+		}
+		err = mlxcondscr.Init(rootSqalxNode,
+			log.New(os.Stdout, "mlxcondscraper", log.Ldate|log.Ltime))
+		if err != nil {
+			return err
+		}
+		mlxcondscr.Begin()
+		scrapers[mlxcondscr.ID()] = mlxcondscr
 	} else {
-		log.Println("Not scraping pt-ml ETAs, as access token is not present")
+		log.Println("Not scraping pt-ml ETAs or line conditions, as access token is not present")
 	}
 	return tx.Commit()
 }

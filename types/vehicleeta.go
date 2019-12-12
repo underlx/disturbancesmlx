@@ -33,6 +33,7 @@ type VehicleETA struct {
 	Station          *Station
 	Direction        *Station
 	ArrivalOrder     int // 0 is N/A, 1 is the next vehicle, 2 is the vehicle after the next one, etc.
+	TransportUnits   int // number of train cars or equivalent. 0 is unknown or N/A
 	VehicleServiceID string
 	Platform         string
 	Computed         time.Time

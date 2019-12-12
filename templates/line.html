@@ -42,7 +42,13 @@
       </div>
       <div class="pure-u-1">
         <h2>Exploração</h2>
-        <p>Estão {{ len .CurTrains }} comboios a realizar serviço de passageiros nesta linha{{if len .CurTrains }}:<br>{{range $i, $train := .CurTrains}}{{if $i}}, {{end}}{{ $train }}{{end}}{{else}}.{{end}}</p>
+        <p>Estão {{ len .CurTrains }} comboios a realizar serviço de passageiros nesta linha{{if len .CurTrains }}:<br>
+          <ul>
+          {{range $i, $train := .CurTrains}}
+            <li>{{ $train.VehicleServiceID }}{{ if $train.TransportUnits }} ({{ $train.TransportUnits }} carruagens){{end}}</li>
+          {{end}}
+          </ul>
+          {{else}}.{{end}}</p>
       </div>
       <div class="pure-u-1">
         <h2>Perturbações nos últimos 7 dias</h2>

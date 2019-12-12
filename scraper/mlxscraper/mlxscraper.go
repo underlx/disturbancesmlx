@@ -9,9 +9,7 @@ import (
 	"log"
 	mathrand "math/rand"
 	"net/http"
-	"regexp"
 	"sort"
-	"strconv"
 
 	"strings"
 
@@ -31,10 +29,7 @@ type Scraper struct {
 	lineIDs          []string
 	lineNames        []string
 	detLineNames     []string
-	freqLineNames    []string
 	estadoLineNames  []string
-	freqRegexp       *regexp.Regexp
-	numCarsRegexp    *regexp.Regexp
 	lines            map[string]*types.Line
 	previousResponse []byte
 	log              *log.Logger
@@ -43,12 +38,11 @@ type Scraper struct {
 	lastRandom       string
 	randomGeneration time.Time
 
-	StatusCallback    func(status *types.Status)
-	ConditionCallback func(condition *types.LineCondition)
-	Network           *types.Network
-	Source            *types.Source
-	Period            time.Duration
-	HTTPClient        *http.Client
+	StatusCallback func(status *types.Status)
+	Network        *types.Network
+	Source         *types.Source
+	Period         time.Duration
+	HTTPClient     *http.Client
 }
 
 // ID returns the ID of this scraper
@@ -65,9 +59,6 @@ func (sc *Scraper) Init(node sqalx.Node, log *log.Logger) {
 	sc.lineNames = []string{"azul", "amarela", "verde", "vermelha"}
 	sc.estadoLineNames = []string{"Azul", "Amarela", "Verde", "Vermelha"}
 	sc.detLineNames = []string{"Azul", "Amar", "Verde", "Verm"}
-	sc.freqLineNames = []string{"", "Amarela", "Verde", "Vermelha"}
-	sc.freqRegexp = regexp.MustCompile("[0-9]{2}:[0-9]{2}")
-	sc.numCarsRegexp = regexp.MustCompile("[0-9]+")
 
 	sc.lines = make(map[string]*types.Line)
 
@@ -172,31 +163,6 @@ func (sc *Scraper) update() {
 					statusMsg = statusMsg[0 : len(statusMsg)-1]
 				}
 
-				freqMsg := doc.Find("#freqLinha" + sc.freqLineNames[i]).First().Not("strong").Not("span").Text()
-				freqMsg = sc.freqRegexp.FindString(freqMsg)
-				var freq time.Duration
-				if freqMsg != "" {
-					for i, part := range strings.Split(freqMsg, ":") {
-						num, err := strconv.Atoi(part)
-						if err != nil {
-							break
-						}
-						switch i {
-						case 0:
-							freq += time.Duration(num) * time.Minute
-						case 1:
-							freq += time.Duration(num) * time.Second
-						}
-					}
-				}
-
-				numCarsMsg := doc.Find("#estado" + sc.estadoLineNames[i]).First().Find("#unidadesTraccao").Not("strong").Text()
-				numCarsMsg = sc.numCarsRegexp.FindString(numCarsMsg)
-				var numCars int
-				if numCarsMsg != "" {
-					numCars, _ = strconv.Atoi(numCarsMsg)
-				}
-
 				sc.lastUpdate = time.Now().UTC()
 
 				id, err := uuid.NewV4()
@@ -213,20 +179,6 @@ func (sc *Scraper) update() {
 				}
 				status.ComputeMsgType()
 				sc.StatusCallback(status)
-
-				id, err = uuid.NewV4()
-				if err != nil {
-					return
-				}
-				condition := &types.LineCondition{
-					ID:             id.String(),
-					Time:           time.Now().UTC(),
-					Line:           sc.lines[lineID],
-					TrainCars:      numCars,
-					TrainFrequency: types.Duration(freq),
-					Source:         sc.Source,
-				}
-				sc.ConditionCallback(condition)
 			}
 
 			sc.previousResponse = content

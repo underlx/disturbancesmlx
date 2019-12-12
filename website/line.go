@@ -35,7 +35,7 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		MonthAvailability float64
 		MonthDuration     time.Duration
 		Disturbances      []*types.Disturbance
-		CurTrains         []string
+		CurTrains         []*types.VehicleETA
 	}{}
 
 	p.Line, err = types.GetLine(tx, mux.Vars(r)["id"])
@@ -126,10 +126,12 @@ func LinePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trains := vehicleETAHandler.TrainsInLine(p.Line)
-	p.CurTrains = funk.Keys(trains).([]string)
+	trainsMap := vehicleETAHandler.TrainsInLine(p.Line)
+	p.CurTrains = funk.Map(trainsMap, func(k string, v *types.VehicleETA) *types.VehicleETA {
+		return v
+	}).([]*types.VehicleETA)
 	sort.Slice(p.CurTrains, func(i, j int) bool {
-		return types.VehicleIDLessFuncString(p.CurTrains[i], p.CurTrains[j])
+		return types.VehicleIDLessFuncString(p.CurTrains[i].VehicleServiceID, p.CurTrains[j].VehicleServiceID)
 	})
 
 	err = webtemplate.ExecuteTemplate(w, "line.html", p)
