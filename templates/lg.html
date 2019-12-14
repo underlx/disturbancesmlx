@@ -80,6 +80,7 @@
       {{end}}
       <div class="pure-u-1-1">
         <p id="footnote-1"><sup>[1]</sup> Valores previstos pelo Metro para a hora de carregamento desta página.</p>
+        <p id="footnote-2"><sup>[2]</sup> Comboio destinado à estação <a href="/s/pt-ml-cg">Campo Grande</a>.</p>
       </div>
       <div class="pure-u-1-1">
         <h2 id="positions">Localização dos comboios</h2>
@@ -202,7 +203,12 @@
 
         etasList.appendChild(tr);
 
-        let posCell = document.getElementById("pos_" + eta.nextStation + "_" + eta.direction);
+        let dir = eta.direction;
+        if (dir === "pt-ml-cg") {
+          dir = "pt-ml-od"
+        }
+
+        let posCell = document.getElementById("pos_" + eta.nextStation + "_" + dir);
         posCell.innerHTML = eta.vehicle;
       }
     }
@@ -214,7 +220,12 @@
           continue;
         }
 
-        let td = document.getElementById("eta_" + station + "_" + eta.direction);
+        let dir = eta.direction;
+        if (dir === "pt-ml-cg") {
+          dir = "pt-ml-od"
+        }
+
+        let td = document.getElementById("eta_" + station + "_" + dir);
 
         if (eta.value == 0) {
           td.innerHTML = "No cais";
@@ -224,6 +235,9 @@
           if (minutes < 10) {minutes = "0"+minutes;}
           if (seconds < 10) {seconds = "0"+seconds;}
           td.innerHTML = minutes+':'+seconds;
+          if (eta.direction === "pt-ml-cg") {
+            td.innerHTML += '<sup> <a class="cleanlink" href="#footnote-2">[2]</a></sup>';
+          }
         }
       }
     }
