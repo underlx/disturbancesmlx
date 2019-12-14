@@ -1,5 +1,13 @@
 <style>
-a.anchor:before { content: ''; display: block; position: relative; width: 0; height: 3em; margin-top: -3em }
+.anchor {
+  content: '';
+  display: block;
+  position: relative;
+  width: 0;
+  height: 67px;
+  margin-top: -67px;
+  visibility: hidden;
+}
 #etasTable {
   border-spacing: 15px;
   border-collapse: separate;
@@ -18,9 +26,6 @@ a.anchor:before { content: ''; display: block; position: relative; width: 0; hei
 #etasTable tr > td:nth-child(4) {
   color: #777;
   font-size: 80%;
-}
-h2 {
-  overflow: hidden;
 }
 </style>
 
@@ -67,9 +72,18 @@ h2 {
         <aside><p>Esta estação está encerrada por tempo indeterminado.</p></aside>
         {{ end }}
       </div>
-      <div class="pure-u-1" id="sectionsbar" style="position: sticky; top: 0px; margin-top: 10px; background-color: white; z-index: 100000000"><p style="text-align: center;"><a href="#lobbies" class="pure-button">Átrios</a> <a href="#connections" class="pure-button">Ligações</a> <a href="#pois" class="pure-button">Pontos de Interesse</a> <a href="#trivia" class="pure-button">Trívia</a></p></div>
+      <div class="pure-u-1" id="sectionsbar" style="position: sticky; top: 0px; margin-top: 10px; background-color: white; z-index: 100000000">
+        <p style="text-align: center;">
+          <a href="#map" class="pure-button">Mapa de área local</a>
+          <a href="#lobbies" class="pure-button">Átrios</a>
+          <a href="#connections" class="pure-button">Ligações</a>
+          <a href="#pois" class="pure-button">Pontos de Interesse</a>
+          <a href="#trivia" class="pure-button">Trívia</a>
+        </p>
+
+      </div>
       <div class="pure-u-1" id="vehicleETAs" style="display: none">
-          <h2><a id="etas" class="anchor">Próximos comboios</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+          <span id="etas" class="anchor"></span><h2>Próximos comboios <a class="top-link" href="#top">voltar ao topo</a></h2>
           <p>
             <table id="etasTable">
               <thead><tr><td></td><td>Próximo</td><td colspan="2">Seguintes</td></tr></thead>
@@ -78,51 +92,54 @@ h2 {
           </p>
       </div>
       <div class="pure-u-1" style="overflow: visible">
-        <h2><a id="lobbies" class="anchor">Mapa de área local</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+        <span id="map" class="anchor"></span><h2>Mapa de área local <a class="top-link" href="#top">voltar ao topo</a></h2>
         <div style="text-align: center">
           <div id="mapid" class="geomap" style=""></div>
         </div>
       </div>
       <div class="pure-u-1">
-          <h2><a id="lobbies" class="anchor">Átrios</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
-          {{ range $index, $lobby := .Lobbies }}
-            <h3>Átrio <span id="lobby-{{ $lobby.Name }}-title">{{ $lobby.Name }}</span></h3>
-            <h4>Horário</h4>
-            <p>
-            {{ range $timetableLine := (index $.LobbySchedules $index) }}
-              {{ $timetableLine }}<br>
-            {{end}}
-            </p>
-            <h4>Saídas</h4>
-            <ul class="exit-list">
-            {{ range $exit := (index $.LobbyExits $index) }}
-              <li class="{{ $exit.Type }}">
-                <a target="_blank" rel="noopener"
-                   href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $exit.WorldCoord 0) (index $exit.WorldCoord 1)) }}">
-                  {{ range $idx, $street := $exit.Streets}}{{$street}}{{ if not (eq $idx (minus (len $exit.Streets) 1))}}, {{end}}{{end}}
-                </a>
-              </li>
-            {{end}}
-            </ul>
+        <span id="lobbies" class="anchor"></span><h2>Átrios <a class="top-link" href="#top">voltar ao topo</a></h2>
+        {{ range $index, $lobby := .Lobbies }}
+          <h3>Átrio <span id="lobby-{{ $lobby.Name }}-title">{{ $lobby.Name }}</span></h3>
+          <h4>Horário</h4>
+          <p>
+          {{ range $timetableLine := (index $.LobbySchedules $index) }}
+            {{ $timetableLine }}<br>
           {{end}}
+          </p>
+          <h4>Saídas</h4>
+          <ul class="exit-list">
+          {{ range $exit := (index $.LobbyExits $index) }}
+            <li class="{{ $exit.Type }}">
+              <a target="_blank" rel="noopener"
+                  href="{{ (printf "https://www.google.com/maps/search/?api=1&query=%f,%f" (index $exit.WorldCoord 0) (index $exit.WorldCoord 1)) }}">
+                {{ range $idx, $street := $exit.Streets}}{{$street}}{{ if not (eq $idx (minus (len $exit.Streets) 1))}}, {{end}}{{end}}
+              </a>
+            </li>
+          {{end}}
+          </ul>
+        {{end}}
       </div>
       <div class="pure-u-1">
-        <h2><a id="connections" class="anchor">Ligações</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+        <span id="connections" class="anchor"></span><h2>Ligações <a class="top-link" href="#top">voltar ao topo</a></h2>
         <p>{{ range $data := .Connections }}
-            {{if eq $data.ID "bus"}}<a href="#bus" style="font-size: 85%;" class="pure-button">Carreiras urbanas</a> 
-            {{else if eq $data.ID "boat"}}<a href="#boat" style="font-size: 85%;" class="pure-button">Ligações fluviais</a> 
-            {{else if eq $data.ID "train"}}<a href="#train" style="font-size: 85%;" class="pure-button">Comboios</a> 
-            {{else if eq $data.ID "park"}}<a href="#park" style="font-size: 85%;" class="pure-button">Parques de estacionamento</a> 
-            {{else if eq $data.ID "bike"}}<a href="#bike" style="font-size: 85%;" class="pure-button">Bicicletas partilhadas</a> 
+          <a href="#connections:{{ $data.ID }}" style="font-size: 85%;" class="pure-button">
+            {{if eq $data.ID "bus"}}Carreiras urbanas
+            {{else if eq $data.ID "boat"}}Ligações fluviais
+            {{else if eq $data.ID "train"}}Comboios
+            {{else if eq $data.ID "park"}}Parques de estacionamento
+            {{else if eq $data.ID "bike"}}Bicicletas partilhadas
             {{end}}
+          </a>
         {{end}}</p>
         {{ range $data := .Connections }}
-          <h3>
-            {{if eq $data.ID "bus"}}<a id="bus" class="anchor">Carreiras urbanas</a>
-            {{else if eq $data.ID "boat"}}<a id="boat" class="anchor">Ligações fluviais</a>
-            {{else if eq $data.ID "train"}}<a id="train" class="anchor">Comboios</a>
-            {{else if eq $data.ID "park"}}<a id="park" class="anchor">Parques de estacionamento</a>
-            {{else if eq $data.ID "bike"}}<a id="bike" class="anchor">Bicicletas partilhadas</a>
+          <span id="connections:{{ $data.ID }}" class="anchor"></span>
+          <h3>  
+            {{if eq $data.ID "bus"}}Carreiras urbanas
+            {{else if eq $data.ID "boat"}}Ligações fluviais
+            {{else if eq $data.ID "train"}}Comboios
+            {{else if eq $data.ID "park"}}Parques de estacionamento
+            {{else if eq $data.ID "bike"}}Bicicletas partilhadas
             {{end}}
             <a class="top-link" href="#connections">voltar a Ligações</a>
           </h3>
@@ -130,7 +147,7 @@ h2 {
         {{end}}
       </div>
       <div class="pure-u-1">
-          <h2><a id="pois" class="anchor">Pontos de Interesse</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+          <span id="pois" class="anchor"></span><h2>Pontos de Interesse <a class="top-link" href="#top">voltar ao topo</a></h2>
           <ul>
           {{ range $index, $poi := .POIs }}
             <li style="margin-bottom: 15px">
@@ -145,7 +162,7 @@ h2 {
           </ul>
       </div>
       <div class="pure-u-1">
-        <h2><a id="trivia" class="anchor">Trívia</a> <a class="top-link" href="#top">voltar ao topo</a></h2>
+        <span id="trivia" class="anchor"></span><h2>Trívia <a class="top-link" href="#top">voltar ao topo</a></h2>
         {{ .Trivia }}
       </div>
     </div>
