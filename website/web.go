@@ -5,13 +5,11 @@ import (
 	"log"
 	"net/http"
 	"net/http/pprof"
-	"sort"
 	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
-	"github.com/thoas/go-funk"
 	"github.com/gbl08ma/ankiddie"
 	"github.com/underlx/disturbancesmlx/compute"
 	"github.com/underlx/disturbancesmlx/utils"
@@ -274,10 +272,14 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 
 	p := struct {
 		PageCommons
-		Vehicles     []*types.VehicleETA
-		VehicleLines map[string]*types.Line
+		NetworkLines   []*types.Line
+		LineStations   map[*types.Line][]*types.Station
+		LineConditions map[*types.Line]*types.LineCondition
+		ClosedStations map[string]bool
 	}{
-		VehicleLines: make(map[string]*types.Line),
+		LineStations:   make(map[*types.Line][]*types.Station),
+		LineConditions: make(map[*types.Line]*types.LineCondition),
+		ClosedStations: make(map[string]bool),
 	}
 
 	p.PageCommons, err = InitPageCommons(tx, w, r, "Observatório")
@@ -287,47 +289,32 @@ func LookingGlass(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lineLetterToID := map[string]string{
-		"A": "pt-ml-azul",
-		"B": "pt-ml-amarela",
-		"C": "pt-ml-verde",
-		"D": "pt-ml-vermelha",
+	p.NetworkLines, err = types.GetLines(tx)
+	if err != nil {
+		webLog.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	lineLetterToLine := map[string]*types.Line{}
-	for letter, id := range lineLetterToID {
-		lineLetterToLine[letter], err = types.GetLine(tx, id)
+	for _, line := range p.NetworkLines {
+		p.LineConditions[line], err = line.LastCondition(tx)
 		if err != nil {
 			webLog.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-	}
 
-	vehicleMap := vehicleETAHandler.TrainPositions()
+		p.LineStations[line], err = line.Stations(tx)
+		if err != nil {
+			webLog.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
-	p.Vehicles = funk.Values(vehicleMap).([]*types.VehicleETA)
-
-	sort.Slice(p.Vehicles, func(i, j int) bool {
-		if p.Vehicles[i].VehicleIDisSpecial() && !p.Vehicles[j].VehicleIDisSpecial() {
-			return true
+		for _, station := range p.LineStations[line] {
+			closed, err := station.Closed(tx)
+			p.ClosedStations[station.ID] = err == nil && closed
 		}
-		if !p.Vehicles[i].VehicleIDisSpecial() && p.Vehicles[j].VehicleIDisSpecial() {
-			return false
-		}
-		li, _ := p.Vehicles[i].VehicleIDgetLineString()
-		lj, _ := p.Vehicles[j].VehicleIDgetLineString()
-		if li < lj {
-			return true
-		}
-		if li > lj {
-			return false
-		}
-		return p.Vehicles[i].VehicleIDgetNumber() < p.Vehicles[j].VehicleIDgetNumber()
-	})
-
-	for _, vehicle := range p.Vehicles {
-		p.VehicleLines[vehicle.VehicleServiceID], _ = vehicle.VehicleIDgetLine(tx)
 	}
 
 	p.Dependencies.MQTT = true

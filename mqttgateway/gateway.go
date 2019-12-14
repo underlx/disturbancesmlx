@@ -172,7 +172,7 @@ func (g *MQTTGateway) Start() error {
 					g.Log.Println(err)
 				}
 			case <-ticker.C:
-				err := g.SendVehicleETAs()
+				err := g.SendVehicleETAs(nil, true)
 				if err != nil {
 					g.Log.Println(err)
 				}
@@ -327,7 +327,12 @@ func (g *MQTTGateway) handleOnSubscribe(client *gmqtt.Client, topic packets.Topi
 				if !(client.UserData().(userInfo)).IsWebSocket {
 					time.Sleep(1 * time.Second)
 				}
-				err := g.SendVehicleETAForStationToClient(client, topic.Name, parts[2], parts[3])
+				var err error
+				if parts[3] == "+" {
+					err = g.SendVehicleETAs(client, (len(parts) == 5 && parts[4] == "all"))
+				} else {
+					err = g.SendVehicleETAForStationToClient(client, topic.Name, parts[2], parts[3])
+				}
 				if err != nil {
 					g.Log.Println(err)
 				}

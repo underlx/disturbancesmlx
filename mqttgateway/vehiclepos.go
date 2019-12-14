@@ -11,6 +11,7 @@ import (
 
 type vehiclePosition struct {
 	Vehicle     string `msgpack:"v" json:"vehicle"`
+	Cars        uint   `msgpack:"u" json:"cars"`
 	PrevStation string `msgpack:"p" json:"prevStation"`
 	NextStation string `msgpack:"n" json:"nextStation"`
 	Direction   string `msgpack:"d" json:"direction"`
@@ -24,6 +25,7 @@ func (g *MQTTGateway) buildVehiclePositionStruct(tx sqalx.Node, eta *types.Vehic
 	prevStation, pct := g.vehicleETAhandler.VehiclePosition(tx, eta)
 	return vehiclePosition{
 		Vehicle:     eta.VehicleServiceID,
+		Cars:        uint(eta.TransportUnits),
 		PrevStation: prevStation.ID,
 		NextStation: eta.Station.ID,
 		Direction:   eta.Direction.ID,

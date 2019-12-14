@@ -36,6 +36,7 @@ type vehicleETA struct {
 	Type      string `msgpack:"type" json:"type"`
 	Units     string `msgpack:"units" json:"units"`
 	Order     uint   `msgpack:"order" json:"order"`
+	Cars      uint   `msgpack:"cars" json:"cars"`
 }
 
 type vehicleETASingleValue struct {
@@ -49,18 +50,19 @@ type vehicleETAInterval struct {
 	Upper      uint `msgpack:"upper" json:"upper"`
 }
 
-func buildVehicleETANotAvailableStruct(direction string, made time.Time, validFor time.Duration, order uint) vehicleETA {
+func buildVehicleETANotAvailableStruct(direction string, made time.Time, validFor time.Duration, order uint, cars uint) vehicleETA {
 	return vehicleETA{
 		Direction: direction,
 		Made:      made.Unix(),
 		ValidFor:  uint(validFor.Seconds()),
 		Type:      vehicleETATypeNotAvailable,
 		Order:     order,
+		Cars:      cars,
 		Units:     vehicleETAUnitSeconds,
 	}
 }
 
-func buildVehicleETATimestampStruct(direction string, made time.Time, validFor time.Duration, eta time.Time, order uint) vehicleETASingleValue {
+func buildVehicleETATimestampStruct(direction string, made time.Time, validFor time.Duration, eta time.Time, order uint, cars uint) vehicleETASingleValue {
 	return vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
@@ -68,13 +70,14 @@ func buildVehicleETATimestampStruct(direction string, made time.Time, validFor t
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeTimestamp,
 			Order:     order,
+			Cars:      cars,
 			Units:     vehicleETAUnitSeconds,
 		},
 		Value: uint(eta.Unix()),
 	}
 }
 
-func buildVehicleETAExactStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool, order uint) vehicleETASingleValue {
+func buildVehicleETAExactStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool, order uint, cars uint) vehicleETASingleValue {
 	data := vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
@@ -82,6 +85,7 @@ func buildVehicleETAExactStruct(direction string, made time.Time, validFor time.
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeExact,
 			Order:     order,
+			Cars:      cars,
 		},
 	}
 
@@ -96,7 +100,7 @@ func buildVehicleETAExactStruct(direction string, made time.Time, validFor time.
 	return data
 }
 
-func buildVehicleETALessThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool, order uint) vehicleETASingleValue {
+func buildVehicleETALessThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool, order uint, cars uint) vehicleETASingleValue {
 	data := vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
@@ -104,6 +108,7 @@ func buildVehicleETALessThanStruct(direction string, made time.Time, validFor ti
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeLessThan,
 			Order:     order,
+			Cars:      cars,
 		},
 	}
 
@@ -118,7 +123,7 @@ func buildVehicleETALessThanStruct(direction string, made time.Time, validFor ti
 	return data
 }
 
-func buildVehicleETAMoreThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool, order uint) vehicleETASingleValue {
+func buildVehicleETAMoreThanStruct(direction string, made time.Time, validFor time.Duration, eta time.Duration, precise bool, order uint, cars uint) vehicleETASingleValue {
 	data := vehicleETASingleValue{
 		vehicleETA: vehicleETA{
 			Direction: direction,
@@ -126,6 +131,7 @@ func buildVehicleETAMoreThanStruct(direction string, made time.Time, validFor ti
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeMoreThan,
 			Order:     order,
+			Cars:      cars,
 		},
 	}
 
@@ -140,7 +146,7 @@ func buildVehicleETAMoreThanStruct(direction string, made time.Time, validFor ti
 	return data
 }
 
-func buildVehicleETAIntervalStruct(direction string, made time.Time, validFor time.Duration, lower, upper time.Duration, precise bool, order uint) vehicleETAInterval {
+func buildVehicleETAIntervalStruct(direction string, made time.Time, validFor time.Duration, lower, upper time.Duration, precise bool, order uint, cars uint) vehicleETAInterval {
 	data := vehicleETAInterval{
 		vehicleETA: vehicleETA{
 			Direction: direction,
@@ -148,6 +154,7 @@ func buildVehicleETAIntervalStruct(direction string, made time.Time, validFor ti
 			ValidFor:  uint(validFor.Seconds()),
 			Type:      vehicleETATypeInterval,
 			Order:     order,
+			Cars:      cars,
 		},
 	}
 
@@ -181,7 +188,7 @@ func buildVehicleETAJSONPayload(structs ...interface{}) []byte {
 }
 
 // SendVehicleETAs publishes vehicle ETAs for all stations and directions in the respective topics
-func (g *MQTTGateway) SendVehicleETAs() error {
+func (g *MQTTGateway) SendVehicleETAs(client *gmqtt.Client, sendAll bool) error {
 	if g.etaAvailability == "none" || g.etaAvailability == "" {
 		return nil
 	}
@@ -202,7 +209,11 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 			return err
 		}
 		if len(structs) != 0 {
-			g.sendStructsAccordingToAvailability(station, structs, false)
+			g.sendStructsAccordingToAvailability(station, client, structs, false)
+		}
+
+		if !sendAll {
+			continue
 		}
 
 		structsAll, err := g.buildStructsForStation(tx, station, 3)
@@ -211,18 +222,24 @@ func (g *MQTTGateway) SendVehicleETAs() error {
 		}
 
 		if len(structsAll) != 0 {
-			g.sendStructsAccordingToAvailability(station, structsAll, true)
+			g.sendStructsAccordingToAvailability(station, client, structsAll, true)
 		}
 
 	}
 	return nil
 }
 
-func (g *MQTTGateway) sendStructsAccordingToAvailability(station *types.Station, structs []interface{}, isAll bool) {
+func (g *MQTTGateway) sendStructsAccordingToAvailability(station *types.Station, client *gmqtt.Client, structs []interface{}, isAll bool) {
 	topicSuffix := ""
 	if isAll {
 		topicSuffix = "/all"
 	}
+
+	clientIDs := []string{}
+	if client != nil {
+		clientIDs = []string{client.ClientOptions().ClientID}
+	}
+
 	payload := buildVehicleETAPayload(structs...)
 	g.server.Publish(&packets.Publish{
 		Qos:       packets.QOS_0,
@@ -235,14 +252,14 @@ func (g *MQTTGateway) sendStructsAccordingToAvailability(station *types.Station,
 			Qos:       packets.QOS_0,
 			TopicName: []byte(fmt.Sprintf("msgpack/vehicleeta/%s/%s%s", station.Network.ID, station.ID, topicSuffix)),
 			Payload:   payload,
-		})
+		}, clientIDs...)
 
 		jsonPayload := buildVehicleETAJSONPayload(structs...)
 		g.server.Publish(&packets.Publish{
 			Qos:       packets.QOS_0,
 			TopicName: []byte(fmt.Sprintf("json/vehicleeta/%s/%s%s", station.Network.ID, station.ID, topicSuffix)),
 			Payload:   jsonPayload,
-		})
+		}, clientIDs...)
 	}
 }
 
@@ -266,22 +283,26 @@ func (g *MQTTGateway) buildStructsForStation(tx sqalx.Node, station *types.Stati
 func (g *MQTTGateway) vehicleETAtoStruct(eta *types.VehicleETA) interface{} {
 	if time.Since(eta.Computed) > 2*time.Minute {
 		return buildVehicleETANotAvailableStruct(eta.Direction.ID, time.Now(),
-			2*time.Minute, uint(eta.ArrivalOrder))
+			2*time.Minute, uint(eta.ArrivalOrder), uint(eta.TransportUnits))
 	}
 	precise := eta.Precision < 30*time.Second
 	switch eta.Type {
 	case types.Absolute:
 		return buildVehicleETATimestampStruct(eta.Direction.ID, eta.Computed,
-			eta.RemainingValidity(), eta.AbsoluteETA, uint(eta.ArrivalOrder))
+			eta.RemainingValidity(), eta.AbsoluteETA, uint(eta.ArrivalOrder),
+			uint(eta.TransportUnits))
 	case types.RelativeExact:
 		return buildVehicleETAExactStruct(eta.Direction.ID, eta.Computed,
-			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder))
+			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder),
+			uint(eta.TransportUnits))
 	case types.RelativeMinimum:
 		return buildVehicleETAMoreThanStruct(eta.Direction.ID, eta.Computed,
-			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder))
+			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder),
+			uint(eta.TransportUnits))
 	case types.RelativeMaximum:
 		return buildVehicleETALessThanStruct(eta.Direction.ID, eta.Computed,
-			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder))
+			eta.RemainingValidity(), eta.LiveETA(), precise, uint(eta.ArrivalOrder),
+			uint(eta.TransportUnits))
 	default:
 		return nil
 	}

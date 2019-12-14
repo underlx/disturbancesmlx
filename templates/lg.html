@@ -1,29 +1,91 @@
 {{template "header.html" . }}
-  <div class="content">
+  <style>
+    .line-etas-table > * > tr > td {
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+    .line-etas-table > tbody > tr > td:nth-child(1) {
+      padding-right: 0;
+      text-align: right;
+      font-size: 80%;
+    }
+    .line-etas-table > tbody > tr > td:nth-child(2) {
+      text-align: right;
+      border-left: 1px transparent;
+    }
+    .line-etas-table > tbody > tr > td:nth-child(3) {
+      text-align: center;
+    }
+    .line-etas-table > tbody > tr > td:nth-child(3) > a {
+      font-weight: bold;
+      text-decoration: none;
+      color: inherit;
+    }
+    .line-etas-table > tbody > tr > td:nth-child(5) {
+      border-left: 1px transparent;
+      padding-left: 0;
+      font-size: 80%;
+    }
+    .cleanlink {
+      text-decoration: none;
+      color: inherit;
+    }
+  </style>
+  <div class="content"  style="max-width: 910px;">
     <div class="pure-g">
       <div class="pure-u-1">
         <h1>Observatório</h1>
-      </div>
-      <div class="pure-u-1-1">
-        <h2>Localização dos comboios</h2>
-        <table class="pure-table">
-          <thead><tr><td>Comboio</td><td>Destino</td><td>Próxima estação</td><td>Daqui a</td></tr></thead>
-          <tbody>
-          {{ range $eta := .Vehicles }}
-            <tr>
-              <td {{ if (index $.VehicleLines $eta.VehicleServiceID) }}style="color: #{{ (index $.VehicleLines $eta.VehicleServiceID).Color }}"{{end}}>{{ $eta.VehicleServiceID }}</td>
-              <td>{{ $eta.Direction.Name }}</td>
-              <td>{{ $eta.Station.Name }}</td>
-              <td>{{ $dur := $eta.LiveETA }}
-              {{if $dur }}{{ formatPortugueseDurationLong $dur }}
-              {{else}}No cais{{end}}</td>
-            </tr>
+        <noscript>
+          <aside style="margin-bottom: 1em;"><p>Esta página requer a execução de JavaScript para funcionar.</p></aside>
+        </noscript>
+        <div style="text-align: center;">
+          {{ range $line := .NetworkLines }}
+          <a style="margin-bottom: 0.5em; background-color: #{{ $line.Color }}; color: #fff;" class="pure-button" href="#line:{{ $line.ID }}">Linha {{ $line.Name }}</a>
           {{end}}
+          <a style="margin-bottom: 0.5em;" class="pure-button" href="#positions">Localização dos comboios</a>
+        </div>
+      </div>
+      {{ range $line := .NetworkLines }}
+      <div class="pure-u-1-1 pure-u-md-1-2" class="line-section">
+        <h2 id="line:{{ $line.ID }}">Linha <a href="/l/{{ $line.ID }}" style="color: #{{ $line.Color }}" class="cleanlink">{{ $line.Name }}</a></h2>
+        {{ $condition := index $.LineConditions $line }}
+        {{ if $condition.TrainFrequency }}
+        <p>Intervalo planeado entre comboios: {{ formatTrainFrequency $condition.TrainFrequency }}<sup> <a class="cleanlink" href="#footnote-1">[1]</a></sup></p>
+        <p>Número planeado de carruagens por comboio: {{ $condition.TrainCars }}<sup> <a class="cleanlink" href="#footnote-1">[1]</a></sup></p>
+        {{end}}
+        <h3>Tempos de espera</h3>
+        {{ $lineStations := index $.LineStations $line }}
+        {{ $firstStation := index $lineStations 0 }}
+        {{ $lastStation := index $lineStations (minus (len $lineStations) 1) }}
+        <table class="pure-table pure-table-bordered line-etas-table" style="width: 95%;">
+          <thead>
+            <tr>
+              <td style="text-align: right;" colspan="2"><small>Sentido</small><br>{{ $firstStation.Name }}</td>
+              <td style="text-align: center;">Estação</td>
+              <td colspan="2"><small>Sentido</small><br>{{ $lastStation.Name }}</td></tr>
+          </thead>
+          <tbody>
+            {{ range $station := $lineStations }}
+            <tr>
+              <td class="vehicle-pos" id="pos_{{ $station.ID }}_{{ $firstStation.ID }}"></td>
+              <td {{ if index $.ClosedStations $station.ID }} style="text-decoration: line-through" {{end}} id="eta_{{ $station.ID }}_{{ $firstStation.ID }}"></td>
+              <td><a href="/s/{{ $station.ID }}" {{ if index $.ClosedStations $station.ID }} style="text-decoration: line-through" {{end}}>{{ $station.Name }}</a></td>
+              <td {{ if index $.ClosedStations $station.ID }} style="text-decoration: line-through" {{end}} id="eta_{{ $station.ID }}_{{ $lastStation.ID }}"></td>
+              <td class="vehicle-pos" id="pos_{{ $station.ID }}_{{ $lastStation.ID }}"></td>
+            </tr>
+            {{end}}
           </tbody>
         </table>
-        <h2>Em direto</h2>
+      </div>
+      {{end}}
+      <div class="pure-u-1-1">
+        <p id="footnote-1"><sup>[1]</sup> Valores previstos pelo Metro para a hora de carregamento desta página.</p>
+      </div>
+      <div class="pure-u-1-1">
+        <h2 id="positions">Localização dos comboios</h2>
+        <p>Posições aproximadas obtidas com base nos tempos de espera.</p>
         <table class="pure-table" style="width: 100%">
-          <thead><tr><td>Comboio</td><td>Destino</td><td>Troço</td><td>%</td></tr></thead>
+          <thead><tr><td>Comboio</td><td>Destino</td><td>Troço</td><td>Posição no troço (%)</td></tr></thead>
           <tbody id="vehList">
           </tbody>
         </table>
@@ -95,10 +157,16 @@
         }
         return extractNumber(av) - extractNumber(bv);
       });
+
+      let posCells = document.getElementsByClassName("vehicle-pos");
+      for(cell of posCells) {
+        cell.innerHTML = "";
+      }
+
       for (eta of positionData) {
         let tr = document.createElement("tr");
         let vehtd = document.createElement("td");
-        vehtd.innerHTML = eta.vehicle;
+        vehtd.innerHTML = eta.vehicle + " (" + eta.cars + " carr.)";
         tr.appendChild(vehtd);
 
         let dirtd = document.createElement("td");
@@ -133,45 +201,49 @@
         tr.appendChild(pcttd);
 
         etasList.appendChild(tr);
+
+        let posCell = document.getElementById("pos_" + eta.nextStation + "_" + eta.direction);
+        posCell.innerHTML = eta.vehicle;
       }
-      /*for (var direction in perDirection) {
-        let tr = document.createElement("tr");
-        let dirtd = document.createElement("td");
-        let color = getColorForStation(direction);
-        dirtd.innerHTML = "<a href='/s/" + direction + "' style='color: " + color + "'>" + stationNames[direction] + "</a>";
-        tr.appendChild(dirtd);
+    }
 
-        for (var order = 1; order < 4; order++) {
-          let eta = perDirection[direction][order];
-
-          let td = document.createElement("td");
-          if (eta !== undefined) {
-            if (eta.value == 0) {
-              td.innerHTML = "No cais";
-            } else {
-              var minutes = Math.floor(eta.value / 60);
-              var seconds = eta.value - (minutes * 60);
-              if (minutes < 10) {minutes = "0"+minutes;}
-              if (seconds < 10) {seconds = "0"+seconds;}
-              td.innerHTML = minutes+'m '+seconds + "s";
-            }
-          } else {
-            td.innerHTML = "Sem dados";
-          }
-          tr.appendChild(td);
+    function updateETAs(station, data) {
+      for (eta of data) {
+        if (eta.type != "e") {
+          // only support exact ETAs for now
+          continue;
         }
-        etasList.appendChild(tr);
-      }*/
+
+        let td = document.getElementById("eta_" + station + "_" + eta.direction);
+
+        if (eta.value == 0) {
+          td.innerHTML = "No cais";
+        } else {
+          var minutes = Math.floor(eta.value / 60);
+          var seconds = eta.value - (minutes * 60);
+          if (minutes < 10) {minutes = "0"+minutes;}
+          if (seconds < 10) {seconds = "0"+seconds;}
+          td.innerHTML = minutes+':'+seconds;
+        }
+      }
     }
 
     mqttClient.on('message', function (topic, message) {
       // message is Buffer
-      positionData = JSON.parse(message.toString());
-      updateVehiclesTable();
+      if(topic === "json/vehiclepos") {
+        positionData = JSON.parse(message.toString());
+        updateVehiclesTable();
+      } else if (topic.startsWith("json/vehicleeta/")) {
+        let station = topic.substr(16);
+        station = station.substr(station.indexOf("/")+1);
+        station = station.substr(station.indexOf("/")+1);
+        updateETAs(station, JSON.parse(message.toString()));
+      }
     });
 
     mqttClient.on('connect', function () {
       mqttClient.subscribe("json/vehiclepos");
+      mqttClient.subscribe("json/vehicleeta/pt-ml/+");
     });
 
   </script>
