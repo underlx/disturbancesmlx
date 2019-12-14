@@ -308,7 +308,7 @@
         }
         etasList.appendChild(tr);
       }
-      document.getElementById("vehicleETAs").style.display = etasList.children.length > 0 ? "block" : none;
+      document.getElementById("vehicleETAs").style.display = etasList.children.length > 0 ? "block" : "none";
     }
 
     mqttClient.on('message', function (topic, message) {
