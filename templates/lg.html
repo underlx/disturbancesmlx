@@ -62,8 +62,8 @@
         <h2>Linha <a href="/l/{{ $line.ID }}" style="color: #{{ $line.Color }}" class="cleanlink">{{ $line.Name }}</a></h2>
         {{ $condition := index $.LineConditions $line }}
         {{ if $condition.TrainFrequency }}
-        <p>Intervalo planeado entre comboios: {{ formatTrainFrequency $condition.TrainFrequency }}<sup> <a class="cleanlink" href="#footnote-1">[1]</a></sup></p>
-        <p>Número planeado de carruagens por comboio: {{ $condition.TrainCars }}<sup> <a class="cleanlink" href="#footnote-1">[1]</a></sup></p>
+        <p>Intervalo planeado entre comboios: {{ formatTrainFrequency $condition.TrainFrequency }}<sup> <a class="cleanlink" href="#footnotes">[1]</a></sup></p>
+        <p>Número planeado de carruagens por comboio: {{ $condition.TrainCars }}<sup> <a class="cleanlink" href="#footnotes">[1]</a></sup></p>
         {{end}}
         <h3>Tempos de espera</h3>
         {{ $lineStations := index $.LineStations $line }}
@@ -91,8 +91,9 @@
       </div>
       {{end}}
       <div class="pure-u-1-1">
-        <p id="footnote-1"><sup>[1]</sup> Valores previstos pelo Metro para a hora de carregamento desta página.</p>
-        <p id="footnote-2"><sup>[2]</sup> Comboio destinado à estação <a href="/s/pt-ml-cg">Campo Grande</a>.</p>
+        <a class="anchor" id="footnotes"></a>
+        <p><sup>[1]</sup> Valores previstos pelo Metro para a hora de carregamento desta página.</p>
+        <p><sup>[2]</sup> Comboio destinado à estação <a href="/s/pt-ml-cg">Campo Grande</a>.</p>
       </div>
       <div class="pure-u-1-1">
         <span class="anchor" id="positions"></span><h2>Localização dos comboios</h2>
@@ -248,7 +249,7 @@
           if (seconds < 10) {seconds = "0"+seconds;}
           td.innerHTML = minutes+':'+seconds;
           if (eta.direction === "pt-ml-cg") {
-            td.innerHTML += '<sup> <a class="cleanlink" href="#footnote-2">[2]</a></sup>';
+            td.innerHTML += '<sup> <a class="cleanlink" href="#footnotes">[2]</a></sup>';
           }
         }
       }
