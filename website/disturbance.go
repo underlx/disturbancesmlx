@@ -78,7 +78,7 @@ func DisturbancePage(w http.ResponseWriter, r *http.Request) {
 	if latestStatus != nil {
 		imageType := ""
 		switch {
-		case latestStatus.MsgType == types.MLSolvedMessage:
+		case !latestStatus.IsDowntime:
 			imageType = "solved"
 		case strings.Contains(string(latestStatus.MsgType), "HALTED"):
 			fallthrough
