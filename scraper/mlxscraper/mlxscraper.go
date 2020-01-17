@@ -157,7 +157,6 @@ func (sc *Scraper) update() {
 			for i, lineID := range sc.lineIDs {
 				style, _ := doc.Find("#circ_" + sc.lineNames[i]).First().Find("span").Attr("style")
 				statusMsg := doc.Find("#det" + sc.detLineNames[i]).Contents().Not("strong").Text()
-				isDowntime := !strings.Contains(style, "#33FF00") && !strings.Contains(statusMsg, "Serviço encerrado")
 				statusMsg = strings.TrimSpace(statusMsg)
 				if strings.HasSuffix(statusMsg, ".") {
 					statusMsg = statusMsg[0 : len(statusMsg)-1]
@@ -170,14 +169,14 @@ func (sc *Scraper) update() {
 					return
 				}
 				status := &types.Status{
-					ID:         id.String(),
-					Time:       time.Now().UTC(),
-					Line:       sc.lines[lineID],
-					IsDowntime: isDowntime,
-					Status:     statusMsg,
-					Source:     sc.Source,
+					ID:     id.String(),
+					Time:   time.Now().UTC(),
+					Line:   sc.lines[lineID],
+					Status: statusMsg,
+					Source: sc.Source,
 				}
 				status.ComputeMsgType()
+				status.IsDowntime = !strings.Contains(style, "#33FF00") && status.MsgType != types.MLClosedMessage
 				sc.StatusCallback(status)
 			}
 

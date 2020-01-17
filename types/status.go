@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gbl08ma/sqalx"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/gbl08ma/sqalx"
 )
 
 // Status represents the status of a Line at a certain point in time
@@ -144,72 +144,73 @@ func getStatusesWithSelect(node sqalx.Node, sbuilder sq.SelectBuilder) ([]*Statu
 
 // ComputeMsgType analyses the status message to assign the correct MsgType
 func (status *Status) ComputeMsgType() {
+	lcStatus := strings.ToLower(status.Status)
 	switch {
-	case strings.Contains(status.Status, "existem perturbações na circulação"):
+	case strings.Contains(lcStatus, "existem perturbações na circulação"):
 		status.MsgType = MLGenericMessage
 		return
-	case strings.Contains(status.Status, "Circulação normal"):
+	case strings.Contains(lcStatus, "circulação normal"):
 		status.MsgType = MLSolvedMessage
 		return
-	case strings.Contains(status.Status, "Serviço encerrado"):
+	case strings.Contains(lcStatus, "serviço encerrado"):
 		status.MsgType = MLClosedMessage
 		return
-	case strings.Contains(status.Status, "Serviço especial"):
+	case strings.Contains(lcStatus, "serviço especial"):
 		status.MsgType = MLSpecialServiceMessage
 		return
-	case strings.Contains(status.Status, "Os utilizadores comunicaram problemas na circulação"):
+	case strings.Contains(lcStatus, "os utilizadores comunicaram problemas na circulação"):
 		status.MsgType = ReportBeginMessage
 		return
-	case strings.Contains(status.Status, "Vários utilizadores confirmaram problemas na circulação"):
+	case strings.Contains(lcStatus, "vários utilizadores confirmaram problemas na circulação"):
 		status.MsgType = ReportConfirmMessage
 		return
-	case strings.Contains(status.Status, "Vários utilizadores confirmaram mais problemas na circulação"):
+	case strings.Contains(lcStatus, "vários utilizadores confirmaram mais problemas na circulação"):
 		status.MsgType = ReportReconfirmMessage
 		return
-	case strings.Contains(status.Status, "Já não existem relatos de problemas na circulação"):
+	case strings.Contains(lcStatus, "já não existem relatos de problemas na circulação"):
 		status.MsgType = ReportSolvedMessage
 		return
 	}
 
 	cause := ""
 	switch {
-	case strings.Contains(status.Status, "avaria na sinalização"):
+	case strings.Contains(lcStatus, "avaria na sinalização"):
 		cause = "SIGNAL"
-	case strings.Contains(status.Status, "avaria de comboio"):
+	case strings.Contains(lcStatus, "avaria de comboio"):
 		cause = "TRAIN"
-	case strings.Contains(status.Status, "falha de energia"):
+	case strings.Contains(lcStatus, "falha de energia"):
 		cause = "POWER"
-	case strings.Contains(status.Status, "causa alheia ao Metro"):
+	case strings.Contains(lcStatus, "causa alheia ao metro"):
 		cause = "3RDPARTY"
-	case strings.Contains(status.Status, "incidente com passageiro"):
+	case strings.Contains(lcStatus, "incidente com passageiro"):
 		cause = "PASSENGER"
-	case strings.Contains(status.Status, "anomalia na estação"):
+	case strings.Contains(lcStatus, "anomalia na estação"):
 		cause = "STATION"
 	}
 
 	state := ""
 	switch {
-	case strings.Contains(status.Status, "a circulação está interrompida desde as"):
+	case strings.Contains(lcStatus, "a circulação está interrompida desde as"):
 		state = "SINCE"
-	case strings.Contains(status.Status, "está interrompida a circulação."):
+	case strings.Contains(lcStatus, "está interrompida a circulação."):
 		state = "HALTED"
-	case strings.Contains(status.Status, "está interrompida a circulação na linha entre as estações"):
+	case strings.Contains(lcStatus, "está interrompida a circulação na linha entre as estações"):
 		state = "BETWEEN"
-	case strings.Contains(status.Status, "a circulação encontra-se com perturbações"):
+	case strings.Contains(lcStatus, "a circulação encontra-se com perturbações"):
 		state = "DELAYED"
 	}
 
 	outlook := ""
 	switch {
-	case strings.Contains(status.Status, "Não é possível prever a duração da interrupção, que poderá ser prolongada"):
+	case strings.Contains(lcStatus, "não é possível prever a duração da interrupção, que poderá ser prolongada"):
 		outlook = "LONGHALT"
-	case strings.Contains(status.Status, "O tempo de espera pode ser superior ao normal"):
+	case strings.Contains(lcStatus, "o tempo de espera pode ser superior ao normal"):
 		outlook = "LONGWAIT"
-	case strings.Contains(status.Status, "Esperamos retomar a circulação dentro de instantes"):
+	case strings.Contains(lcStatus, "esperamos retomar a circulação dentro de instantes"):
 		outlook = "SOON"
-	case strings.Contains(status.Status, "Esperamos retomar a circulação num período inferior a 15 minutos"):
+	case strings.Contains(lcStatus, "esperamos retomar a circulação num período inferior a 15 minutos"):
 		outlook = "UNDER15"
-	case strings.Contains(status.Status, "O tempo de reposição poderá ser superior a 15 minutos"):
+	case strings.Contains(lcStatus, "o tempo de reposição poderá ser superior a 15 minutos"):
 		outlook = "OVER15"
 	}
 
