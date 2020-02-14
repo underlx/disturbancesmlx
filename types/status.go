@@ -192,9 +192,9 @@ func (status *Status) ComputeMsgType() {
 	switch {
 	case strings.Contains(lcStatus, "a circulação está interrompida desde as"):
 		state = "SINCE"
-	case strings.Contains(lcStatus, "está interrompida a circulação."):
+	case strings.Contains(lcStatus, "está interrompida a circulação.") || strings.Contains(lcStatus, "a circulação está interrompida."):
 		state = "HALTED"
-	case strings.Contains(lcStatus, "está interrompida a circulação na linha entre as estações"):
+	case strings.Contains(lcStatus, "está interrompida a circulação na linha entre as estações") || strings.Contains(lcStatus, "a circulação está interrompida entre as estações"):
 		state = "BETWEEN"
 	case strings.Contains(lcStatus, "a circulação encontra-se com perturbações"):
 		state = "DELAYED"
