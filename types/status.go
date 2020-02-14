@@ -206,7 +206,7 @@ func (status *Status) ComputeMsgType() {
 		outlook = "LONGHALT"
 	case strings.Contains(lcStatus, "o tempo de espera pode ser superior ao normal"):
 		outlook = "LONGWAIT"
-	case strings.Contains(lcStatus, "esperamos retomar a circulação dentro de instantes"):
+	case strings.Contains(lcStatus, "esperamos retomar a circulação dentro de instantes") || strings.Contains(lcStatus, "esperamos retomar a circulação o mais breve possível"):
 		outlook = "SOON"
 	case strings.Contains(lcStatus, "esperamos retomar a circulação num período inferior a 15 minutos"):
 		outlook = "UNDER15"
