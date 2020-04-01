@@ -3,12 +3,13 @@ package types
 import (
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/SaidinWoT/timespan"
 	"github.com/gbl08ma/sqalx"
-	sq "github.com/Masterminds/squirrel"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -442,7 +443,8 @@ func (line *Line) Availability(node sqalx.Node, startTime time.Time, endTime tim
 	}
 
 	totalTime := endTime.Sub(startTime) - closedDuration
-	return 1.0 - (downTime.Minutes() / totalTime.Minutes()), avgDuration, nil
+	availability = math.Max(0, 1.0-(downTime.Minutes()/totalTime.Minutes()))
+	return availability, avgDuration, nil
 }
 
 // CurrentlyClosed returns whether this line is closed right now
