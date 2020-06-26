@@ -26,7 +26,7 @@
       </div>
     </div>
   </div>
-  <div class="app-promo">
+  <div class="app-promo" id="app-promo">
     <div class="pure-g content">
       <div class="pure-u-1 pure-u-sm-1-3" style="text-align: center;">
         <a href='https://play.google.com/store/apps/details?id=im.tny.segvault.disturbances&utm_source=perturbacoes.pt&utm_campaign=midindex-banner&pcampaignid=MKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Disponível no Google Play' src='https://play.google.com/intl/en_us/badges/images/generic/pt_badge_web_generic.png'/></a>
@@ -143,6 +143,9 @@
       var hourCounter = new flipCounter('hourCounter', {value: getRandomInt(900, 1000), inc: 1, pace: 1000, auto: false, places: 3});
       animate(dayCounter, {{ .Days }});
       animate(hourCounter, {{ .Hours }});
+      if(navigator.platform && /iPad|iPhone|iPod/.test(navigator.platform)) {
+        document.getElementById('app-promo').style.display = "none";
+      }
     };
 
     function animate(counter, target) {
