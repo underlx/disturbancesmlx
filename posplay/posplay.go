@@ -12,16 +12,16 @@ import (
 	"github.com/bwmarrin/discordgo"
 	cache "github.com/patrickmn/go-cache"
 	uuid "github.com/satori/go.uuid"
-	"github.com/underlx/disturbancesmlx/types"
 	"github.com/underlx/disturbancesmlx/discordbot"
+	"github.com/underlx/disturbancesmlx/types"
 
 	"github.com/gbl08ma/sqalx"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 
-	"github.com/gbl08ma/keybox"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/gbl08ma/keybox"
 	"golang.org/x/oauth2"
 )
 
@@ -151,8 +151,8 @@ func Initialize(ppconfig Config) error {
 		ClientSecret: clientSecret,
 		Scopes:       []string{"identify"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  "https://discordapp.com/api/oauth2/authorize",
-			TokenURL: "https://discordapp.com/api/oauth2/token",
+			AuthURL:  "https://discord.com/api/oauth2/authorize",
+			TokenURL: "https://discord.com/api/oauth2/token",
 		},
 	}
 
