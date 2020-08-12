@@ -91,7 +91,7 @@ func (r *Meta) Get(c *yarf.Context) error {
 	RenderData(c, apiMeta{
 		Supported:        true,
 		Up:               true,
-		MinAndroidClient: 1,
+		MinAndroidClient: 103,
 		MOTD:             motd,
 	}, "s-maxage=10")
 	return nil
