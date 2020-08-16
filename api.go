@@ -103,6 +103,9 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/stationkb/*", new(Static).WithPath("stationkb/", "/v1/stationkb/"))
 	v1.Add("/mapassets/*", new(Static).WithPath("mapassets/", "/v1/mapassets/"))
 
+	v1.Add("/clientconfigs/android", new(resource.AndroidClientConfig).WithNode(rootSqalxNode))
+	v1.Add("/clientconfigs/android/overlayfs/*", new(Static).WithPath("stationkb/overlayfs/", "/v1/clientconfigs/android/overlayfs/"))
+
 	v1.Add("/trips", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 	v1.Add("/trips/:id", new(resource.Trip).WithNode(rootSqalxNode).WithHashKey(getHashKey()))
 
