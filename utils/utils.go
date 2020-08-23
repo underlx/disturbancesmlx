@@ -15,7 +15,7 @@ import (
 )
 
 // SupportedLocales contains the supported locales for extra and meta content
-var SupportedLocales = [...]string{"pt", "en", "es", "fr"}
+var SupportedLocales = [...]string{"pt", "en", "es", "fr", "de"}
 
 // RequestIsTLS returns whether a request was made over a HTTPS channel
 // Looks at the appropriate headers if the server is behind a proxy
