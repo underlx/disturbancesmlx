@@ -27,14 +27,15 @@ type RSSScraper struct {
 	announcements  []*types.Announcement
 	imageURLcache  *cache.Cache
 
-	URL     string
-	Network *types.Network
-	Period  time.Duration
+	ScraperID string
+	URL       string
+	Network   *types.Network
+	Period    time.Duration
 }
 
 // ID returns the ID of this scraper
 func (sc *RSSScraper) ID() string {
-	return "sc-pt-ml-rss"
+	return sc.ScraperID
 }
 
 // Init initializes the scraper

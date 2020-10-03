@@ -13,12 +13,13 @@ import (
 )
 
 var (
-	mlxscr     scraper.StatusScraper
-	mlxETAscr  scraper.ETAScraper
-	mlxcondscr scraper.ETAScraper
-	rssmlxscr  scraper.AnnouncementScraper
-	fbmlxscr   scraper.AnnouncementScraper
-	contestscr scraper.AnnouncementScraper
+	mlxscr           scraper.StatusScraper
+	mlxETAscr        scraper.ETAScraper
+	mlxcondscr       scraper.ETAScraper
+	rssmlxscr        scraper.AnnouncementScraper
+	fbmlxscr         scraper.AnnouncementScraper
+	contestscr       scraper.AnnouncementScraper
+	institutionalscr scraper.AnnouncementScraper
 
 	scrapers = make(map[string]scraper.Scraper)
 )
@@ -184,9 +185,10 @@ func SetUpAnnouncements(facebookAccessToken string) {
 
 	rssl := log.New(os.Stdout, "rssscraper", log.Ldate|log.Ltime)
 	rssmlxscr = &mlxscraper.RSSScraper{
-		URL:     network.NewsURL,
-		Network: network,
-		Period:  1 * time.Minute,
+		ScraperID: "sc-pt-ml-rss",
+		URL:       network.NewsURL,
+		Network:   network,
+		Period:    1 * time.Minute,
 	}
 	rssmlxscr.Init(rssl, SendNotificationForAnnouncement)
 	rssmlxscr.Begin()
@@ -210,13 +212,27 @@ func SetUpAnnouncements(facebookAccessToken string) {
 	contestl := log.New(os.Stdout, "contestscraper", log.Ldate|log.Ltime)
 
 	contestscr = &mlxscraper.RSSScraper{
-		URL:     "https://passatempos.metrolisboa.pt/feed/",
-		Network: network,
-		Period:  5 * time.Minute,
+		ScraperID: "sc-pt-ml-contests-rss",
+		URL:       "https://passatempos.metrolisboa.pt/feed/",
+		Network:   network,
+		Period:    5 * time.Minute,
 	}
 	contestscr.Init(contestl, SendNotificationForContest)
 	contestscr.Begin()
 	scrapers[contestscr.ID()] = contestscr
+
+	// institutional website scraper - not really connected to the general announcements framework for now
+	institutionall := log.New(os.Stdout, "institutionalscraper", log.Ldate|log.Ltime)
+
+	institutionalscr = &mlxscraper.RSSScraper{
+		ScraperID: "sc-pt-ml-institutional-rss",
+		URL:       "https://www.metrolisboa.pt/institucional/feed/",
+		Network:   network,
+		Period:    5 * time.Minute,
+	}
+	institutionalscr.Init(institutionall, SendNotificationForInstitutionalPost)
+	institutionalscr.Begin()
+	scrapers[institutionalscr.ID()] = institutionalscr
 }
 
 // TearDownAnnouncements terminates and cleans up the scrapers used to obtain network announcements

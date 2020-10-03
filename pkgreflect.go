@@ -13,19 +13,20 @@ var Types = map[string]reflect.Type{
 }
 
 var Functions = map[string]reflect.Value{
-	"APIserver":                       reflect.ValueOf(APIserver),
-	"DiscordBot":                      reflect.ValueOf(DiscordBot),
-	"SendMetaBroadcast":               reflect.ValueOf(SendMetaBroadcast),
-	"SendNotificationForAnnouncement": reflect.ValueOf(SendNotificationForAnnouncement),
-	"SendNotificationForContest":      reflect.ValueOf(SendNotificationForContest),
-	"SendNotificationForDisturbance":  reflect.ValueOf(SendNotificationForDisturbance),
-	"SendPersonalNotification":        reflect.ValueOf(SendPersonalNotification),
-	"SetUpAnnouncements":              reflect.ValueOf(SetUpAnnouncements),
-	"SetUpScrapers":                   reflect.ValueOf(SetUpScrapers),
-	"StatsSender":                     reflect.ValueOf(StatsSender),
-	"TearDownAnnouncements":           reflect.ValueOf(TearDownAnnouncements),
-	"TearDownScrapers":                reflect.ValueOf(TearDownScrapers),
-	"WebServer":                       reflect.ValueOf(WebServer),
+	"APIserver":                            reflect.ValueOf(APIserver),
+	"DiscordBot":                           reflect.ValueOf(DiscordBot),
+	"SendMetaBroadcast":                    reflect.ValueOf(SendMetaBroadcast),
+	"SendNotificationForAnnouncement":      reflect.ValueOf(SendNotificationForAnnouncement),
+	"SendNotificationForContest":           reflect.ValueOf(SendNotificationForContest),
+	"SendNotificationForDisturbance":       reflect.ValueOf(SendNotificationForDisturbance),
+	"SendNotificationForInstitutionalPost": reflect.ValueOf(SendNotificationForInstitutionalPost),
+	"SendPersonalNotification":             reflect.ValueOf(SendPersonalNotification),
+	"SetUpAnnouncements":                   reflect.ValueOf(SetUpAnnouncements),
+	"SetUpScrapers":                        reflect.ValueOf(SetUpScrapers),
+	"StatsSender":                          reflect.ValueOf(StatsSender),
+	"TearDownAnnouncements":                reflect.ValueOf(TearDownAnnouncements),
+	"TearDownScrapers":                     reflect.ValueOf(TearDownScrapers),
+	"WebServer":                            reflect.ValueOf(WebServer),
 }
 
 var Variables = map[string]reflect.Value{

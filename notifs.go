@@ -169,3 +169,8 @@ func handleControlNotifs(notiftype string, enable bool) {
 func SendNotificationForContest(a *types.Announcement) {
 
 }
+
+// SendNotificationForInstitutionalPost does nothing (stub method to be overriden on runtime by our awesome scripting system)
+func SendNotificationForInstitutionalPost(a *types.Announcement) {
+
+}
