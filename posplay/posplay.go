@@ -480,7 +480,7 @@ func playerXPinfoWithTx(tx sqalx.Node, userID string) (discordbot.PosPlayXPInfo,
 	avatar := userAvatarURL(uidConvS(userID), "256")
 	if player.LBPrivacy == PrivateLBPrivacy {
 		username = player.AnonymousName()
-		avatar = fmt.Sprintf("https://api.adorable.io/avatars/256/%d.png", player.Seed())
+		avatar = fmt.Sprintf("https://robohash.org/%d.png?set=set2&size=256x256", player.Seed())
 	}
 	xp, level, progress, err := player.Level(tx)
 	if err != nil {
