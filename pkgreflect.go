@@ -30,9 +30,10 @@ var Functions = map[string]reflect.Value{
 }
 
 var Variables = map[string]reflect.Value{
-	"APIrequestTelemetry": reflect.ValueOf(&APIrequestTelemetry),
-	"BuildDate":           reflect.ValueOf(&BuildDate),
-	"GitCommit":           reflect.ValueOf(&GitCommit),
+	"APIrequestTelemetry":  reflect.ValueOf(&APIrequestTelemetry),
+	"BuildDate":            reflect.ValueOf(&BuildDate),
+	"GitCommit":            reflect.ValueOf(&GitCommit),
+	"PairRequestTelemetry": reflect.ValueOf(&PairRequestTelemetry),
 }
 
 var Consts = map[string]reflect.Value{

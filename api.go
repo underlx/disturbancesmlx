@@ -122,7 +122,8 @@ func APIserver(trustedClientCertPath string) {
 	v1.Add("/pair", new(resource.Pair).
 		WithNode(rootSqalxNode).
 		WithPublicKey(pubkey).
-		WithHashKey(getHashKey()))
+		WithHashKey(getHashKey()).
+		WithTelemetryChannel(PairRequestTelemetry))
 
 	v1.Add("/pair/connections", new(resource.PairConnection).
 		WithNode(rootSqalxNode).
@@ -164,7 +165,7 @@ func (m *TelemetryMiddleware) PostDispatch(c *yarf.Context) error {
 	apiTotalRequests++
 	// non-blocking send
 	select {
-	case APIrequestTelemetry <- true:
+	case APIrequestTelemetry <- struct{}{}:
 	default:
 	}
 

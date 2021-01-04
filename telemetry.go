@@ -13,6 +13,10 @@ import (
 // request is served
 var APIrequestTelemetry = make(chan interface{}, 10)
 
+// PairRequestTelemetry is a channel where a bool should be sent whenever
+// a pair request succeeds (true) or fails (false)
+var PairRequestTelemetry = make(chan bool, 10)
+
 // StatsSender is meant to be called as a goroutine that handles sending telemetry
 // to a statsd (or compatible) server
 func StatsSender() {
@@ -81,6 +85,12 @@ func StatsSender() {
 
 		case <-APIrequestTelemetry:
 			c.Increment("apicalls")
+		case success := <-PairRequestTelemetry:
+			if success {
+				c.Increment("pairrequest.success")
+			} else {
+				c.Increment("pairrequest.failure")
+			}
 		}
 	}
 }

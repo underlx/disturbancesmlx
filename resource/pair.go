@@ -22,6 +22,7 @@ type Pair struct {
 	resource
 	trustedClientPublicKey *ecdsa.PublicKey
 	hashKey                []byte
+	telemetryChannel       chan bool
 }
 
 type apiPairRequest struct {
@@ -68,8 +69,25 @@ func (r *Pair) WithHashKey(key []byte) *Pair {
 	return r
 }
 
+// WithTelemetryChannel associates a telemetry channel with this resource
+func (r *Pair) WithTelemetryChannel(c chan bool) *Pair {
+	r.telemetryChannel = c
+	return r
+}
+
+func (r *Pair) sendTelemetry(success bool) {
+	// non-blocking send
+	select {
+	case r.telemetryChannel <- success:
+	default:
+	}
+}
+
 // Post serves HTTP POST requests on this resource
-func (r *Pair) Post(c *yarf.Context) error {
+func (r *Pair) Post(c *yarf.Context) (err error) {
+	defer func() {
+		r.sendTelemetry(err == nil)
+	}()
 	tx, err := r.Beginx()
 	if err != nil {
 		return err
