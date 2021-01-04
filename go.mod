@@ -56,3 +56,5 @@ require (
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1
 )
+
+replace github.com/yarf-framework/yarf => github.com/gbl08ma/yarf v0.8.7
