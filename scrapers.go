@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -233,6 +234,22 @@ func SetUpAnnouncements(facebookAccessToken string) {
 	institutionalscr.Init(institutionall, SendNotificationForInstitutionalPost)
 	institutionalscr.Begin()
 	scrapers[institutionalscr.ID()] = institutionalscr
+}
+
+// RegisterAndStartNewRSSScraper registers and starts a new ad-hoc RSS scraper
+func RegisterAndStartNewRSSScraper(scraperID string, url string, network *types.Network, period time.Duration, callback func(announcement *types.Announcement)) *mlxscraper.RSSScraper {
+	slog := log.New(ioutil.Discard, "", log.Ldate|log.Ltime)
+
+	scr := &mlxscraper.RSSScraper{
+		ScraperID: scraperID,
+		URL:       url,
+		Network:   network,
+		Period:    period,
+	}
+	scr.Init(slog, callback)
+	scr.Begin()
+	scrapers[scr.ID()] = scr
+	return scr
 }
 
 // TearDownAnnouncements terminates and cleans up the scrapers used to obtain network announcements

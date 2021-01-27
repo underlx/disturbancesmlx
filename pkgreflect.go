@@ -15,6 +15,7 @@ var Types = map[string]reflect.Type{
 var Functions = map[string]reflect.Value{
 	"APIserver":                            reflect.ValueOf(APIserver),
 	"DiscordBot":                           reflect.ValueOf(DiscordBot),
+	"RegisterAndStartNewRSSScraper":        reflect.ValueOf(RegisterAndStartNewRSSScraper),
 	"SendMetaBroadcast":                    reflect.ValueOf(SendMetaBroadcast),
 	"SendNotificationForAnnouncement":      reflect.ValueOf(SendNotificationForAnnouncement),
 	"SendNotificationForContest":           reflect.ValueOf(SendNotificationForContest),
