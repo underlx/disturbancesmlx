@@ -457,21 +457,21 @@ func (line *Line) CurrentlyClosed(tx sqalx.Node) (bool, error) {
 	return closedDuration > 0, nil
 }
 
-func (line *Line) getClosedDuration(tx sqalx.Node, startTime time.Time, endTime time.Time) (time.Duration, error) {
+func (line *Line) getOpenSpans(tx sqalx.Node, startTime time.Time, endTime time.Time) ([]timespan.Span, error) {
 	schedules, err := line.Schedules(tx)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	location, err := time.LoadLocation(line.Network.Timezone)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	startTime = startTime.In(location)
 	endTime = endTime.In(location)
 
-	var openDuration time.Duration
+	openSpans := []timespan.Span{}
 	wholeSpan := timespan.New(startTime, endTime.Sub(startTime))
 	// expand one day on both sides so we can be sure the schedule info captures everything
 	ct := startTime.AddDate(0, 0, -1)
@@ -480,14 +480,28 @@ func (line *Line) getClosedDuration(tx sqalx.Node, startTime time.Time, endTime 
 		schedule := line.getScheduleForDay(ct, schedules)
 		openTime := time.Time(schedule.OpenTime)
 		openTime = time.Date(ct.Year(), ct.Month(), ct.Day(), openTime.Hour(), openTime.Minute(), openTime.Second(), openTime.Nanosecond(), ct.Location())
-		closeTime := openTime.Add(time.Duration(schedule.OpenDuration))
 
-		openSpan := timespan.New(openTime, closeTime.Sub(openTime))
-		d, hasIntersection := wholeSpan.Intersection(openSpan)
+		openSpan := timespan.New(openTime, time.Duration(schedule.OpenDuration))
+		intersection, hasIntersection := wholeSpan.Intersection(openSpan)
 		if hasIntersection {
-			openDuration += d.Duration()
+			openSpans = append(openSpans, intersection)
 		}
 		ct = ct.AddDate(0, 0, 1)
+	}
+
+	return openSpans, nil
+}
+
+func (line *Line) getClosedDuration(tx sqalx.Node, startTime time.Time, endTime time.Time) (time.Duration, error) {
+	wholeSpan := timespan.New(startTime, endTime.Sub(startTime))
+
+	openSpans, err := line.getOpenSpans(tx, startTime, endTime)
+	if err != nil {
+		return 0, err
+	}
+	var openDuration time.Duration
+	for _, s := range openSpans {
+		openDuration += s.Duration()
 	}
 
 	return wholeSpan.Duration() - openDuration, nil
@@ -538,6 +552,11 @@ func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endT
 		return 0, 0, err
 	}
 
+	openSpans, err := line.getOpenSpans(tx, startTime, endTime)
+	if err != nil {
+		return 0, 0, err
+	}
+
 	var downTime time.Duration
 	for _, d := range disturbances {
 		var thisEnd, thisStart time.Time
@@ -562,7 +581,11 @@ func (line *Line) DisturbanceDuration(node sqalx.Node, startTime time.Time, endT
 		if thisStart.Before(startTime) {
 			thisStart = startTime
 		}
-		downTime += thisEnd.Sub(thisStart)
+		for _, openSpan := range openSpans {
+			if intersection, intersects := timespan.New(thisStart, thisEnd.Sub(thisStart)).Intersection(openSpan); intersects {
+				downTime += intersection.Duration()
+			}
+		}
 	}
 	return downTime, len(disturbances), nil
 }
