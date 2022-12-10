@@ -101,12 +101,9 @@ func (sc *Scraper) Running() bool {
 }
 
 func (sc *Scraper) getURL() string {
-	if time.Since(sc.randomGeneration) > 0 {
-		bytes := make([]byte, 5)
-		if _, err := rand.Read(bytes); err == nil {
-			sc.lastRandom = hex.EncodeToString(bytes)
-			sc.randomGeneration = time.Now().Add(time.Duration(4*60+mathrand.Intn(8*60)) * time.Minute)
-		}
+	bytes := make([]byte, 5)
+	if _, err := rand.Read(bytes); err == nil {
+		sc.lastRandom = hex.EncodeToString(bytes)
 	}
 	return "https://www.metrolisboa.pt/estado_linhas.php?security=" + sc.lastRandom
 }
@@ -181,7 +178,11 @@ func (sc *Scraper) update() {
 			}
 
 			sc.previousResponse = content
+		} else {
+			sc.log.Println("Response is the same as the previous one, ignoring")
 		}
+	} else {
+		sc.log.Println("Response has non-200 status or is too large, ignoring")
 	}
 }
 
