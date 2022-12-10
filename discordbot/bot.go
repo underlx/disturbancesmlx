@@ -135,7 +135,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 
 	discordToken, present := keybox.Get("token")
 	if !present {
-		return errors.New("Discord bot token not present in keybox")
+		return errors.New("discord bot token not present in keybox")
 	}
 
 	adminChannelID, present := keybox.Get("adminChannel")
@@ -147,6 +147,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 	if err != nil {
 		return err
 	}
+	dg.Identify.Intents = discordgo.IntentsAllWithoutPrivileged | discordgo.IntentsAll
 	session = dg
 
 	selfApp, err := dg.Application("@me")
@@ -301,7 +302,7 @@ func Start(snode sqalx.Node, swebsiteURL string, keybox *keybox.Keybox,
 		return err
 	}
 	if user.Username != "UnderLX" {
-		_, err := dg.UserUpdate("", "", "UnderLX", "", "")
+		_, err := dg.UserUpdate("UnderLX", "")
 		if err != nil {
 			return err
 		}
@@ -333,7 +334,7 @@ func Stop() {
 // CreateInvite creates a single-use invite for the specified channel
 func CreateInvite(channelID, requesterIPaddr, utmSource string) (*discordgo.Invite, error) {
 	if !started || session == nil {
-		return nil, fmt.Errorf("Bot not ready")
+		return nil, fmt.Errorf("bot not ready")
 	}
 	invite := discordgo.Invite{
 		MaxAge:    600,
@@ -346,12 +347,11 @@ func CreateInvite(channelID, requesterIPaddr, utmSource string) (*discordgo.Invi
 		if err != nil {
 			return i, err
 		}
-		inviteTime, _ := i.CreatedAt.Parse()
 		recentInvites.SetDefault(uuid.String(), inviteInfo{
 			Code:            i.Code,
 			RequesterIPAddr: requesterIPaddr,
 			RequestTime:     time.Now(),
-			InviteTime:      inviteTime,
+			InviteTime:      i.CreatedAt,
 			UTMsource:       utmSource,
 		})
 	}
@@ -730,7 +730,7 @@ func handleMOTD(s *discordgo.Session, m *discordgo.MessageCreate, words []string
 func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []string) {
 	var err error
 	if len(words) == 0 {
-		err = s.UpdateStatus(0, "")
+		err = s.UpdateGameStatus(0, "")
 	} else if len(words) > 0 {
 		usd := &discordgo.UpdateStatusData{
 			Status: "online",
@@ -738,29 +738,39 @@ func handleStatus(s *discordgo.Session, m *discordgo.MessageCreate, words []stri
 
 		switch words[0] {
 		case "playing":
-			usd.Game = &discordgo.Game{
-				Name: strings.Join(words[1:], " "),
-				Type: discordgo.GameTypeGame,
+			usd.Activities = []*discordgo.Activity{
+				{
+					Name: strings.Join(words[1:], " "),
+					Type: discordgo.ActivityTypeGame,
+				},
 			}
 		case "streaming":
-			usd.Game = &discordgo.Game{
-				Type: discordgo.GameTypeGame,
-				URL:  strings.Join(words[1:], " "),
+			usd.Activities = []*discordgo.Activity{
+				{
+					Name: strings.Join(words[1:], " "),
+					Type: discordgo.ActivityTypeStreaming,
+				},
 			}
 		case "listening":
-			usd.Game = &discordgo.Game{
-				Name: strings.Join(words[1:], " "),
-				Type: discordgo.GameTypeListening,
+			usd.Activities = []*discordgo.Activity{
+				{
+					Name: strings.Join(words[1:], " "),
+					Type: discordgo.ActivityTypeListening,
+				},
 			}
 		case "watching":
-			usd.Game = &discordgo.Game{
-				Name: strings.Join(words[1:], " "),
-				Type: discordgo.GameTypeWatching,
+			usd.Activities = []*discordgo.Activity{
+				{
+					Name: strings.Join(words[1:], " "),
+					Type: discordgo.ActivityTypeWatching,
+				},
 			}
 		default:
-			usd.Game = &discordgo.Game{
-				Name: strings.Join(words, " "),
-				Type: discordgo.GameTypeGame,
+			usd.Activities = []*discordgo.Activity{
+				{
+					Name: strings.Join(words, " "),
+					Type: discordgo.ActivityTypeGame,
+				},
 			}
 		}
 

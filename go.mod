@@ -8,7 +8,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/RobinUS2/golang-moving-average v1.0.0
 	github.com/SaidinWoT/timespan v0.0.0-20160403210742-a3d8e4741124
-	github.com/bwmarrin/discordgo v0.16.1-0.20181203210524-4abf4d7de66a
+	github.com/bwmarrin/discordgo v0.26.1
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/dchest/uniuri v0.0.0-20160212164326-8902c56451e9
 	github.com/gbl08ma/ankiddie v0.1.0
@@ -49,10 +49,9 @@ require (
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	github.com/yarf-framework/yarf v0.8.6
 	go.tianon.xyz/progress v0.0.0-20181012173354-ace047765ac3
-	golang.org/x/crypto v0.0.0-20191010185427-af544f31c8ac // indirect
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
-	golang.org/x/text v0.3.2
+	golang.org/x/text v0.3.3
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1
 )
