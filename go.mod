@@ -50,8 +50,7 @@ require (
 	github.com/yarf-framework/yarf v0.8.6
 	go.tianon.xyz/progress v0.0.0-20181012173354-ace047765ac3
 	golang.org/x/oauth2 v0.0.0-20181203162652-d668ce993890
-	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
-	golang.org/x/text v0.3.3
+	golang.org/x/text v0.3.8
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0
 	gopkg.in/vmihailenco/msgpack.v2 v2.9.1
 )
