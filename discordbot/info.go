@@ -12,7 +12,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/gbl08ma/sqalx"
-	cedar "github.com/iohub/Ahocorasick"
+	cedar "github.com/iohub/ahocorasick"
 	"github.com/underlx/disturbancesmlx/types"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
@@ -105,34 +105,39 @@ func (i *InfoHandler) HandleMessage(s *discordgo.Session, m *discordgo.MessageCr
 		return false
 	}
 	cbytes := []byte(content)
-	matches := i.triggerMatcher.Match(cbytes)
-	for _, match := range matches {
-		trigger := match.Value.(trigger)
-		startIdx := match.At - match.KLen + 1
-		endIdx := match.At + 1
+	resp := i.triggerMatcher.Match(cbytes)
+	for resp.HasNext() {
+		items := resp.NextMatchItem(cbytes)
+		for _, match := range items {
+			trigger := match.Value.(trigger)
+			startIdx := match.At - match.KLen + 1
+			endIdx := match.At + 1
 
-		if startIdx > 0 && !i.isWordSeparator(string(cbytes[startIdx-1:startIdx])) {
-			// case like "abcpt-ml"
-			continue
-		}
-		if endIdx < len(cbytes) && !i.isWordSeparator(string(cbytes[endIdx:endIdx+1])) {
-			// case like "pt-mlabc" or "pt-ml-verde" (we want to trigger on pt-ml-verde, not just pt-ml)
-			continue
-		}
-
-		if trigger.light {
-			key := lastUsageKey{
-				channelID: m.ChannelID,
-				id:        trigger.id}
-			if t, ok := i.lightTriggersLastUsage[key]; ok && time.Since(t) < 10*time.Minute {
+			if startIdx > 0 && !i.isWordSeparator(string(cbytes[startIdx-1:startIdx])) {
+				// case like "abcpt-ml"
 				continue
 			}
-			i.lightTriggersLastUsage[key] = time.Now()
-		}
+			if endIdx < len(cbytes) && !i.isWordSeparator(string(cbytes[endIdx:endIdx+1])) {
+				// case like "pt-mlabc" or "pt-ml-verde" (we want to trigger on pt-ml-verde, not just pt-ml)
+				continue
+			}
 
-		i.sendReply(s, m, trigger.id, trigger.original, trigger.wordType, trigger.light)
-		actedUpon = true
+			if trigger.light {
+				key := lastUsageKey{
+					channelID: m.ChannelID,
+					id:        trigger.id}
+				if t, ok := i.lightTriggersLastUsage[key]; ok && time.Since(t) < 10*time.Minute {
+					continue
+				}
+				i.lightTriggersLastUsage[key] = time.Now()
+			}
+
+			i.sendReply(s, m, trigger.id, trigger.original, trigger.wordType, trigger.light)
+			actedUpon = true
+		}
 	}
+	// release buffer to sync.Pool
+	resp.Release()
 	if actedUpon {
 		i.actedUponCount++
 	}
