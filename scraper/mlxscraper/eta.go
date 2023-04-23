@@ -87,11 +87,6 @@ func (sc *ETAScraper) Begin() {
 	sc.stopChan = make(chan struct{}, 1)
 	sc.ticker = time.NewTicker(sc.Period)
 	sc.running = true
-	err := sc.fetchDestinos()
-	if err != nil {
-		sc.log.Fatalln(err)
-		return
-	}
 	go sc.mainLoop()
 }
 
@@ -115,7 +110,19 @@ func (sc *ETAScraper) estimateValidity() {
 
 func (sc *ETAScraper) mainLoop() {
 	for {
+		err := sc.fetchDestinos()
+		if err == nil {
+			break
+		}
+		sc.log.Fatalln(err)
+		select {
+		case <-sc.stopChan:
+			return
+		case <-sc.ticker.C:
+		}
+	}
 
+	for {
 		select {
 		case <-sc.stopChan:
 			return
