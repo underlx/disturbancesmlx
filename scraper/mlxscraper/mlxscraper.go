@@ -2,12 +2,9 @@ package mlxscraper
 
 import (
 	"bytes"
-	"crypto/rand"
-	"encoding/hex"
+	"encoding/json"
 	"io"
-	"io/ioutil"
 	"log"
-	mathrand "math/rand"
 	"net/http"
 	"sort"
 
@@ -15,7 +12,6 @@ import (
 
 	"time"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/gbl08ma/sqalx"
 	uuid "github.com/satori/go.uuid"
 	"github.com/underlx/disturbancesmlx/types"
@@ -28,16 +24,14 @@ type Scraper struct {
 	stopChan         chan struct{}
 	lineIDs          []string
 	lineNames        []string
-	detLineNames     []string
-	estadoLineNames  []string
+	shortLineNames   []string
 	lines            map[string]*types.Line
 	previousResponse []byte
 	log              *log.Logger
 	lastUpdate       time.Time
 
-	lastRandom       string
-	randomGeneration time.Time
-
+	EndpointURL    string
+	BearerToken    string
 	StatusCallback func(status *types.Status)
 	Network        *types.Network
 	Source         *types.Source
@@ -52,13 +46,11 @@ func (sc *Scraper) ID() string {
 
 // Init initializes the scraper
 func (sc *Scraper) Init(node sqalx.Node, log *log.Logger) {
-	mathrand.Seed(time.Now().UnixNano())
 	sc.log = log
 
 	sc.lineIDs = []string{"pt-ml-azul", "pt-ml-amarela", "pt-ml-verde", "pt-ml-vermelha"}
 	sc.lineNames = []string{"azul", "amarela", "verde", "vermelha"}
-	sc.estadoLineNames = []string{"Azul", "Amarela", "Verde", "Vermelha"}
-	sc.detLineNames = []string{"Azul", "Amar", "Verde", "Verm"}
+	sc.shortLineNames = []string{"az", "am", "vd", "vm"}
 
 	sc.lines = make(map[string]*types.Line)
 
@@ -100,14 +92,6 @@ func (sc *Scraper) Running() bool {
 	return sc.running
 }
 
-func (sc *Scraper) getURL() string {
-	bytes := make([]byte, 5)
-	if _, err := rand.Read(bytes); err == nil {
-		sc.lastRandom = hex.EncodeToString(bytes)
-	}
-	return "https://www.metrolisboa.pt/estado_linhas.php?security=" + sc.lastRandom
-}
-
 func (sc *Scraper) scrape() {
 	sc.update()
 	sc.log.Println("Scraper completed second fetch")
@@ -122,42 +106,63 @@ func (sc *Scraper) scrape() {
 	}
 }
 
+func (sc *Scraper) headerToken() string {
+	return "Bearer " + sc.BearerToken
+}
+
 func (sc *Scraper) update() {
-	response, err := sc.HTTPClient.Get(sc.getURL())
+	req, err := http.NewRequest(http.MethodGet, sc.EndpointURL+"/estadoLinha/todos", nil)
 	if err != nil {
 		sc.log.Println(err)
 		return
 	}
+
+	req.Header.Set("Authorization", sc.headerToken())
+	response, err := sc.HTTPClient.Do(req)
+	if err != nil {
+		sc.log.Println("Error fetching line statuses:", err)
+		return
+	}
 	defer response.Body.Close()
+
 	// making sure they don't troll us
 	if response.ContentLength < 1024*1024 && response.StatusCode == http.StatusOK {
 		var buf bytes.Buffer
 		tee := io.TeeReader(response.Body, &buf)
-		content, err := ioutil.ReadAll(tee)
+		content, err := io.ReadAll(tee)
 		if err != nil {
 			sc.log.Println(err)
 			return
 		}
 		if !bytes.Equal(content, sc.previousResponse) {
 			sc.log.Printf("New status with length %d\n", len(content))
-			if len(content) < 1000 {
-				sc.log.Println("Length too short, probably an error message and not the content we want, ignoring")
+
+			parsed := make(map[string]interface{})
+			err := json.Unmarshal(buf.Bytes(), &parsed)
+			if err != nil {
+				sc.log.Println("Error parsing line status JSON:", err)
 				return
 			}
 
-			doc, err := goquery.NewDocumentFromReader(&buf)
-			if err != nil {
-				sc.log.Println(err)
+			parsed, ok := parsed["resposta"].(map[string]interface{})
+			if !ok || parsed == nil {
+				sc.log.Println("Field `resposta` not found in response")
 				return
 			}
 
 			for i, lineID := range sc.lineIDs {
-				style, _ := doc.Find("#circ_" + sc.lineNames[i]).First().Find("span").Attr("style")
-				statusMsg := doc.Find("#det" + sc.detLineNames[i]).Contents().Not("strong").Text()
-				statusMsg = strings.TrimSpace(statusMsg)
-				if strings.HasSuffix(statusMsg, ".") {
-					statusMsg = statusMsg[0 : len(statusMsg)-1]
+				statusAny, ok := parsed[sc.lineNames[i]]
+				if !ok {
+					sc.log.Println("Status for line", sc.lineNames[i], "not found in response")
+					continue
 				}
+				statusMsg, ok := statusAny.(string)
+				if !ok {
+					sc.log.Println("Status for line", sc.lineNames[i], "is not a string")
+					continue
+				}
+				statusMsg = strings.TrimSpace(statusMsg)
+				statusMsg = strings.TrimSuffix(statusMsg, ".")
 
 				sc.lastUpdate = time.Now().UTC()
 
@@ -172,8 +177,11 @@ func (sc *Scraper) update() {
 					Status: statusMsg,
 					Source: sc.Source,
 				}
+				status.IsDowntime = strings.ToLower(status.Status) != "ok"
+				if !status.IsDowntime {
+					status.Status = "circulação normal" // for consistency with the previous data source
+				}
 				status.ComputeMsgType()
-				status.IsDowntime = !strings.Contains(style, "#33FF00") && status.MsgType != types.MLClosedMessage
 				sc.StatusCallback(status)
 			}
 

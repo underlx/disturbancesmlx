@@ -114,7 +114,7 @@ func (sc *ETAScraper) mainLoop() {
 		if err == nil {
 			break
 		}
-		sc.log.Fatalln(err)
+		sc.log.Println(err)
 		select {
 		case <-sc.stopChan:
 			return

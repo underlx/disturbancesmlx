@@ -69,7 +69,9 @@ func SetUpScrapers(node sqalx.Node, mlAccessToken string) error {
 			Automatic: true,
 			Official:  true,
 		},
-		Period: 1 * time.Minute,
+		Period:      20 * time.Second,
+		BearerToken: mlAccessToken,
+		EndpointURL: "https://api.metrolisboa.pt:8243/estadoServicoML/1.0.1",
 	}
 	mlxscr.Init(rootSqalxNode,
 		log.New(os.Stdout, "mlxscraper", log.Ldate|log.Ltime))
