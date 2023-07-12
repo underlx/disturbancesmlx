@@ -162,6 +162,7 @@ func (sc *Scraper) update() {
 					continue
 				}
 				statusMsg = strings.TrimSpace(statusMsg)
+				statusMsg = strings.TrimSuffix(statusMsg, ".0")
 				statusMsg = strings.TrimSuffix(statusMsg, ".")
 
 				sc.lastUpdate = time.Now().UTC()
