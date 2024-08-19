@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -188,7 +189,7 @@ func (sc *ETAScraper) fetchDestinos() error {
 		return err
 	}
 
-	responseBytes, err := ioutil.ReadAll(response.Body)
+	responseBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return err
 	}
@@ -325,15 +326,15 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 			return err
 		}
 		creation = creation.Add(timeOffset)
-		if creation.Sub(time.Now()) > 1*time.Second {
-			sc.log.Println("Warning: received ETA seems to have been computed in the future by", creation.Sub(time.Now()))
+		if time.Until(creation) > 1*time.Second {
+			sc.log.Println("Warning: received ETA seems to have been computed in the future by", time.Until(creation))
 		}
 
 		commonETA := types.VehicleETA{
 			Station:   station,
 			Direction: sc.getDirection(dirETA),
 			Computed:  creation,
-			ValidFor:  time.Now().Sub(creation) + sc.etaValidity,
+			ValidFor:  time.Since(creation) + sc.etaValidity,
 			Precision: 1 * time.Second,
 			Type:      types.RelativeExact,
 			Platform:  dirETA.Cais,
@@ -348,7 +349,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 		if dirETA.Comboio != "" { // TODO identify how lack of next train is identified
 			firstETA := commonETA
 			firstETA.ArrivalOrder = 1
-			firstETA.VehicleServiceID = dirETA.Comboio
+			firstETA.VehicleServiceID = strings.TrimLeft(dirETA.Comboio, "0")
 			seconds, err := strconv.Atoi(dirETA.TempoChegada1)
 			if err != nil {
 				return err
@@ -368,7 +369,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 		if dirETA.Comboio2 != "" { // TODO identify how lack of next train is identified
 			secondETA := commonETA
 			secondETA.ArrivalOrder = 2
-			secondETA.VehicleServiceID = dirETA.Comboio2
+			secondETA.VehicleServiceID = strings.TrimLeft(dirETA.Comboio2, "0")
 			seconds, err := strconv.Atoi(dirETA.TempoChegada2)
 			if err != nil {
 				return err
@@ -382,7 +383,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 		if dirETA.Comboio3 != "" { // TODO identify how lack of next train is identified
 			thirdETA := commonETA
 			thirdETA.ArrivalOrder = 3
-			thirdETA.VehicleServiceID = dirETA.Comboio3
+			thirdETA.VehicleServiceID = strings.TrimLeft(dirETA.Comboio3, "0")
 			seconds, err := strconv.Atoi(dirETA.TempoChegada3)
 			if err != nil {
 				return err

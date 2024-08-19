@@ -189,7 +189,7 @@ func (sc *ConditionsScraper) fetchConditionsForLine(line *types.Line) error {
 
 	freqStr := data.Resposta.Intervalo
 	if len(freqStr) != 8 {
-		return errors.New("Invalid Intervalo string")
+		return errors.New("invalid Intervalo string")
 	}
 	freqStr = freqStr[0:2] + "m" + freqStr[3:5] + "s"
 
