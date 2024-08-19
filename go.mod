@@ -1,6 +1,8 @@
 module github.com/underlx/disturbancesmlx
 
-go 1.20
+go 1.23
+
+toolchain go1.23.0
 
 require (
 	github.com/Masterminds/squirrel v1.5.3
@@ -14,7 +16,7 @@ require (
 	github.com/gbl08ma/anko v100.1.2+incompatible
 	github.com/gbl08ma/gmqtt v0.0.0-20190507141315-dfa80c738f24
 	github.com/gbl08ma/keybox v0.0.0-20180718235424-285a9d753c87
-	github.com/gbl08ma/monkey v1.1.0
+	github.com/gbl08ma/monkey v1.2.0
 	github.com/gbl08ma/sqalx v0.5.3
 	github.com/gbl08ma/ssoclient v0.0.0-20180119211306-11586264f66c
 	github.com/goodsign/monday v1.0.0
