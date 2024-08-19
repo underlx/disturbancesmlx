@@ -24,21 +24,21 @@ type VehicleETAHandler struct {
 
 var platformAliasesForPositions = map[string]string{
 	"AP5APO": "AP8APO", // pt-ml-ap
-	"AS6RBO": "AS7RBO", // pt-ml-rb
+	"RBC6RB": "RBC7RB", // pt-ml-rb
 	"CS6O":   "CS13O",  // pt-ml-cs
 	"CS27O":  "CS13O",  // pt-ml-cs (2nd departure platform)
 	"TE5O":   "TE12O",  // pt-ml-te
 	"S27O":   "S26O",   // pt-ml-ss
-	"SP2O":   "SP9O",   // pt-ml-sp
+	"SPC2SP": "SPC9SP", // pt-ml-sp
 }
 
 var terminalArrivalPlatforms = map[string]bool{
 	"AP5APO": true,
-	"AS6RBO": true,
+	"RBC6RB": true,
 	"CS6O":   true,
 	"TE5O":   true,
 	"S27O":   true,
-	"SP2O":   true,
+	"SPC2SP": true,
 }
 
 // NewVehicleETAHandler returns a new VehicleETAHandler
