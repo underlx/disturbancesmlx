@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -153,18 +152,36 @@ type responseStruct struct {
 }
 
 type directionETAs struct {
-	StopID        string `json:"stop_id"`
-	Cais          string `json:"cais"`
-	Hora          string `json:"hora"`
-	Comboio       string `json:"comboio"`
-	TempoChegada1 string `json:"tempoChegada1"`
-	Comboio2      string `json:"comboio2"`
-	TempoChegada2 string `json:"tempoChegada2"`
-	Comboio3      string `json:"comboio3"`
-	TempoChegada3 string `json:"tempoChegada3"`
-	Destino       string `json:"destino"`
-	SairServico   string `json:"sairServico"`
-	UT            string `json:"UT"`
+	StopID        string           `json:"stop_id"`
+	Cais          string           `json:"cais"`
+	Hora          string           `json:"hora"`
+	Comboio       string           `json:"comboio"`
+	TempoChegada1 tempoChegadaType `json:"tempoChegada1"`
+	Comboio2      string           `json:"comboio2"`
+	TempoChegada2 tempoChegadaType `json:"tempoChegada2"`
+	Comboio3      string           `json:"comboio3"`
+	TempoChegada3 tempoChegadaType `json:"tempoChegada3"`
+	Destino       string           `json:"destino"`
+	SairServico   int              `json:"sairServico"`
+	UT            int              `json:"UT"`
+}
+
+// tempoChegadaType can be a JSON number or a string "--", we define a custom decoder to handle this
+type tempoChegadaType int
+
+func (t *tempoChegadaType) UnmarshalJSON(b []byte) error {
+	s := string(b)
+	if len(s) > 0 && s[0] == '"' {
+		// let's just discard any string and behave as if it's zero
+		*t = 0
+		return nil
+	}
+	var v int
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	*t = tempoChegadaType(v)
+	return nil
 }
 
 type responseStructDirections struct {
@@ -251,6 +268,7 @@ func (sc *ETAScraper) fetchStations() (time.Duration, error) {
 	var data responseStruct
 	err = json.Unmarshal(responseBytes, &data)
 	if err != nil {
+		fmt.Println("ORIGINAL DECODE ERROR", err)
 		var altData responseStructAlternative
 		err := json.Unmarshal(responseBytes, &altData)
 		if err != nil {
@@ -350,18 +368,10 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 			firstETA := commonETA
 			firstETA.ArrivalOrder = 1
 			firstETA.VehicleServiceID = strings.TrimLeft(dirETA.Comboio, "0")
-			seconds, err := strconv.Atoi(dirETA.TempoChegada1)
-			if err != nil {
-				return err
-			}
-			firstETA.SetETA(time.Duration(seconds) * time.Second)
+			firstETA.SetETA(time.Duration(dirETA.TempoChegada1) * time.Second)
 
 			// we assume that the number in UT applies to the next train only
-			ut, err := strconv.Atoi(dirETA.UT)
-			if err != nil {
-				ut = 0
-			}
-			firstETA.TransportUnits = ut * 3
+			firstETA.TransportUnits = dirETA.UT * 3
 			sc.NewETACallback(&firstETA)
 		}
 
@@ -370,11 +380,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 			secondETA := commonETA
 			secondETA.ArrivalOrder = 2
 			secondETA.VehicleServiceID = strings.TrimLeft(dirETA.Comboio2, "0")
-			seconds, err := strconv.Atoi(dirETA.TempoChegada2)
-			if err != nil {
-				return err
-			}
-			secondETA.SetETA(time.Duration(seconds) * time.Second)
+			secondETA.SetETA(time.Duration(dirETA.TempoChegada2) * time.Second)
 
 			sc.NewETACallback(&secondETA)
 		}
@@ -384,11 +390,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 			thirdETA := commonETA
 			thirdETA.ArrivalOrder = 3
 			thirdETA.VehicleServiceID = strings.TrimLeft(dirETA.Comboio3, "0")
-			seconds, err := strconv.Atoi(dirETA.TempoChegada3)
-			if err != nil {
-				return err
-			}
-			thirdETA.SetETA(time.Duration(seconds) * time.Second)
+			thirdETA.SetETA(time.Duration(dirETA.TempoChegada3) * time.Second)
 
 			sc.NewETACallback(&thirdETA)
 		}

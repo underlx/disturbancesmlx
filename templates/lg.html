@@ -94,6 +94,7 @@
         <a class="anchor" id="footnotes"></a>
         <p><sup>[1]</sup> Valores previstos pelo Metro para a hora de carregamento desta página.</p>
         <p><sup>[2]</sup> Comboio destinado à estação <a href="/s/pt-ml-cg">Campo Grande</a>.</p>
+        <p><sup>[3]</sup> Comboio composto por três carruagens.</p>
       </div>
       <div class="pure-u-1-1">
         <span class="anchor" id="positions"></span><h2>Localização dos comboios</h2>
@@ -250,6 +251,9 @@
           td.innerHTML = minutes+':'+seconds;
           if (eta.direction === "pt-ml-cg") {
             td.innerHTML += '<sup> <a class="cleanlink" href="#footnotes">[2]</a></sup>';
+          }
+          if (eta.cars === 3) {
+            td.innerHTML += '<sup> <a class="cleanlink" href="#footnotes">[3]</a></sup>';
           }
         }
       }
