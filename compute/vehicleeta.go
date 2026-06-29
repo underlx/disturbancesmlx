@@ -24,7 +24,6 @@ type VehicleETAHandler struct {
 
 var platformAliasesForPositions = map[string]string{
 	"AP5APO": "AP8APO", // pt-ml-ap
-	"RBC6RB": "RBC7RB", // pt-ml-rb
 	"CS6O":   "CS13O",  // pt-ml-cs
 	"CS27O":  "CS13O",  // pt-ml-cs (2nd departure platform)
 	"TE5O":   "TE12O",  // pt-ml-te
@@ -34,7 +33,6 @@ var platformAliasesForPositions = map[string]string{
 
 var terminalArrivalPlatforms = map[string]bool{
 	"AP5APO": true,
-	"RBC6RB": true,
 	"CS6O":   true,
 	"TE5O":   true,
 	"S27O":   true,

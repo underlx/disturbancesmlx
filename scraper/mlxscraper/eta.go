@@ -172,8 +172,8 @@ type tempoChegadaType int
 func (t *tempoChegadaType) UnmarshalJSON(b []byte) error {
 	s := string(b)
 	if len(s) > 0 && s[0] == '"' {
-		// let's just discard any string and behave as if it's zero
-		*t = 0
+		// let's cause this element to be ignored
+		*t = -1
 		return nil
 	}
 	var v int
@@ -364,7 +364,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 		}
 
 		// ETA for next train
-		if dirETA.Comboio != "" { // TODO identify how lack of next train is identified
+		if dirETA.Comboio != "" && dirETA.TempoChegada1 >= 0 {
 			firstETA := commonETA
 			firstETA.ArrivalOrder = 1
 			firstETA.VehicleServiceID = strings.TrimLeft(dirETA.Comboio, "0")
@@ -376,7 +376,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 		}
 
 		// ETA for train after next train
-		if dirETA.Comboio2 != "" { // TODO identify how lack of next train is identified
+		if dirETA.Comboio2 != "" && dirETA.TempoChegada2 >= 0 {
 			secondETA := commonETA
 			secondETA.ArrivalOrder = 2
 			secondETA.VehicleServiceID = strings.TrimLeft(dirETA.Comboio2, "0")
@@ -386,7 +386,7 @@ func (sc *ETAScraper) processETAdata(dirETAs []directionETAs, timeOffset time.Du
 		}
 
 		// ETA for train after next two trains
-		if dirETA.Comboio3 != "" { // TODO identify how lack of next train is identified
+		if dirETA.Comboio3 != "" && dirETA.TempoChegada3 >= 0 {
 			thirdETA := commonETA
 			thirdETA.ArrivalOrder = 3
 			thirdETA.VehicleServiceID = strings.TrimLeft(dirETA.Comboio3, "0")
